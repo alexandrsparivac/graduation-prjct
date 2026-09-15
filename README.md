@@ -45,3 +45,4 @@ Orice parolă de cel puţin şase caractere este acceptată în demo.
 
 - [Arhitectură](docs/architecture.md)
 - [Contract API REST](docs/api.md)
+- [Testare funcţională](docs/testing.md)
