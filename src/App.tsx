@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { ArrowRight, BarChart3, Bell, BookOpen, ChartNoAxesColumnIncreasing, Clock3, Home, Library as LibraryIcon, Mail, MessageCircle, Mic2, Presentation, Search, Settings as SettingsIcon, ShieldCheck, Sparkles, Users, type LucideIcon } from 'lucide-react'
 import './App.css'
 
 type View = 'overview' | 'plan' | 'library' | 'progress' | 'settings' | 'assessment' | 'recommendations' | 'speaking' | 'trainer' | 'admin'
@@ -14,10 +15,10 @@ const demoUsers: User[] = [
 ]
 
 const modules = [
-  { label: 'Conversații', icon: '◌', detail: 'Învață să conduci conversații naturale.' },
-  { label: 'Scriere profesională', icon: '▤', detail: 'Scrie emailuri clare și convingătoare.' },
-  { label: 'Prezentări', icon: '▱', detail: 'Prezintă idei cu siguranță.' },
-  { label: 'Vocabular', icon: '✦', detail: 'Construiește un vocabular relevant pentru rolul tău.' },
+  { label: 'Conversații', icon: MessageCircle, detail: 'Învață să conduci conversații naturale.' },
+  { label: 'Scriere profesională', icon: Mail, detail: 'Scrie emailuri clare și convingătoare.' },
+  { label: 'Prezentări', icon: Presentation, detail: 'Prezintă idei cu siguranță.' },
+  { label: 'Vocabular', icon: BookOpen, detail: 'Construiește un vocabular relevant pentru rolul tău.' },
 ]
 
 const initialLessons: Lesson[] = [
@@ -82,17 +83,17 @@ function App() {
         <nav aria-label="Navigare principală">
           <p className="nav-label">{user.role === 'learner' ? 'Spațiul meu' : 'Management'}</p>
           {user.role === 'learner' && <>
-            <NavButton icon="⌂" label="Overview" view="overview" current={view} onClick={setView} />
-            <NavButton icon="◷" label="Planul meu" badge={3} view="plan" current={view} onClick={setView} />
-            <NavButton icon="▣" label="Biblioteca" view="library" current={view} onClick={setView} />
-            <NavButton icon="◎" label="Progres" view="progress" current={view} onClick={setView} />
-            <NavButton icon="✦" label="Recomandări" view="recommendations" current={view} onClick={setView} />
-            <NavButton icon="◉" label="Practică orală" view="speaking" current={view} onClick={setView} />
+            <NavButton icon={Home} label="Overview" view="overview" current={view} onClick={setView} />
+            <NavButton icon={Clock3} label="Planul meu" badge={3} view="plan" current={view} onClick={setView} />
+            <NavButton icon={LibraryIcon} label="Biblioteca" view="library" current={view} onClick={setView} />
+            <NavButton icon={BarChart3} label="Progres" view="progress" current={view} onClick={setView} />
+            <NavButton icon={Sparkles} label="Recomandări" view="recommendations" current={view} onClick={setView} />
+            <NavButton icon={Mic2} label="Practică orală" view="speaking" current={view} onClick={setView} />
           </>}
-          {user.role === 'trainer' && <NavButton icon="▤" label="Conținut și cursanți" view="trainer" current={view} onClick={setView} />}
-          {user.role === 'admin' && <NavButton icon="▦" label="Utilizatori" view="admin" current={view} onClick={setView} />}
+          {user.role === 'trainer' && <NavButton icon={Users} label="Conținut și cursanți" view="trainer" current={view} onClick={setView} />}
+          {user.role === 'admin' && <NavButton icon={ShieldCheck} label="Utilizatori" view="admin" current={view} onClick={setView} />}
           <p className="nav-label">Cont</p>
-          <NavButton icon="⚙" label="Setări" view="settings" current={view} onClick={setView} />
+          <NavButton icon={SettingsIcon} label="Setări" view="settings" current={view} onClick={setView} />
         </nav>
         <div className="sidebar-bottom"><div className="streak"><span>✦</span><div><strong>7 zile la rând</strong><small>Ține ritmul!</small></div></div><button className="help" aria-label="Ajutor">?</button></div>
       </aside>
@@ -100,8 +101,8 @@ function App() {
       <main className="main-content">
         <header className="topbar"><div className="breadcrumb">Marți, 24 septembrie 2024 <span>/</span> {viewLabel(view)}</div><div className="top-actions">
           {searchOpen && <input autoFocus className="search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută o lecție..." />}
-          <button className="icon-button" aria-label="Caută" onClick={() => setSearchOpen(!searchOpen)}>⌕</button>
-          <button className="notification" aria-label="Notificări" onClick={() => setNotificationsOpen(!notificationsOpen)}>♧<i />{notificationsOpen && <span className="notification-popover">Ai un obiectiv nou pentru săptămâna aceasta.</span>}</button>
+          <button className="icon-button" aria-label="Caută" onClick={() => setSearchOpen(!searchOpen)}><Search size={18} strokeWidth={2} /></button>
+          <button className="notification" aria-label="Notificări" onClick={() => setNotificationsOpen(!notificationsOpen)}><Bell size={18} strokeWidth={2} /><i />{notificationsOpen && <span className="notification-popover">Ai un obiectiv nou pentru săptămâna aceasta.</span>}</button>
           <div className="avatar avatar-large">{initials}</div>
         </div></header>
 
@@ -146,8 +147,8 @@ function AuthPortal({ onEnter }: { onEnter: (user: User) => void }) {
 
 function roleLabel(role: Role) { return { learner: 'Cursant', trainer: 'Formator', admin: 'Administrator' }[role] }
 
-function NavButton({ icon, label, badge, view, current, onClick }: { icon: string; label: string; badge?: number; view: View; current: View; onClick: (view: View) => void }) {
-  return <button className={current === view ? 'nav-item selected' : 'nav-item'} onClick={() => onClick(view)}><span>{icon}</span> {label} {badge && <b>{badge}</b>}</button>
+function NavButton({ icon: Icon, label, badge, view, current, onClick }: { icon: LucideIcon; label: string; badge?: number; view: View; current: View; onClick: (view: View) => void }) {
+  return <button className={current === view ? 'nav-item selected' : 'nav-item'} onClick={() => onClick(view)}><span><Icon size={16} strokeWidth={2} /></span> {label} {badge && <b>{badge}</b>}</button>
 }
 
 function Overview({ lessons, activeModule, setActiveModule, beginLesson, activeLesson, answer, setAnswer, finishLesson, user }: { lessons: Lesson[]; activeModule: string; setActiveModule: (value: string) => void; beginLesson: (lesson: Lesson) => void; activeLesson: Lesson | null; answer: string | null; setAnswer: (answer: string) => void; finishLesson: () => void; user: User }) {
@@ -155,8 +156,8 @@ function Overview({ lessons, activeModule, setActiveModule, beginLesson, activeL
   return <>
     <section className="welcome reveal"><div><p className="eyebrow">Bun venit înapoi, {user.name.split(' ')[0]}</p><h1>Construiește-ți vocea<br /><em>profesională.</em></h1><p className="intro">Învață engleză relevantă pentru munca ta, în ritmul tău.</p></div><div className="weekly-card"><span className="weekly-icon">◒</span><div><small>OBIECTIV SĂPTĂMÂNAL</small><strong>3 din 5 sesiuni</strong></div><div className="progress-ring">60%</div></div></section>
     {activeLesson ? <Practice lesson={activeLesson} answer={answer} setAnswer={setAnswer} finishLesson={finishLesson} /> : <section className="focus-card reveal"><div className="focus-copy"><div className="section-kicker"><span className="live-dot" /> RECOMANDAT PENTRU TINE</div><h2>{featured.title}</h2><p>Învață să începi conversații naturale și să lași o impresie memorabilă.</p><div className="focus-meta"><span>◷ {featured.duration}</span><span>◌ {featured.meta}</span><span>● Nivel {featured.level}</span></div><button className="primary-button" onClick={() => beginLesson(featured)}>Începe sesiunea <span>→</span></button></div><div className="focus-visual"><div className="sun-shape" /><div className="visual-label">Ready when you are</div><span className="visual-line line-one" /><span className="visual-line line-two" /></div></section>}
-    <section className="module-section reveal"><div className="section-heading"><div><p className="eyebrow">Continuă explorarea</p><h2>Învață pentru lumea ta</h2></div><button className="text-button">Vezi tot <span>→</span></button></div><div className="module-tabs">{modules.map((module) => <button key={module.label} className={activeModule === module.label ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule(module.label)}><span>{module.icon}</span>{module.label}</button>)}</div></section>
-    <section className="bottom-grid reveal"><div className="lessons-panel"><div className="section-heading"><div><p className="eyebrow">Planul tău</p><h2>Următoarele sesiuni</h2></div><button className="text-button">Plan complet <span>→</span></button></div><div className="lesson-list">{lessons.map((lesson) => <LessonRow key={lesson.title} lesson={lesson} onClick={() => beginLesson(lesson)} />)}</div></div><aside className="quote-panel"><span className="quote-mark">“</span><blockquote>Consistency is<br /><em>the language</em><br />of progress.</blockquote><small>— James Clear</small><div className="quote-dots"><i /><i /><i /></div></aside></section>
+    <section className="module-section reveal"><div className="section-heading"><div><p className="eyebrow">Continuă explorarea</p><h2>Învață pentru lumea ta</h2></div><button className="text-button">Vezi tot <ArrowRight size={14} /></button></div><div className="module-tabs">{modules.map((module) => { const ModuleIcon = module.icon; return <button key={module.label} className={activeModule === module.label ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule(module.label)}><span><ModuleIcon size={17} strokeWidth={2} /></span>{module.label}</button> })}</div></section>
+    <section className="bottom-grid reveal"><div className="lessons-panel"><div className="section-heading"><div><p className="eyebrow">Planul tău</p><h2>Următoarele sesiuni</h2></div><button className="text-button">Plan complet <ArrowRight size={14} /></button></div><div className="lesson-list">{lessons.map((lesson) => <LessonRow key={lesson.title} lesson={lesson} onClick={() => beginLesson(lesson)} />)}</div></div><aside className="focus-panel"><div className="focus-panel-icon"><ChartNoAxesColumnIncreasing size={19} /></div><p className="eyebrow">FOCUS PENTRU AZI</p><h3>12 minute pentru un pas înainte</h3><p>Continuă sesiunea începută și exersează o conversație reală.</p><div className="focus-panel-meta"><span><Clock3 size={13} /> 12 min</span><span><BarChart3 size={13} /> 72%</span></div><button className="focus-link" onClick={() => beginLesson(lessons[0])}>Continuă lecția <ArrowRight size={14} /></button></aside></section>
   </>
 }
 
@@ -168,7 +169,7 @@ function Practice({ lesson, answer, setAnswer, finishLesson }: { lesson: Lesson;
 function LessonRow({ lesson, onClick }: { lesson: Lesson; onClick: () => void }) { return <article className="lesson" onClick={onClick} role="button" tabIndex={0} onKeyDown={(event) => event.key === 'Enter' && onClick()}><div className={`lesson-art ${lesson.color}`}><span>{lesson.color === 'peach' ? '◌' : lesson.color === 'blue' ? '✉' : '↗'}</span></div><div className="lesson-body"><div className="lesson-title"><strong>{lesson.title}</strong><span>{lesson.progress === 0 ? 'Nou' : `${lesson.progress}%`}</span></div><small>{lesson.duration} · {lesson.meta}</small><div className="bar"><i style={{ width: `${lesson.progress}%` }} /></div></div><button className="more" aria-label={`Deschide ${lesson.title}`}>→</button></article> }
 
 function Plan({ lessons, beginLesson }: { lessons: Lesson[]; beginLesson: (lesson: Lesson) => void }) { return <Page title="Planul tău de învățare" eyebrow="Ritmul tău, obiectivele tale" description="Sesiunile tale sunt organizate în funcție de rolul profesional și timpul disponibil."><div className="plan-summary"><div><strong>3</strong><span>sesiuni<br />săptămâna aceasta</span></div><div><strong>42</strong><span>minute<br />învățate</span></div><div><strong>B2</strong><span>nivel<br />curent</span></div></div><div className="full-list">{lessons.map((lesson) => <LessonRow key={lesson.title} lesson={lesson} onClick={() => beginLesson(lesson)} />)}</div></Page> }
-function Library({ activeModule, setActiveModule, lessons, beginLesson }: { activeModule: string; setActiveModule: (value: string) => void; lessons: Lesson[]; beginLesson: (lesson: Lesson) => void }) { return <Page title="Biblioteca de practică" eyebrow="Alege-ți direcția" description="Conținut scurt, aplicabil și construit pentru situațiile pe care le întâlnești la muncă."><div className="library-tabs">{modules.map((module) => <button className={activeModule === module.label ? 'library-tab active' : 'library-tab'} key={module.label} onClick={() => setActiveModule(module.label)}><span>{module.icon}</span><strong>{module.label}</strong><small>{module.detail}</small></button>)}</div><div className="section-heading library-heading"><h2>Lecții recomandate în {activeModule.toLowerCase()}</h2></div><div className="full-list">{lessons.map((lesson) => <LessonRow key={lesson.title} lesson={lesson} onClick={() => beginLesson(lesson)} />)}</div></Page> }
+function Library({ activeModule, setActiveModule, lessons, beginLesson }: { activeModule: string; setActiveModule: (value: string) => void; lessons: Lesson[]; beginLesson: (lesson: Lesson) => void }) { return <Page title="Biblioteca de practică" eyebrow="Alege-ți direcția" description="Conținut scurt, aplicabil și construit pentru situațiile pe care le întâlnești la muncă."><div className="library-tabs">{modules.map((module) => { const ModuleIcon = module.icon; return <button className={activeModule === module.label ? 'library-tab active' : 'library-tab'} key={module.label} onClick={() => setActiveModule(module.label)}><span><ModuleIcon size={21} strokeWidth={2} /></span><strong>{module.label}</strong><small>{module.detail}</small></button> })}</div><div className="section-heading library-heading"><h2>Lecții recomandate în {activeModule.toLowerCase()}</h2></div><div className="full-list">{lessons.map((lesson) => <LessonRow key={lesson.title} lesson={lesson} onClick={() => beginLesson(lesson)} />)}</div></Page> }
 function Progress({ lessons, completed }: { lessons: Lesson[]; completed: number }) { const average = Math.round(lessons.reduce((sum, lesson) => sum + lesson.progress, 0) / lessons.length); return <Page title="Progresul tău" eyebrow="Vezi cât de departe ai ajuns" description="Micile sesiuni repetate se transformă în încredere reală la muncă."><div className="progress-hero"><div className="big-progress">{average}%<small>progres total</small></div><div className="progress-copy"><strong>Construiești un obicei solid.</strong><p>Ai finalizat {completed} lecții și ai o serie activă de 7 zile.</p><div className="bar large"><i style={{ width: `${average}%` }} /></div></div></div><div className="progress-breakdown">{lessons.map((lesson) => <div key={lesson.title}><div><strong>{lesson.title}</strong><span>{lesson.progress}%</span></div><div className="bar"><i style={{ width: `${lesson.progress}%` }} /></div></div>)}</div></Page> }
 function PlacementAssessment({ user, onComplete }: { user: User; onComplete: (profile: { level: string; domain: string; goal: string }) => void }) {
   const questions = [{ text: 'Completează: “I ___ responsible for the project timeline.”', answers: ['am', 'is', 'are'], correct: 0 }, { text: 'Alege formula potrivită într-un email profesional.', answers: ['Could we schedule a call?', 'Give me an answer.', 'I want it now.'], correct: 0 }, { text: 'Ce înseamnă “to meet a deadline”?', answers: ['A respecta un termen limită', 'A începe o ședință', 'A scrie un raport'], correct: 0 }]
