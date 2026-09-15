@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import './App.css'
 
-type View = 'overview' | 'plan' | 'library' | 'progress' | 'settings'
+type View = 'overview' | 'plan' | 'library' | 'progress' | 'settings' | 'assessment' | 'recommendations' | 'speaking' | 'trainer' | 'admin'
+type Role = 'learner' | 'trainer' | 'admin'
+type User = { id: string; name: string; email: string; role: Role; profileComplete?: boolean }
 type Lesson = { title: string; meta: string; progress: number; color: string; level: string; duration: string }
+
+const demoUsers: User[] = [
+  { id: 'learner-demo', name: 'Andrei Mureșan', email: 'learner@linguapro.demo', role: 'learner', profileComplete: true },
+  { id: 'trainer-demo', name: 'Irina Popescu', email: 'trainer@linguapro.demo', role: 'trainer', profileComplete: true },
+  { id: 'admin-demo', name: 'Admin LinguaPro', email: 'admin@linguapro.demo', role: 'admin', profileComplete: true },
+]
 
 const modules = [
   { label: 'Conversații', icon: '◌', detail: 'Învață să conduci conversații naturale.' },
@@ -19,6 +28,10 @@ const initialLessons: Lesson[] = [
 
 function App() {
   const [view, setView] = useState<View>('overview')
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('linguapro-session')
+    return saved ? JSON.parse(saved) : null
+  })
   const [lessons, setLessons] = useState<Lesson[]>(() => {
     const saved = localStorage.getItem('altera-lessons')
     return saved ? JSON.parse(saved) : initialLessons
@@ -32,6 +45,10 @@ function App() {
   const [compactMode, setCompactMode] = useState(false)
 
   useEffect(() => localStorage.setItem('altera-lessons', JSON.stringify(lessons)), [lessons])
+  useEffect(() => {
+    if (user) localStorage.setItem('linguapro-session', JSON.stringify(user))
+    else localStorage.removeItem('linguapro-session')
+  }, [user])
 
   const filteredLessons = useMemo(() => lessons.filter((lesson) => `${lesson.title} ${lesson.meta}`.toLowerCase().includes(search.toLowerCase())), [lessons, search])
   const completed = lessons.filter((lesson) => lesson.progress >= 100).length
@@ -48,17 +65,32 @@ function App() {
     setActiveLesson(null)
   }
 
+  const enterSession = (nextUser: User) => {
+    setUser(nextUser)
+    setView(nextUser.role === 'learner' && !nextUser.profileComplete ? 'assessment' : nextUser.role === 'trainer' ? 'trainer' : nextUser.role === 'admin' ? 'admin' : 'overview')
+  }
+
+  if (!user) return <AuthPortal onEnter={enterSession} />
+
+  const initials = user.name.split(' ').map((word) => word[0]).join('').slice(0, 2).toUpperCase()
+
   return (
     <div className={compactMode ? 'app-shell compact-mode' : 'app-shell'}>
       <aside className="sidebar">
         <div className="brand"><span className="brand-mark">A</span><span>altera</span></div>
-        <div className="profile-mini"><span className="avatar">AM</span><div><strong>Andrei Mureșan</strong><small>Product manager</small></div><span>⌄</span></div>
+        <div className="profile-mini"><span className="avatar">{initials}</span><div><strong>{user.name}</strong><small>{roleLabel(user.role)}</small></div><span>⌄</span></div>
         <nav aria-label="Navigare principală">
-          <p className="nav-label">Spațiul meu</p>
-          <NavButton icon="⌂" label="Overview" view="overview" current={view} onClick={setView} />
-          <NavButton icon="◷" label="Planul meu" badge={3} view="plan" current={view} onClick={setView} />
-          <NavButton icon="▣" label="Biblioteca" view="library" current={view} onClick={setView} />
-          <NavButton icon="◎" label="Progres" view="progress" current={view} onClick={setView} />
+          <p className="nav-label">{user.role === 'learner' ? 'Spațiul meu' : 'Management'}</p>
+          {user.role === 'learner' && <>
+            <NavButton icon="⌂" label="Overview" view="overview" current={view} onClick={setView} />
+            <NavButton icon="◷" label="Planul meu" badge={3} view="plan" current={view} onClick={setView} />
+            <NavButton icon="▣" label="Biblioteca" view="library" current={view} onClick={setView} />
+            <NavButton icon="◎" label="Progres" view="progress" current={view} onClick={setView} />
+            <NavButton icon="✦" label="Recomandări" view="recommendations" current={view} onClick={setView} />
+            <NavButton icon="◉" label="Practică orală" view="speaking" current={view} onClick={setView} />
+          </>}
+          {user.role === 'trainer' && <NavButton icon="▤" label="Conținut și cursanți" view="trainer" current={view} onClick={setView} />}
+          {user.role === 'admin' && <NavButton icon="▦" label="Utilizatori" view="admin" current={view} onClick={setView} />}
           <p className="nav-label">Cont</p>
           <NavButton icon="⚙" label="Setări" view="settings" current={view} onClick={setView} />
         </nav>
@@ -70,29 +102,58 @@ function App() {
           {searchOpen && <input autoFocus className="search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută o lecție..." />}
           <button className="icon-button" aria-label="Caută" onClick={() => setSearchOpen(!searchOpen)}>⌕</button>
           <button className="notification" aria-label="Notificări" onClick={() => setNotificationsOpen(!notificationsOpen)}>♧<i />{notificationsOpen && <span className="notification-popover">Ai un obiectiv nou pentru săptămâna aceasta.</span>}</button>
-          <div className="avatar avatar-large">AM</div>
+          <div className="avatar avatar-large">{initials}</div>
         </div></header>
 
         <div className="content-inner">
-          {view === 'overview' && <Overview lessons={filteredLessons} activeModule={activeModule} setActiveModule={setActiveModule} beginLesson={beginLesson} activeLesson={activeLesson} answer={answer} setAnswer={setAnswer} finishLesson={finishLesson} />}
+          {view === 'overview' && <Overview lessons={filteredLessons} activeModule={activeModule} setActiveModule={setActiveModule} beginLesson={beginLesson} activeLesson={activeLesson} answer={answer} setAnswer={setAnswer} finishLesson={finishLesson} user={user} />}
           {view === 'plan' && <Plan lessons={filteredLessons} beginLesson={beginLesson} />}
           {view === 'library' && <Library activeModule={activeModule} setActiveModule={setActiveModule} lessons={filteredLessons} beginLesson={beginLesson} />}
           {view === 'progress' && <Progress lessons={lessons} completed={completed} />}
-          {view === 'settings' && <Settings compactMode={compactMode} setCompactMode={setCompactMode} />}
+          {view === 'assessment' && <PlacementAssessment user={user} onComplete={(profile) => { const updated = { ...user, profileComplete: true }; setUser(updated); localStorage.setItem('linguapro-profile', JSON.stringify(profile)); setView('overview') }} />}
+          {view === 'recommendations' && <Recommendations lessons={lessons} beginLesson={beginLesson} />}
+          {view === 'speaking' && <SpeakingPractice />}
+          {view === 'trainer' && <TrainerWorkspace />}
+          {view === 'admin' && <AdminPanel />}
+          {view === 'settings' && <Settings compactMode={compactMode} setCompactMode={setCompactMode} user={user} onLogout={() => { setUser(null); setView('overview') }} onAssessment={() => setView('assessment')} />}
         </div>
       </main>
     </div>
   )
 }
 
+function AuthPortal({ onEnter }: { onEnter: (user: User) => void }) {
+  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [role, setRole] = useState<Role>('learner')
+  const [error, setError] = useState('')
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const email = String(data.get('email') || '').trim().toLowerCase()
+    const name = String(data.get('name') || '').trim()
+    if (!email.includes('@')) return setError('Introdu o adresă de email validă.')
+    if (mode === 'login') {
+      const user = demoUsers.find((candidate) => candidate.email === email)
+      if (!user) return setError('Folosește unul dintre conturile demo sau creează un cont nou.')
+      onEnter(user)
+      return
+    }
+    if (name.length < 2) return setError('Introdu numele tău pentru a continua.')
+    onEnter({ id: crypto.randomUUID(), name, email, role, profileComplete: role !== 'learner' })
+  }
+  return <main className="auth-layout"><section className="auth-intro"><div className="brand"><span className="brand-mark">L</span><span>linguapro</span></div><p className="eyebrow">ÎNVĂȚARE ÎN CONTEXT PROFESIONAL</p><h1>O limbă care lucrează <em>pentru tine.</em></h1><p>Construiește încredere în situațiile reale din profesia ta, de la primul email până la următoarea prezentare.</p></section><section className="auth-card"><p className="eyebrow">{mode === 'login' ? 'BINE AI REVENIT' : 'CREEAZĂ UN CONT'}</p><h2>{mode === 'login' ? 'Intră în spațiul tău' : 'Începe parcursul personalizat'}</h2><form onSubmit={submit}><label>{mode === 'register' && <>Nume complet<input name="name" placeholder="Ex. Elena Rusu" /></>}<span>Adresă de email</span><input name="email" type="email" placeholder="nume@companie.md" required /></label><label><span>Parolă</span><input name="password" type="password" minLength={6} placeholder="Minimum 6 caractere" required /></label>{mode === 'register' && <fieldset><legend>Rol în platformă</legend><div className="role-picker">{(['learner', 'trainer', 'admin'] as Role[]).map((item) => <button type="button" className={role === item ? 'active' : ''} onClick={() => setRole(item)} key={item}>{roleLabel(item)}</button>)}</div></fieldset>}{error && <p className="form-error">{error}</p>}<button className="primary-button" type="submit">{mode === 'login' ? 'Autentificare' : 'Creează contul'} <span>→</span></button></form><button className="text-button auth-switch" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}>{mode === 'login' ? 'Nu ai cont? Înregistrează-te' : 'Ai deja cont? Autentifică-te'}</button><div className="demo-accounts"><strong>Conturi demo</strong>{demoUsers.map((account) => <button onClick={() => onEnter(account)} key={account.email}>{account.email} · {roleLabel(account.role)}</button>)}</div></section></main>
+}
+
+function roleLabel(role: Role) { return { learner: 'Cursant', trainer: 'Formator', admin: 'Administrator' }[role] }
+
 function NavButton({ icon, label, badge, view, current, onClick }: { icon: string; label: string; badge?: number; view: View; current: View; onClick: (view: View) => void }) {
   return <button className={current === view ? 'nav-item selected' : 'nav-item'} onClick={() => onClick(view)}><span>{icon}</span> {label} {badge && <b>{badge}</b>}</button>
 }
 
-function Overview({ lessons, activeModule, setActiveModule, beginLesson, activeLesson, answer, setAnswer, finishLesson }: { lessons: Lesson[]; activeModule: string; setActiveModule: (value: string) => void; beginLesson: (lesson: Lesson) => void; activeLesson: Lesson | null; answer: string | null; setAnswer: (answer: string) => void; finishLesson: () => void }) {
+function Overview({ lessons, activeModule, setActiveModule, beginLesson, activeLesson, answer, setAnswer, finishLesson, user }: { lessons: Lesson[]; activeModule: string; setActiveModule: (value: string) => void; beginLesson: (lesson: Lesson) => void; activeLesson: Lesson | null; answer: string | null; setAnswer: (answer: string) => void; finishLesson: () => void; user: User }) {
   const featured = lessons[0]
   return <>
-    <section className="welcome reveal"><div><p className="eyebrow">Bun venit înapoi, Andrei</p><h1>Construiește-ți vocea<br /><em>profesională.</em></h1><p className="intro">Învață engleză relevantă pentru munca ta, în ritmul tău.</p></div><div className="weekly-card"><span className="weekly-icon">◒</span><div><small>OBIECTIV SĂPTĂMÂNAL</small><strong>3 din 5 sesiuni</strong></div><div className="progress-ring">60%</div></div></section>
+    <section className="welcome reveal"><div><p className="eyebrow">Bun venit înapoi, {user.name.split(' ')[0]}</p><h1>Construiește-ți vocea<br /><em>profesională.</em></h1><p className="intro">Învață engleză relevantă pentru munca ta, în ritmul tău.</p></div><div className="weekly-card"><span className="weekly-icon">◒</span><div><small>OBIECTIV SĂPTĂMÂNAL</small><strong>3 din 5 sesiuni</strong></div><div className="progress-ring">60%</div></div></section>
     {activeLesson ? <Practice lesson={activeLesson} answer={answer} setAnswer={setAnswer} finishLesson={finishLesson} /> : <section className="focus-card reveal"><div className="focus-copy"><div className="section-kicker"><span className="live-dot" /> RECOMANDAT PENTRU TINE</div><h2>{featured.title}</h2><p>Învață să începi conversații naturale și să lași o impresie memorabilă.</p><div className="focus-meta"><span>◷ {featured.duration}</span><span>◌ {featured.meta}</span><span>● Nivel {featured.level}</span></div><button className="primary-button" onClick={() => beginLesson(featured)}>Începe sesiunea <span>→</span></button></div><div className="focus-visual"><div className="sun-shape" /><div className="visual-label">Ready when you are</div><span className="visual-line line-one" /><span className="visual-line line-two" /></div></section>}
     <section className="module-section reveal"><div className="section-heading"><div><p className="eyebrow">Continuă explorarea</p><h2>Învață pentru lumea ta</h2></div><button className="text-button">Vezi tot <span>→</span></button></div><div className="module-tabs">{modules.map((module) => <button key={module.label} className={activeModule === module.label ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule(module.label)}><span>{module.icon}</span>{module.label}</button>)}</div></section>
     <section className="bottom-grid reveal"><div className="lessons-panel"><div className="section-heading"><div><p className="eyebrow">Planul tău</p><h2>Următoarele sesiuni</h2></div><button className="text-button">Plan complet <span>→</span></button></div><div className="lesson-list">{lessons.map((lesson) => <LessonRow key={lesson.title} lesson={lesson} onClick={() => beginLesson(lesson)} />)}</div></div><aside className="quote-panel"><span className="quote-mark">“</span><blockquote>Consistency is<br /><em>the language</em><br />of progress.</blockquote><small>— James Clear</small><div className="quote-dots"><i /><i /><i /></div></aside></section>
@@ -109,8 +170,23 @@ function LessonRow({ lesson, onClick }: { lesson: Lesson; onClick: () => void })
 function Plan({ lessons, beginLesson }: { lessons: Lesson[]; beginLesson: (lesson: Lesson) => void }) { return <Page title="Planul tău de învățare" eyebrow="Ritmul tău, obiectivele tale" description="Sesiunile tale sunt organizate în funcție de rolul profesional și timpul disponibil."><div className="plan-summary"><div><strong>3</strong><span>sesiuni<br />săptămâna aceasta</span></div><div><strong>42</strong><span>minute<br />învățate</span></div><div><strong>B2</strong><span>nivel<br />curent</span></div></div><div className="full-list">{lessons.map((lesson) => <LessonRow key={lesson.title} lesson={lesson} onClick={() => beginLesson(lesson)} />)}</div></Page> }
 function Library({ activeModule, setActiveModule, lessons, beginLesson }: { activeModule: string; setActiveModule: (value: string) => void; lessons: Lesson[]; beginLesson: (lesson: Lesson) => void }) { return <Page title="Biblioteca de practică" eyebrow="Alege-ți direcția" description="Conținut scurt, aplicabil și construit pentru situațiile pe care le întâlnești la muncă."><div className="library-tabs">{modules.map((module) => <button className={activeModule === module.label ? 'library-tab active' : 'library-tab'} key={module.label} onClick={() => setActiveModule(module.label)}><span>{module.icon}</span><strong>{module.label}</strong><small>{module.detail}</small></button>)}</div><div className="section-heading library-heading"><h2>Lecții recomandate în {activeModule.toLowerCase()}</h2></div><div className="full-list">{lessons.map((lesson) => <LessonRow key={lesson.title} lesson={lesson} onClick={() => beginLesson(lesson)} />)}</div></Page> }
 function Progress({ lessons, completed }: { lessons: Lesson[]; completed: number }) { const average = Math.round(lessons.reduce((sum, lesson) => sum + lesson.progress, 0) / lessons.length); return <Page title="Progresul tău" eyebrow="Vezi cât de departe ai ajuns" description="Micile sesiuni repetate se transformă în încredere reală la muncă."><div className="progress-hero"><div className="big-progress">{average}%<small>progres total</small></div><div className="progress-copy"><strong>Construiești un obicei solid.</strong><p>Ai finalizat {completed} lecții și ai o serie activă de 7 zile.</p><div className="bar large"><i style={{ width: `${average}%` }} /></div></div></div><div className="progress-breakdown">{lessons.map((lesson) => <div key={lesson.title}><div><strong>{lesson.title}</strong><span>{lesson.progress}%</span></div><div className="bar"><i style={{ width: `${lesson.progress}%` }} /></div></div>)}</div></Page> }
-function Settings({ compactMode, setCompactMode }: { compactMode: boolean; setCompactMode: (value: boolean) => void }) { return <Page title="Setări" eyebrow="Personalizează experiența" description="Alege cum vrei să arate și să funcționeze spațiul tău de învățare."><div className="settings-list"><label><span><strong>Interfață compactă</strong><small>Mai mult conținut vizibil pe ecran.</small></span><input type="checkbox" checked={compactMode} onChange={(event) => setCompactMode(event.target.checked)} /></label><label><span><strong>Remindere zilnice</strong><small>Primește un reminder pentru sesiunea de azi.</small></span><input type="checkbox" defaultChecked /></label><label><span><strong>Feedback după exerciții</strong><small>Vezi explicația imediat după răspuns.</small></span><input type="checkbox" defaultChecked /></label></div></Page> }
+function PlacementAssessment({ user, onComplete }: { user: User; onComplete: (profile: { level: string; domain: string; goal: string }) => void }) {
+  const questions = [{ text: 'Completează: “I ___ responsible for the project timeline.”', answers: ['am', 'is', 'are'], correct: 0 }, { text: 'Alege formula potrivită într-un email profesional.', answers: ['Could we schedule a call?', 'Give me an answer.', 'I want it now.'], correct: 0 }, { text: 'Ce înseamnă “to meet a deadline”?', answers: ['A respecta un termen limită', 'A începe o ședință', 'A scrie un raport'], correct: 0 }]
+  const [step, setStep] = useState(0); const [answers, setAnswers] = useState<number[]>([]); const [domain, setDomain] = useState('IT'); const [goal, setGoal] = useState('Să pot susține prezentări în engleză tehnică.')
+  const question = questions[step]; const select = (value: number) => { const next = [...answers, value]; setAnswers(next); if (step < questions.length - 1) setStep(step + 1); else { const score = next.filter((answer, index) => answer === questions[index].correct).length; onComplete({ level: score === 3 ? 'B2' : score >= 1 ? 'A2' : 'A1', domain, goal }) } }
+  return <Page title="Evaluarea inițială" eyebrow={`BUN VENIT, ${user.name.split(' ')[0].toUpperCase()}`} description="Răspunsurile tale ne ajută să construim un parcurs potrivit nivelului, domeniului și obiectivului tău."><div className="assessment-card"><div className="assessment-progress"><span>Pasul {step + 1} din {questions.length}</span><div className="bar"><i style={{ width: `${((step + 1) / questions.length) * 100}%` }} /></div></div><h2>{question.text}</h2><div className="answers stack">{question.answers.map((answer, index) => <button className="answer" onClick={() => select(index)} key={answer}>{answer}<span>○</span></button>)}</div><div className="profile-fields"><label>Domeniu profesional<select value={domain} onChange={(event) => setDomain(event.target.value)}><option>IT</option><option>Medicină</option><option>Drept</option><option>Afaceri</option></select></label><label>Obiectiv personal<input value={goal} onChange={(event) => setGoal(event.target.value)} /></label></div></div></Page>
+}
+
+function Recommendations({ lessons, beginLesson }: { lessons: Lesson[]; beginLesson: (lesson: Lesson) => void }) { const recommended = lessons.filter((lesson) => lesson.progress < 70); return <Page title="Recomandări pentru tine" eyebrow="ÎNVĂȚARE ADAPTIVĂ" description="Am identificat zonele în care încă poți câștiga claritate și încredere."><div className="recommendation-list">{recommended.map((lesson) => <article className="recommendation" key={lesson.title}><span className="recommendation-icon">✦</span><div><strong>{lesson.title}</strong><p>Recomandată deoarece progresul tău actual este {lesson.progress}%. O sesiune scurtă consolidează această competență.</p><button className="text-button" onClick={() => beginLesson(lesson)}>Începe exercițiul →</button></div></article>)}{!recommended.length && <p>Excelent — nu ai recomandări de recuperare acum.</p>}</div></Page> }
+
+function SpeakingPractice() { const [recording, setRecording] = useState(false); const [transcript, setTranscript] = useState(''); const [feedback, setFeedback] = useState(''); const analyse = () => { const words = transcript.trim().split(/\s+/).filter(Boolean).length; setFeedback(words >= 8 ? 'Foarte bine. Ai folosit o formulare completă. Încearcă să accentuezi cuvintele “project” și “timeline”.' : 'Adaugă un detaliu despre proiect pentru un răspuns mai natural și mai precis.') }; return <Page title="Practică orală" eyebrow="SIMULARE CONVERSAȚIONALĂ" description="Exersează răspunsuri scurte pentru situații reale. În producție, acest modul poate folosi Speech-to-Text; acum poți introduce transcrierea sau o poți simula."><div className="speaking-card"><p className="scenario-label">SCENARIU · ȘEDINȚĂ DE PROIECT</p><h2>“Could you give us a quick update on the project?”</h2><textarea value={transcript} onChange={(event) => setTranscript(event.target.value)} placeholder="Scrie răspunsul tău în engleză sau pornește simularea înregistrării..." /><div className="speaking-actions"><button className={recording ? 'recording' : 'record-button'} onClick={() => setRecording(!recording)}>{recording ? '■ Oprește înregistrarea' : '● Simulează înregistrarea'}</button><button className="primary-button" onClick={analyse} disabled={!transcript.trim()}>Primește feedback <span>→</span></button></div>{feedback && <p className="feedback good">{feedback}</p>}</div></Page> }
+
+function TrainerWorkspace() { const [courses, setCourses] = useState([{ title: 'English for Product Teams', domain: 'IT', lessons: 8 }, { title: 'Clinical communication essentials', domain: 'Medicină', lessons: 6 }]); const [title, setTitle] = useState(''); const addCourse = (event: FormEvent) => { event.preventDefault(); if (!title.trim()) return; setCourses([...courses, { title, domain: 'Afaceri', lessons: 0 }]); setTitle('') }; return <Page title="Spațiul formatorului" eyebrow="CONȚINUT ȘI CURSANȚI" description="Creează conținut profesional și urmărește cursanții înscriși în modulele tale."><div className="trainer-grid"><section><h2>Cursuri publicate</h2>{courses.map((course) => <article className="management-row" key={course.title}><div><strong>{course.title}</strong><small>{course.domain} · {course.lessons} lecții</small></div><button className="text-button">Editează</button></article>)}</section><form className="create-card" onSubmit={addCourse}><h2>Curs nou</h2><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Titlul cursului" /><button className="primary-button">Adaugă curs <span>→</span></button></form></div><section className="learner-table"><h2>Activitatea cursanților</h2><div className="management-row"><div><strong>Andrei Mureșan</strong><small>B2 · 68% progres</small></div><span className="status-pill">activ</span></div><div className="management-row"><div><strong>Maria Lupu</strong><small>B1 · 42% progres</small></div><span className="status-pill">necesită atenție</span></div></section></Page> }
+
+function AdminPanel() { const [users, setUsers] = useState(demoUsers); const toggle = (id: string) => setUsers(users.map((account) => account.id === id ? { ...account, role: account.role === 'learner' ? 'trainer' : 'learner' } : account)); return <Page title="Administrare utilizatori" eyebrow="CONTROL ACCES" description="Gestionează rolurile și accesul în platformă. Schimbările sunt păstrate numai în acest demo local."><div className="user-table"><div className="table-head"><span>Utilizator</span><span>Rol</span><span>Acțiune</span></div>{users.map((account) => <div className="table-row" key={account.id}><div><strong>{account.name}</strong><small>{account.email}</small></div><span className="role-chip">{roleLabel(account.role)}</span><button className="text-button" onClick={() => toggle(account.id)}>Schimbă rolul</button></div>)}</div></Page> }
+
+function Settings({ compactMode, setCompactMode, user, onLogout, onAssessment }: { compactMode: boolean; setCompactMode: (value: boolean) => void; user: User; onLogout: () => void; onAssessment: () => void }) { return <Page title="Setări" eyebrow="PERSONALIZEAZĂ EXPERIENȚA" description="Alege cum vrei să arate și să funcționeze spațiul tău de învățare."><div className="settings-list"><label><span><strong>Interfață compactă</strong><small>Mai mult conținut vizibil pe ecran.</small></span><input type="checkbox" checked={compactMode} onChange={(event) => setCompactMode(event.target.checked)} /></label><label><span><strong>Remindere zilnice</strong><small>Primește un reminder pentru sesiunea de azi.</small></span><input type="checkbox" defaultChecked /></label><label><span><strong>Feedback după exerciții</strong><small>Vezi explicația imediat după răspuns.</small></span><input type="checkbox" defaultChecked /></label>{user.role === 'learner' && <button className="text-button settings-action" onClick={onAssessment}>Refă evaluarea inițială</button>}<button className="logout-button" onClick={onLogout}>Deconectare</button></div></Page> }
 function Page({ title, eyebrow, description, children }: { title: string; eyebrow: string; description: string; children: React.ReactNode }) { return <section className="page-view reveal"><p className="eyebrow">{eyebrow}</p><h1 className="page-title">{title}</h1><p className="page-description">{description}</p><div className="page-content">{children}</div></section> }
-function viewLabel(view: View) { return { overview: 'Overview', plan: 'Planul meu', library: 'Biblioteca', progress: 'Progres', settings: 'Setări' }[view] }
+function viewLabel(view: View) { return { overview: 'Overview', plan: 'Planul meu', library: 'Biblioteca', progress: 'Progres', settings: 'Setări', assessment: 'Evaluare inițială', recommendations: 'Recomandări', speaking: 'Practică orală', trainer: 'Formator', admin: 'Administrare' }[view] }
 
 export default App
