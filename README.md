@@ -1,32 +1,47 @@
-# React + TypeScript + Vite
+# LinguaPro — învăţare profesională personalizată
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+O platformă web pentru învăţarea limbilor străine în contexte profesionale. Cursantul îşi stabileşte nivelul CEFR, domeniul şi obiectivul, apoi primeşte un parcurs cu lecţii, exerciţii, feedback şi recomandări relevante.
 
-Currently, two official plugins are available:
+## Ce include MVP-ul
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- autentificare demonstrativă şi roluri: cursant, formator, administrator;
+- evaluare iniţială CEFR, domeniu profesional şi obiectiv personal;
+- lecţii pentru comunicare, scriere, prezentări şi vocabular, cu feedback imediat;
+- progres local, recomandări bazate pe scor şi simulare de practică orală;
+- spaţiu de formator pentru cursuri şi cursanţi, plus administrare de roluri;
+- design responsive, cu persistenţa datelor demo în `localStorage`.
 
-## React Compiler
+## Stack şi motivaţie
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Frontend-ul este React 19 + TypeScript + Vite: tipurile reduc erorile în fluxurile cu roluri şi date educaţionale, iar Vite oferă o experienţă rapidă de dezvoltare. Pentru producţie, arhitectura recomandă Fastify + PostgreSQL + JWT/Argon2. PostgreSQL este potrivit pentru relaţiile clare dintre cursuri, lecţii, rezultate şi progres; Fastify menţine API-ul REST performant şi uşor de testat.
 
-## Expanding the Oxlint configuration
+MVP-ul nu trimite parole sau date în reţea; autentificarea şi datele sunt simulate local. Nu îl utiliza pentru conturi reale până când backend-ul documentat nu este implementat.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## Rulare locală
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Deschide adresa afişată de Vite. Pentru un build de verificare:
+
+```bash
+npm run build
+npm run lint
+```
+
+## Conturi demo
+
+| Rol | Email |
+| --- | --- |
+| Cursant | `learner@linguapro.demo` |
+| Formator | `trainer@linguapro.demo` |
+| Administrator | `admin@linguapro.demo` |
+
+Orice parolă de cel puţin şase caractere este acceptată în demo.
+
+## Documentaţie
+
+- [Arhitectură](docs/architecture.md)
+- [Contract API REST](docs/api.md)
