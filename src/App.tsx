@@ -1,121 +1,53 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
 
+const modules = [
+  { label: 'Conversații', icon: '◌' },
+  { label: 'Scriere profesională', icon: '▤' },
+  { label: 'Prezentări', icon: '▱' },
+  { label: 'Vocabular', icon: '✦' },
+]
+
+const lessons = [
+  { title: 'Small talk la conferințe', meta: '12 min · Conversații', progress: 72, color: 'peach' },
+  { title: 'Emailuri clare și concise', meta: '18 min · Scriere profesională', progress: 38, color: 'blue' },
+  { title: 'Idei convingătoare', meta: '15 min · Prezentări', progress: 0, color: 'green' },
+]
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [activeModule, setActiveModule] = useState('Conversații')
+  const [started, setStarted] = useState(false)
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand"><span className="brand-mark">A</span><span>altera</span></div>
+        <div className="profile-mini"><span className="avatar">AM</span><div><strong>Andrei Mureșan</strong><small>Product manager</small></div><span>⌄</span></div>
+        <nav aria-label="Navigare principală">
+          <p className="nav-label">Spațiul meu</p>
+          <button className="nav-item selected"><span>⌂</span> Overview</button>
+          <button className="nav-item"><span>◷</span> Planul meu <b>3</b></button>
+          <button className="nav-item"><span>▣</span> Biblioteca</button>
+          <button className="nav-item"><span>◎</span> Progres</button>
+          <p className="nav-label">Cont</p>
+          <button className="nav-item"><span>⚙</span> Setări</button>
+        </nav>
+        <div className="sidebar-bottom"><div className="streak"><span>✦</span><div><strong>7 zile la rând</strong><small>Ține ritmul!</small></div></div><button className="help">?</button></div>
+      </aside>
 
-      <div className="ticks"></div>
+      <main className="main-content">
+        <header className="topbar"><div className="breadcrumb">Marți, 24 septembrie 2024 <span>/</span> Săptămâna 4</div><div className="top-actions"><button className="icon-button" aria-label="Caută">⌕</button><button className="notification" aria-label="Notificări">♧<i /></button><div className="avatar avatar-large">AM</div></div></header>
+        <div className="content-inner">
+          <section className="welcome reveal"><div><p className="eyebrow">Bun venit înapoi, Andrei</p><h1>Construiește-ți vocea<br /><em>profesională.</em></h1><p className="intro">Învață engleză relevantă pentru munca ta, în ritmul tău.</p></div><div className="weekly-card"><span className="weekly-icon">◒</span><div><small>OBIECTIV SĂPTĂMÂNAL</small><strong>3 din 5 sesiuni</strong></div><div className="progress-ring">60%</div></div></section>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          <section className="focus-card reveal"><div className="focus-copy"><div className="section-kicker"><span className="live-dot" /> RECOMANDAT PENTRU TINE</div><h2>Small talk la conferințe</h2><p>Învață să începi conversații naturale și să lași o impresie memorabilă.</p><div className="focus-meta"><span>◷ 12 minute</span><span>◌ Conversații</span><span>● Nivel B2</span></div><button className="primary-button" onClick={() => setStarted(!started)}>{started ? 'Sesiune începută' : 'Începe sesiunea'} <span>→</span></button></div><div className="focus-visual"><div className="sun-shape" /><div className="visual-label">{started ? 'Hai să vorbim' : 'Ready when you are'}</div><span className="visual-line line-one" /><span className="visual-line line-two" /></div></section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+          <section className="module-section reveal"><div className="section-heading"><div><p className="eyebrow">Continuă explorarea</p><h2>Învață pentru lumea ta</h2></div><button className="text-button">Vezi tot <span>→</span></button></div><div className="module-tabs">{modules.map((module) => <button key={module.label} className={activeModule === module.label ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule(module.label)}><span>{module.icon}</span>{module.label}</button>)}</div></section>
+
+          <section className="bottom-grid reveal"><div className="lessons-panel"><div className="section-heading"><div><p className="eyebrow">Planul tău</p><h2>Următoarele sesiuni</h2></div><button className="text-button">Plan complet <span>→</span></button></div><div className="lesson-list">{lessons.map((lesson) => <article className="lesson" key={lesson.title}><div className={`lesson-art ${lesson.color}`}><span>{lesson.color === 'peach' ? '◌' : lesson.color === 'blue' ? '✉' : '↗'}</span></div><div className="lesson-body"><div className="lesson-title"><strong>{lesson.title}</strong><span>{lesson.progress === 0 ? 'Nou' : `${lesson.progress}%`}</span></div><small>{lesson.meta}</small><div className="bar"><i style={{ width: `${lesson.progress}%` }} /></div></div><button className="more" aria-label={`Opțiuni pentru ${lesson.title}`}>•••</button></article>)}</div></div><aside className="quote-panel"><span className="quote-mark">“</span><blockquote>Consistency is<br /><em>the language</em><br />of progress.</blockquote><small>— James Clear</small><div className="quote-dots"><i /><i /><i /></div></aside></section>
+        </div>
+      </main>
+    </div>
   )
 }
 
