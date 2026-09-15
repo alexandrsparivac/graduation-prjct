@@ -131,6 +131,16 @@ app.get('/api/v1/recommendations/me', { preHandler: [app.authorize(['learner'])]
   return { recommendations: rows }
 })
 
+app.get('/api/v1/notifications', { preHandler: [app.authenticate] }, async (request) => {
+  const { rows } = await pool.query('SELECT id, type, message, scheduled_for, read_at FROM notifications WHERE user_id = $1 AND scheduled_for <= NOW() ORDER BY read_at NULLS FIRST, scheduled_for DESC LIMIT 30', [request.user.sub])
+  return { notifications: rows }
+})
+
+app.patch('/api/v1/notifications/:id/read', { preHandler: [app.authenticate] }, async (request, reply) => {
+  const { rows } = await pool.query('UPDATE notifications SET read_at = NOW() WHERE id = $1 AND user_id = $2 RETURNING id, read_at', [request.params.id, request.user.sub])
+  return rows[0] ?? reply.code(404).send({ error: 'Notification not found' })
+})
+
 app.setErrorHandler((error, request, reply) => { request.log.error(error); reply.code(500).send({ error: 'Internal server error' }) })
 
 const port = Number(process.env.PORT ?? 3001)
