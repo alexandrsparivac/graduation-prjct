@@ -89,21 +89,14 @@ function App() {
       <aside className="sidebar">
         <div className="brand"><span className="brand-mark">A</span><span>altera</span></div>
         <div className="profile-mini"><span className="avatar">{initials}</span><div><strong>{user.name}</strong><small>{roleLabel(user.role)}</small></div><span><ChevronDown size={16} /></span></div>
-        <nav aria-label="Navigare principală">
-          <p className="nav-label">{user.role === 'learner' ? 'Spațiul meu' : 'Management'}</p>
+        <nav className="top-navigation" aria-label="Navigare principală">
           {user.role === 'learner' && <>
-            <NavButton icon={Home} label="Overview" view="overview" current={view} onClick={setView} />
-            <NavButton icon={Clock3} label="Planul meu" badge={3} view="plan" current={view} onClick={setView} />
-            <NavButton icon={Layers3} label="Path-urile mele" view="paths" current={view} onClick={setView} />
-            <NavButton icon={LibraryIcon} label="Biblioteca" view="library" current={view} onClick={setView} />
-            <NavButton icon={BarChart3} label="Progres" view="progress" current={view} onClick={setView} />
-            <NavButton icon={Sparkles} label="Recomandări" view="recommendations" current={view} onClick={setView} />
-            <NavButton icon={Mic2} label="Practică orală" view="speaking" current={view} onClick={setView} />
+            <div className="nav-cluster nav-cluster-main"><span className="nav-cluster-label">Învățare</span><NavButton icon={Home} label="Overview" view="overview" current={view} onClick={setView} /><NavButton icon={Layers3} label="Path-uri" view="paths" current={view} onClick={setView} /><NavButton icon={LibraryIcon} label="Bibliotecă" view="library" current={view} onClick={setView} /><NavButton icon={BarChart3} label="Progres" view="progress" current={view} onClick={setView} /></div>
+            <div className="nav-cluster nav-cluster-secondary"><span className="nav-cluster-label">Practică</span><NavButton icon={Clock3} label="Plan" badge={3} view="plan" current={view} onClick={setView} /><NavButton icon={Sparkles} label="Recomandări" view="recommendations" current={view} onClick={setView} /><NavButton icon={Mic2} label="Oral" view="speaking" current={view} onClick={setView} /></div>
           </>}
-          {user.role === 'trainer' && <NavButton icon={Users} label="Conținut și cursanți" view="trainer" current={view} onClick={setView} />}
-          {user.role === 'admin' && <NavButton icon={ShieldCheck} label="Utilizatori" view="admin" current={view} onClick={setView} />}
-          <p className="nav-label">Cont</p>
-          <NavButton icon={SettingsIcon} label="Setări" view="settings" current={view} onClick={setView} />
+          {user.role === 'trainer' && <div className="nav-cluster nav-cluster-main"><span className="nav-cluster-label">Management</span><NavButton icon={Users} label="Conținut și cursanți" view="trainer" current={view} onClick={setView} /></div>}
+          {user.role === 'admin' && <div className="nav-cluster nav-cluster-main"><span className="nav-cluster-label">Management</span><NavButton icon={ShieldCheck} label="Utilizatori" view="admin" current={view} onClick={setView} /></div>}
+          <div className="nav-cluster nav-cluster-account"><span className="nav-cluster-label">Cont</span><NavButton icon={SettingsIcon} label="Setări" view="settings" current={view} onClick={setView} /></div>
         </nav>
         <div className="sidebar-bottom"><div className="streak"><span><Flame size={17} /></span><div><strong>7 zile la rând</strong><small>Ține ritmul!</small></div></div><button className="help" aria-label="Ajutor"><CircleHelp size={16} /></button></div>
       </aside>
