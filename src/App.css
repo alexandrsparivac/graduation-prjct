@@ -1,11 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 :root { --background: 0 0% 100%; --foreground: 222 20% 14%; --card: 0 0% 100%; --card-foreground: 222 20% 14%; --primary: 222 20% 14%; --primary-foreground: 0 0% 98%; --secondary: 220 14% 96%; --secondary-foreground: 222 20% 14%; --muted: 220 14% 96%; --muted-foreground: 215 12% 45%; --accent: 218 24% 34%; --accent-foreground: 0 0% 100%; --border: 214 20% 89%; --ring: 218 24% 34%; --radius: .5rem; --success: 160 12% 38%; --warning: 38 55% 45%; --danger: 8 55% 48%; }
 @media (prefers-color-scheme: dark) { :root { --background: 222 20% 8%; --foreground: 210 20% 96%; --card: 222 19% 11%; --card-foreground: 210 20% 96%; --primary: 210 20% 96%; --primary-foreground: 222 20% 10%; --secondary: 220 15% 16%; --secondary-foreground: 210 20% 96%; --muted: 220 15% 16%; --muted-foreground: 215 12% 66%; --accent: 214 18% 70%; --accent-foreground: 222 20% 10%; --border: 218 15% 20%; --ring: 214 18% 70%; --success: 160 10% 62%; --warning: 38 45% 62%; --danger: 8 45% 64%; } }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; font-family: 'Proxima Nova', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif; }
 html { scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; color: hsl(var(--foreground)); background: hsl(var(--background)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body { margin: 0; min-width: 320px; color: hsl(var(--foreground)); background: hsl(var(--background)); font-family: 'Proxima Nova', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 button, input, textarea, select { font: inherit; } button { cursor: pointer; } button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 #root { min-height: 100svh; }
 .app-shell { min-height: 100svh; background: hsl(var(--background)); }
@@ -48,3 +46,28 @@ button, input, textarea, select { font: inherit; } button { cursor: pointer; } b
 .page-meta-value { color: hsl(var(--foreground)); font-size: 10px; }
 .page-content { padding-top: 30px; }
 @media (max-width: 680px) { .page-header { display: block; }.page-header-meta { display: flex; justify-content: space-between; margin-top: 18px; padding-top: 14px; border-top: 1px solid hsl(var(--border)); text-align: left; } }
+.nav-item { font-size: 12px; }
+.breadcrumb, .search-input { font-size: 12px; }
+.intro, .page-description { font-size: 15px; }
+.focus-card p { font-size: 14px; }
+.focus-meta { font-size: 12px; }
+.focus-card h2 { font-size: 34px; }
+.section-heading h2 { font-size: 26px; }
+.module-tab { font-size: 12px; }
+.lesson-title strong { font-size: 14px; }
+.lesson-title span, .lesson-body small { font-size: 11px; }
+.focus-panel h3 { font-size: 18px; }
+.focus-panel > p:not(.eyebrow) { font-size: 12px; }
+.focus-panel-meta { font-size: 11px; }
+.page-meta-label { font-size: 9px; }
+.page-meta-value { font-size: 11px; }
+.plan-summary span { font-size: 11px; }
+.path-card h2 { font-size: 21px; }
+.path-card p { font-size: 12px; }
+.library-tab strong { font-size: 12px; }
+.library-tab small { font-size: 10px; }
+.progress-copy p { font-size: 12px; }
+.settings-list strong { font-size: 13px; }
+.settings-list small { font-size: 11px; }
+.auth-card label, .profile-fields label { font-size: 11px; }
+.auth-card input, .profile-fields input, .profile-fields select { font-size: 13px; }
