@@ -48,18 +48,21 @@ app.get('/health', async () => ({ status: 'ok' }))
 app.post('/api/v1/ai/learning-path', async (request, reply) => {
   const body = parse(aiPathSchema, request.body, reply)
   if (!body) return
-  const ollamaUrl = process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434'
-  const model = process.env.OLLAMA_MODEL ?? 'llama3.2:3b'
+  const apiKey = process.env.GEMINI_API_KEY
+  const model = process.env.GEMINI_MODEL ?? 'gemini-2.0-flash'
+  if (!apiKey) return reply.code(503).send({ error: 'AI service unavailable', detail: 'Configure GEMINI_API_KEY with a free key from Google AI Studio.' })
   const prompt = `You are an expert professional language learning designer. Return ONLY valid JSON, no markdown, using exactly this shape: {"title":"string","summary":"string","weeklyMinutes":number,"modules":[{"title":"string","description":"string","lessons":[{"title":"string","skill":"string","minutes":number}]}],"recommendations":["string"]}. Create a practical course for a learner who studies ${body.language}, works in these professional domains: ${body.domains.join(', ')}, has CEFR level ${body.level}, and wants to achieve: ${body.goal}. Create 3 modules with 2 lessons each. Keep all text concise and relevant to work.`
   try {
-    const response = await fetch(`${ollamaUrl}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, prompt, stream: false, format: 'json', options: { temperature: 0.4 } }) })
-    if (!response.ok) return reply.code(503).send({ error: 'AI service unavailable', detail: `Start Ollama and pull ${model}.` })
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, responseMimeType: 'application/json' } }) })
+    if (!response.ok) return reply.code(503).send({ error: 'AI service unavailable', detail: 'Gemini did not accept the request. Check the API key and model quota.' })
     const result = await response.json()
-    const course = JSON.parse(result.response)
-    return { provider: 'ollama', model, course }
+    const text = result.candidates?.[0]?.content?.parts?.[0]?.text
+    if (!text) return reply.code(502).send({ error: 'AI returned an empty course' })
+    const course = JSON.parse(text.replace(/^```json\s*/i, '').replace(/\s*```$/, ''))
+    return { provider: 'gemini', model, course }
   } catch (error) {
     request.log.warn({ error }, 'AI learning path generation failed')
-    return reply.code(503).send({ error: 'AI service unavailable', detail: `Start Ollama and pull ${model}.` })
+    return reply.code(503).send({ error: 'AI service unavailable', detail: 'Gemini could not generate the course. Try again shortly.' })
   }
 })
 
