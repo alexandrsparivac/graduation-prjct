@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { ArrowRight, ArrowUpRight, Award, BarChart3, Bell, BookOpen, ChartNoAxesColumnIncreasing, Check, ChevronDown, Circle, CircleHelp, Clock3, Flame, Home, Library as LibraryIcon, Mail, MessageCircle, Mic2, Presentation, Search, Settings as SettingsIcon, ShieldCheck, Sparkles, Square, Target, Users, X, type LucideIcon } from 'lucide-react'
 import './App.css'
@@ -40,8 +40,8 @@ function App() {
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null)
   const [activeModule, setActiveModule] = useState('Conversații')
   const [answer, setAnswer] = useState<string | null>(null)
-  const [searchOpen, setSearchOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [compactMode, setCompactMode] = useState(false)
 
@@ -100,8 +100,7 @@ function App() {
 
       <main className="main-content">
         <header className="topbar"><div className="breadcrumb">Marți, 24 septembrie 2024 <span>/</span> {viewLabel(view)}</div><div className="top-actions">
-          {searchOpen && <input autoFocus className="search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută o lecție..." />}
-          <button className="icon-button" aria-label="Caută" onClick={() => setSearchOpen(!searchOpen)}><Search size={18} strokeWidth={2} /></button>
+          <div className="search-control"><input ref={searchRef} className="search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută o lecție..." /><button className="icon-button" aria-label="Activează căutarea" onClick={() => searchRef.current?.focus()}><Search size={19} strokeWidth={2} /></button></div>
           <button className="notification" aria-label="Notificări" onClick={() => setNotificationsOpen(!notificationsOpen)}><Bell size={18} strokeWidth={2} /><i />{notificationsOpen && <span className="notification-popover">Ai un obiectiv nou pentru săptămâna aceasta.</span>}</button>
           <div className="avatar avatar-large">{initials}</div>
         </div></header>
