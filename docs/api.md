@@ -6,14 +6,12 @@ Prefix: `/api/v1`. Toate răspunsurile sunt JSON. Endpoint-urile protejate cer a
 | --- | --- | --- | --- |
 | POST | `/auth/register` | public | Creează un cont. |
 | POST | `/auth/login` | public | Returnează access şi refresh token. |
-| POST | `/auth/refresh` | public | Roteşte refresh token-ul. |
 | GET | `/users/me` | orice rol | Profilul sesiunii curente. |
 | GET/PATCH | `/users` şi `/users/:id` | admin | Listează şi gestionează utilizatori. |
 | POST | `/placement-attempts` | learner | Salvează evaluarea şi nivelul CEFR calculat. |
 | GET/PATCH | `/learning-goals` | learner | Citeşte sau actualizează obiectivele personale. |
 | GET | `/courses` | autentificat | Filtrează după limbă, domeniu şi nivel. |
 | POST/PATCH/DELETE | `/courses/:id` | trainer, admin | Gestionează cursuri proprii. |
-| POST/PATCH/DELETE | `/lessons/:id` | trainer, admin | Gestionează lecţii şi exerciţii. |
 | POST | `/exercise-results` | learner | Salvează răspuns, scor şi feedback. |
 | GET | `/progress/me` | learner | Istoric agregat de progres. |
 | GET | `/recommendations/me` | learner | Lecţii recomandate pe baza rezultatelor. |

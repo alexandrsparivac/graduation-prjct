@@ -13,7 +13,7 @@ O platformă web pentru învăţarea limbilor străine în contexte profesionale
 
 ## Stack şi motivaţie
 
-Frontend-ul este React 19 + TypeScript + Vite: tipurile reduc erorile în fluxurile cu roluri şi date educaţionale, iar Vite oferă o experienţă rapidă de dezvoltare. Pentru producţie, arhitectura recomandă Fastify + PostgreSQL + JWT/Argon2. PostgreSQL este potrivit pentru relaţiile clare dintre cursuri, lecţii, rezultate şi progres; Fastify menţine API-ul REST performant şi uşor de testat.
+Frontend-ul este React 19 + TypeScript + Vite: tipurile reduc erorile în fluxurile cu roluri şi date educaţionale, iar Vite oferă o experienţă rapidă de dezvoltare. API-ul este Fastify + PostgreSQL + JWT cu hash-uri `scrypt`. PostgreSQL este potrivit pentru relaţiile clare dintre cursuri, lecţii, rezultate şi progres; Fastify menţine API-ul REST performant şi uşor de testat.
 
 MVP-ul nu trimite parole sau date în reţea; autentificarea şi datele sunt simulate local. Nu îl utiliza pentru conturi reale până când backend-ul documentat nu este implementat.
 
@@ -30,6 +30,19 @@ Deschide adresa afişată de Vite. Pentru un build de verificare:
 npm run build
 npm run lint
 ```
+
+## API şi PostgreSQL
+
+API-ul este în directorul `server`. Creează o bază de date PostgreSQL, aplică `server/migrations/001_initial_schema.sql`, apoi configurează mediul şi porneşte serverul:
+
+```bash
+cd server
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Setează un `JWT_SECRET` lung şi aleator înainte de orice mediu partajat. API-ul ascultă implicit numai pe `127.0.0.1:3001`; schimbă `HOST` doar când există un reverse proxy configurat.
 
 ## Conturi demo
 

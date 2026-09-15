@@ -4,7 +4,7 @@
 
 MVP-ul folosește **React 19 + TypeScript + Vite**. Interfața este componentizată, responsive și păstrează datele demonstrative în `localStorage`, astfel încât fluxul să poată fi testat fără infrastructură externă. Pentru producție, clientul comunică printr-un API REST cu un serviciu Node.js (Fastify), iar datele persistă în PostgreSQL. Această separare permite scalarea independentă a interfeței, API-ului și motorului de recomandări.
 
-Autentificarea de producție folosește parole hash-uite (Argon2), token-uri JWT scurte cu refresh token rotativ și control de acces bazat pe roluri (RBAC): `admin`, `trainer`, `learner`.
+Autentificarea folosește parole hash-uite cu `scrypt`, token-uri JWT scurte și control de acces bazat pe roluri (RBAC): `admin`, `trainer`, `learner`. Într-un mediu cu suport operaţional pentru o bibliotecă nativă, `scrypt` poate fi înlocuit cu Argon2id.
 
 ## Componente
 
