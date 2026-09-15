@@ -41,8 +41,27 @@ const loginSchema = z.object({ email: z.string().email(), password: z.string().m
 const placementSchema = z.object({ score: z.number().int().min(0).max(100), answers: z.array(z.unknown()), domainId: z.string().uuid().nullable().optional(), weeklyGoal: z.number().int().min(1).max(14).default(3), goal: z.string().trim().min(4).max(280) })
 const courseSchema = z.object({ domainId: z.string().uuid(), title: z.string().trim().min(3).max(180), description: z.string().trim().min(10), level: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']), published: z.boolean().default(false) })
 const resultSchema = z.object({ exerciseId: z.string().uuid(), answer: z.unknown(), score: z.number().int().min(0).max(100), feedback: z.string().max(1000).optional() })
+const aiPathSchema = z.object({ language: z.string().trim().min(2).max(80), domains: z.array(z.string().trim().min(2).max(80)).min(1).max(8), level: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']), goal: z.string().trim().min(4).max(280) })
 
 app.get('/health', async () => ({ status: 'ok' }))
+
+app.post('/api/v1/ai/learning-path', async (request, reply) => {
+  const body = parse(aiPathSchema, request.body, reply)
+  if (!body) return
+  const ollamaUrl = process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434'
+  const model = process.env.OLLAMA_MODEL ?? 'llama3.2:3b'
+  const prompt = `You are an expert professional language learning designer. Return ONLY valid JSON, no markdown, using exactly this shape: {"title":"string","summary":"string","weeklyMinutes":number,"modules":[{"title":"string","description":"string","lessons":[{"title":"string","skill":"string","minutes":number}]}],"recommendations":["string"]}. Create a practical course for a learner who studies ${body.language}, works in these professional domains: ${body.domains.join(', ')}, has CEFR level ${body.level}, and wants to achieve: ${body.goal}. Create 3 modules with 2 lessons each. Keep all text concise and relevant to work.`
+  try {
+    const response = await fetch(`${ollamaUrl}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, prompt, stream: false, format: 'json', options: { temperature: 0.4 } }) })
+    if (!response.ok) return reply.code(503).send({ error: 'AI service unavailable', detail: `Start Ollama and pull ${model}.` })
+    const result = await response.json()
+    const course = JSON.parse(result.response)
+    return { provider: 'ollama', model, course }
+  } catch (error) {
+    request.log.warn({ error }, 'AI learning path generation failed')
+    return reply.code(503).send({ error: 'AI service unavailable', detail: `Start Ollama and pull ${model}.` })
+  }
+})
 
 app.post('/api/v1/auth/register', async (request, reply) => {
   const body = parse(registrationSchema, request.body, reply)
