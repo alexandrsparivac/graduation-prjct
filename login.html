@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bun venit, din nou</title>
+
+</head>
+<body>
+
+  <div class="word-field" id="wordField" aria-hidden="true"></div>
+
+  <main class="card" id="card">
+
+    <!-- ===== LOGIN ===== -->
+    <section class="view active" id="view-login">
+      <h1>Bun venit, din nou</h1>
+      <p class="subtitle">Conectează-te la contul tău pentru a continua călătoria învățării.</p>
+
+      <form onsubmit="return false;">
+        <div class="field">
+          <label for="login-email">E-mail</label>
+          <div class="input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+            <input id="login-email" type="email" placeholder="exemplu@domeniu.com" autocomplete="email">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="login-password">Parolă</label>
+          <div class="input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input id="login-password" type="password" placeholder="Introdu parola" autocomplete="current-password">
+            <button type="button" class="toggle-pw" data-target="login-password" aria-label="Arată parola">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="row">
+          <label class="remember"><input type="checkbox"> Ține-mă minte</label>
+          <button type="button" class="back-link" style="margin:0;" onclick="showView('forgot')">Ai uitat parola?</button>
+        </div>
+
+        <button class="btn-primary" type="submit">
+          Autentificare
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+
+      <div class="divider">sau</div>
+
+      <button class="btn-secondary" type="button">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.5 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.3-4 6.8-9.8 6.8-17.4z"/><path fill="#FBBC05" d="M10.5 19.3c-.5 1.4-.7 2.9-.7 4.7s.3 3.3.7 4.7l-7.9 6.1C1 31.6 0 27.9 0 24s1-7.6 2.6-10.8l7.9 6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.9-2.1 15.8-5.6l-7.3-5.7c-2 1.4-4.7 2.2-8.5 2.2-6.3 0-11.6-3.6-13.5-9.7l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+        Continuă cu Google
+      </button>
+
+      <p class="signup-line">Nu ai cont? <button type="button" class="back-link" style="margin:0;display:inline-flex;" onclick="showView('register')">Înregistrează-te</button></p>
+    </section>
+
+    <!-- ===== ÎNREGISTRARE ===== -->
+    <section class="view" id="view-register">
+      <button type="button" class="back-link" onclick="showView('login')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Înapoi la autentificare
+      </button>
+      <h1>Creează un cont</h1>
+      <p class="subtitle">Înregistrează-te gratuit și începe să înveți chiar acum.</p>
+
+      <form class="form-grid" onsubmit="return false;">
+        <div class="field">
+          <label for="reg-name">Nume complet</label>
+          <div class="input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input id="reg-name" type="text" placeholder="Prenume Nume" autocomplete="name">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="reg-email">E-mail</label>
+          <div class="input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+            <input id="reg-email" type="email" placeholder="exemplu@domeniu.com" autocomplete="email">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="reg-password">Parolă</label>
+          <div class="input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input id="reg-password" type="password" placeholder="Creează o parolă" autocomplete="new-password">
+            <button type="button" class="toggle-pw" data-target="reg-password" aria-label="Arată parola">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="reg-password-confirm">Confirmă parola</label>
+          <div class="input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input id="reg-password-confirm" type="password" placeholder="Repetă parola" autocomplete="new-password">
+            <button type="button" class="toggle-pw" data-target="reg-password-confirm" aria-label="Arată parola">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <p class="hint">Prin crearea contului ești de acord cu Termenii și condițiile și Politica de confidențialitate.</p>
+
+        <button class="btn-primary" type="submit">
+          Creează cont
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+
+      <div class="divider">sau</div>
+
+      <button class="btn-secondary" type="button">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.5 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.3-4 6.8-9.8 6.8-17.4z"/><path fill="#FBBC05" d="M10.5 19.3c-.5 1.4-.7 2.9-.7 4.7s.3 3.3.7 4.7l-7.9 6.1C1 31.6 0 27.9 0 24s1-7.6 2.6-10.8l7.9 6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.9-2.1 15.8-5.6l-7.3-5.7c-2 1.4-4.7 2.2-8.5 2.2-6.3 0-11.6-3.6-13.5-9.7l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+        Continuă cu Google
+      </button>
+
+      <p class="signup-line">Ai deja cont? <button type="button" class="back-link" style="margin:0;display:inline-flex;" onclick="showView('login')">Autentifică-te</button></p>
+    </section>
+
+    <!-- ===== RESETARE / SCHIMBARE PAROLĂ ===== -->
+    <section class="view" id="view-forgot">
+      <button type="button" class="back-link" onclick="showView('login')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Înapoi la autentificare
+      </button>
+
+      <!-- Pasul 1: cere e-mail -->
+      <div id="forgot-step-request">
+        <h1>Ai uitat parola?</h1>
+        <p class="subtitle">Introdu adresa de e-mail și îți trimitem un cod pentru a-ți seta o parolă nouă.</p>
+
+        <form onsubmit="return false;">
+          <div class="field">
+            <label for="forgot-email">E-mail</label>
+            <div class="input-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+              <input id="forgot-email" type="email" placeholder="exemplu@domeniu.com" autocomplete="email">
+            </div>
+          </div>
+
+          <button class="btn-primary" type="button" onclick="goToResetStep()">
+            Trimite codul
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </form>
+      </div>
+
+      <!-- Pasul 2: setează parola nouă -->
+      <div id="forgot-step-reset" style="display:none;">
+        <h1>Setează o parolă nouă</h1>
+        <p class="subtitle">Am trimis un cod la adresa ta de e-mail. Introdu codul și noua parolă mai jos.</p>
+
+        <div class="msg-success" id="reset-success">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+          Parola a fost schimbată cu succes.
+        </div>
+
+        <form onsubmit="return false;">
+          <div class="field">
+            <label for="reset-code">Cod de verificare</label>
+            <div class="input-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input id="reset-code" type="text" inputmode="numeric" placeholder="Cod din 6 cifre" autocomplete="one-time-code">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="reset-new-password">Parolă nouă</label>
+            <div class="input-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input id="reset-new-password" type="password" placeholder="Introdu parola nouă" autocomplete="new-password">
+              <button type="button" class="toggle-pw" data-target="reset-new-password" aria-label="Arată parola">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="reset-new-password-confirm">Confirmă parola nouă</label>
+            <div class="input-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input id="reset-new-password-confirm" type="password" placeholder="Repetă parola nouă" autocomplete="new-password">
+              <button type="button" class="toggle-pw" data-target="reset-new-password-confirm" aria-label="Arată parola">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <button class="btn-primary" type="button" onclick="confirmReset()">
+            Schimbă parola
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>
+
+<style>
+  :root {
+    --bg: #f2f2f3;
+    --card-bg: #ffffff;
+    --border: #dcdde0;
+    --navy: #2b2c30;
+    --navy-2: #17181a;
+    --text: #2b2c30;
+    --text-muted: #6b6d72;
+    --accent: #4a4b4f;
+    --word-color: rgba(43, 44, 48, 0.07);
+    --word-color-strong: rgba(43, 44, 48, 0.12);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121213;
+      --card-bg: #1c1d1f;
+      --border: #333437;
+      --navy: #f0f0f1;
+      --navy-2: #d0d1d3;
+      --text: #f0f0f1;
+      --text-muted: #9a9ba0;
+      --accent: #cfd0d3;
+      --word-color: rgba(255, 255, 255, 0.055);
+      --word-color-strong: rgba(255, 255, 255, 0.1);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121213;
+    --card-bg: #1c1d1f;
+    --border: #333437;
+    --navy: #f0f0f1;
+    --navy-2: #d0d1d3;
+    --text: #f0f0f1;
+    --text-muted: #9a9ba0;
+    --accent: #cfd0d3;
+    --word-color: rgba(255, 255, 255, 0.055);
+    --word-color-strong: rgba(255, 255, 255, 0.1);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100%;
+    position: relative;
+    overflow-x: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  /* --- Background greeting words --- */
+  .word-field {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+    perspective: 600px;
+  }
+
+  .bg-word-pos {
+    position: absolute;
+    transform: translate(-50%, -50%);
+  }
+
+  .bg-word {
+    display: inline-block;
+    font-weight: 800;
+    color: var(--word-color);
+    white-space: nowrap;
+    user-select: none;
+    letter-spacing: -0.02em;
+    will-change: transform, opacity;
+    transform-origin: center;
+  }
+
+  /* Variant A: gentle diagonal drift + breathing opacity */
+  .anim-drift {
+    animation-name: driftA, breatheA;
+    animation-timing-function: ease-in-out, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+    animation-direction: alternate, alternate;
+  }
+  @keyframes driftA {
+    from { transform: translate(0, 0) rotate(var(--rot, 0deg)) scale(var(--s, 1)); }
+    to   { transform: translate(var(--dx, 14px), var(--dy, -10px)) rotate(var(--rot2, 0deg)) scale(var(--s, 1)); }
+  }
+  @keyframes breatheA {
+    0%   { opacity: var(--op-a, 0.4); }
+    50%  { opacity: var(--op-b, 0.9); }
+    100% { opacity: var(--op-a, 0.4); }
+  }
+
+  /* Variant B: slow bob (vertical float) + subtle scale pulse */
+  .anim-bob {
+    animation-name: bobB, breatheB;
+    animation-timing-function: ease-in-out, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+    animation-direction: alternate, alternate;
+  }
+  @keyframes bobB {
+    0%   { transform: translate(0, 0) rotate(var(--rot, 0deg)) scale(0.94); }
+    50%  { transform: translate(var(--dx, 8px), var(--dy, -18px)) rotate(var(--rot2, 0deg)) scale(1.05); }
+    100% { transform: translate(0, 0) rotate(var(--rot, 0deg)) scale(0.94); }
+  }
+  @keyframes breatheB {
+    0%, 100% { opacity: var(--op-a, 0.35); }
+    50%      { opacity: var(--op-b, 1); }
+  }
+
+  /* Variant C: slow rotate + drift, more playful */
+  .anim-spin {
+    animation-name: spinC, breatheA;
+    animation-timing-function: ease-in-out, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+    animation-direction: alternate, alternate;
+  }
+  @keyframes spinC {
+    0%   { transform: translate(0,0) rotate(var(--rot, -6deg)) scale(0.96); }
+    100% { transform: translate(var(--dx, -16px), var(--dy, 12px)) rotate(var(--rot2, 6deg)) scale(1.08); }
+  }
+
+  /* Variant D: pop pulse - noticeably grows/shrinks, for a few accent words */
+  .anim-pulse {
+    animation-name: pulseD;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+  }
+  @keyframes pulseD {
+    0%   { transform: translate(0,0) rotate(var(--rot,0deg)) scale(0.85); opacity: var(--op-a, 0.3); }
+    100% { transform: translate(var(--dx,10px), var(--dy,-14px)) rotate(var(--rot2,0deg)) scale(1.15); opacity: var(--op-b, 0.95); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-word { animation: none !important; opacity: var(--op-a, 0.5); }
+  }
+
+  /* --- Top-right signup link --- */
+  .signup-line {
+    text-align: center;
+    margin-top: 22px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .signup-line a {
+    color: var(--navy);
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 6px;
+  }
+  .signup-line a:hover { text-decoration: underline; }
+
+  /* --- Card --- */
+  .card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 340px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 26px 22px;
+    box-shadow: 0 20px 60px rgba(20, 30, 55, 0.08);
+    transition: max-width 0.25s ease;
+  }
+
+  /* Cardul se lărgește la înregistrare, ca să încapă 2 coloane */
+  .card.wide { max-width: 560px; }
+
+  h1 {
+    margin: 0 0 6px;
+    font-size: 21px;
+    letter-spacing: -0.01em;
+    color: var(--navy);
+  }
+
+  .subtitle {
+    margin: 0 0 20px;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 5px;
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  /* Formular pe 2 coloane (înregistrare) */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 14px;
+  }
+  .form-grid .hint,
+  .form-grid .btn-primary { grid-column: 1 / -1; }
+
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 11px;
+    background: var(--card-bg);
+    transition: border-color 0.15s ease;
+  }
+
+  .input-wrap:focus-within {
+    border-color: var(--accent);
+  }
+
+  .input-wrap svg {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    width: 15px;
+    height: 15px;
+  }
+
+  .input-wrap input {
+    border: none;
+    outline: none;
+    background: transparent;
+    width: 100%;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--text);
+    font-family: inherit;
+  }
+
+  .input-wrap input::placeholder { color: #9aa4b2; }
+
+  .toggle-pw {
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    color: var(--text-muted);
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    font-size: 12px;
+  }
+
+  .remember {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+  }
+
+  .remember input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    background: var(--card-bg);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .remember input:checked {
+    background: #1a1b1d;
+    border-color: #1a1b1d;
+  }
+  .remember input:checked::after {
+    content: "";
+    position: absolute;
+    left: 3.5px;
+    top: 0.5px;
+    width: 3.5px;
+    height: 7px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .remember input:focus-visible {
+    outline: 2px solid #1a1b1d;
+    outline-offset: 2px;
+  }
+
+  .row a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  .row a:hover { text-decoration: underline; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: #1a1b1d;
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.15s ease, transform 0.05s ease;
+  }
+  .btn-primary:hover { background: #000; }
+  .btn-primary:active { transform: scale(0.99); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .btn-secondary {
+    width: 100%;
+    padding: 8px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 9px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .btn-secondary:hover { border-color: #c3cad6; }
+  .btn-secondary:last-child { margin-bottom: 0; }
+
+  .signup-line {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 480px) {
+    .card { padding: 32px 22px 26px; border-radius: 16px; }
+    h1 { font-size: 24px; }
+    .top-bar { top: 16px; right: 16px; font-size: 13px; }
+  }
+
+  /* Pe ecrane foarte înguste, formularul revine pe o singură coloană */
+  @media (max-width: 520px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+
+  /* --- View switching --- */
+  .view { display: none; }
+  .view.active { display: block; animation: viewIn 0.25s ease; }
+  @keyframes viewIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-decoration: none;
+    margin-bottom: 14px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+  .back-link:hover { color: var(--navy); }
+
+  .hint {
+    margin: -8px 0 16px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .msg-success {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: rgba(52, 168, 83, 0.1);
+    border: 1px solid rgba(52, 168, 83, 0.3);
+    color: #2b7a3d;
+    font-size: 12px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .msg-success { color: #7fd996; }
+  }
+  :root[data-theme="dark"] .msg-success { color: #7fd996; }
+  .msg-success.show { display: flex; }
+</style>
+
+
+<script>
+  // Fiecare cuvânt e "bun venit" / "salut" în altă limbă
+  const greetings = [
+    "Salut",        // română
+    "Bine ai venit", // română
+    "Hello",         // engleză
+    "Welcome",       // engleză
+    "Bonjour",       // franceză
+    "Bienvenue",     // franceză
+    "Hola",          // spaniolă
+    "Bienvenido",    // spaniolă
+    "Привет",        // rusă
+    "Добро пожаловать", // rusă
+    "Hallo",         // germană
+    "Willkommen",    // germană
+    "こんにちは",       // japoneză
+    "ようこそ",         // japoneză
+    "안녕하세요",        // coreeană
+    "환영합니다",        // coreeană
+    "你好",            // chineză
+    "欢迎",            // chineză
+    "Ciao",          // italiană
+    "Benvenuto",     // italiană
+    "Olá",           // portugheză
+    "Bem-vindo",     // portugheză
+    "مرحبا",          // arabă
+    "أهلا وسهلا",      // arabă
+    "Γειά σου",      // greacă
+    "Καλώς ήρθες",   // greacă
+    "Namaste",       // hindi
+    "स्वागत है",        // hindi
+    "Merhaba",       // turcă
+    "Hoş geldin",    // turcă
+    "Sawubona",      // zulu
+    "Hej",           // suedeză
+    "Välkommen",     // suedeză
+    "Cześć",         // poloneză
+    "Witamy",        // poloneză
+    "Hei",           // norvegiană
+    "Xin chào",      // vietnameză
+    "Sawasdee",      // thailandeză
+    "Selamat datang" // indoneziană
+  ];
+
+  const animVariants = ['anim-drift', 'anim-bob', 'anim-spin', 'anim-pulse'];
+
+  const field = document.getElementById('wordField');
+  const vw = () => window.innerWidth;
+  const vh = () => window.innerHeight;
+
+  // denser grid, jittered positions, plus a few free-floating extras so words don't feel like a strict lattice
+  function layout() {
+    field.innerHTML = '';
+    const cols = 8, rows = 7;
+    const cellW = vw() / cols, cellH = vh() / rows;
+    let i = 0;
+    const shuffled = [...greetings].sort(() => Math.random() - 0.5);
+
+    const totalCells = cols * rows;
+    // skip some cells randomly for a less rigid, more organic spread
+    const cellIndices = Array.from({ length: totalCells }, (_, n) => n);
+    for (let n = cellIndices.length - 1; n > 0; n--) {
+      const j = Math.floor(Math.random() * (n + 1));
+      [cellIndices[n], cellIndices[j]] = [cellIndices[j], cellIndices[n]];
+    }
+    const keepCount = Math.round(totalCells * 0.86);
+    const activeCells = new Set(cellIndices.slice(0, keepCount));
+
+    let cellIdx = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const thisIdx = cellIdx++;
+        if (!activeCells.has(thisIdx)) continue;
+
+        const word = shuffled[i % shuffled.length];
+        i++;
+        const pos = document.createElement('div');
+        pos.className = 'bg-word-pos';
+        const el = document.createElement('span');
+
+        const variant = animVariants[Math.floor(Math.random() * animVariants.length)];
+        el.className = 'bg-word ' + variant;
+        el.textContent = word;
+        pos.appendChild(el);
+
+        const jitterX = (Math.random() - 0.5) * cellW * 0.55;
+        const jitterY = (Math.random() - 0.5) * cellH * 0.55;
+        const left = c * cellW + cellW / 2 + jitterX;
+        const top = r * cellH + cellH / 2 + jitterY;
+
+        // much wider size range for visible variety: some tiny whispers, some bold statements
+        const sizeRoll = Math.random();
+        let size;
+        if (sizeRoll < 0.35) size = 13 + Math.random() * 10;      // small, 13–23px
+        else if (sizeRoll < 0.75) size = 22 + Math.random() * 20; // medium, 22–42px
+        else size = 40 + Math.random() * 38;                       // large, 40–78px
+
+        const maxAllowed = Math.min(cellW * 1.7 / Math.max(word.length * 0.5, 3), cellH * 1.4);
+        size = Math.min(size, Math.max(maxAllowed, 14));
+
+        const dur = variant === 'anim-pulse' ? (3.5 + Math.random() * 3) : (5 + Math.random() * 9);
+        const delay = -Math.random() * dur * 2;
+        const dx = (Math.random() - 0.5) * (26 + size * 0.3);
+        const dy = (Math.random() - 0.5) * (22 + size * 0.3);
+        const rot = (Math.random() - 0.5) * 10;
+        const rot2 = rot + (Math.random() - 0.5) * 10;
+        const opA = 0.25 + Math.random() * 0.2;
+        const opB = opA + 0.4 + Math.random() * 0.25;
+
+        pos.style.left = left + 'px';
+        pos.style.top = top + 'px';
+        pos.style.zIndex = Math.round(size);
+        el.style.fontSize = size + 'px';
+        el.style.setProperty('--dx', dx + 'px');
+        el.style.setProperty('--dy', dy + 'px');
+        el.style.setProperty('--rot', rot + 'deg');
+        el.style.setProperty('--rot2', rot2 + 'deg');
+        el.style.setProperty('--op-a', opA);
+        el.style.setProperty('--op-b', Math.min(opB, 1));
+        el.style.setProperty('--s', (0.94 + Math.random() * 0.12).toFixed(2));
+        el.style.animationDuration = dur + 's, ' + (dur * 1.3) + 's';
+        el.style.animationDelay = delay + 's, ' + delay + 's';
+
+        field.appendChild(pos);
+      }
+    }
+  }
+
+  layout();
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(layout, 200);
+  });
+
+  // Arată/ascunde parola, pentru orice câmp cu data-target
+  document.querySelectorAll('.toggle-pw').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+      input.type = input.type === 'password' ? 'text' : 'password';
+    });
+  });
+
+  // --- Navigare între ecrane: autentificare / înregistrare / resetare parolă ---
+  const card = document.getElementById('card');
+  const views = {
+    login: document.getElementById('view-login'),
+    register: document.getElementById('view-register'),
+    forgot: document.getElementById('view-forgot')
+  };
+
+  function showView(name) {
+    // cardul e mai lat doar la înregistrare (2 coloane)
+    card.classList.toggle('wide', name === 'register');
+    Object.entries(views).forEach(([key, el]) => {
+      el.classList.toggle('active', key === name);
+    });
+    if (name === 'forgot') {
+      // de fiecare dată când reintri pe ecranul de resetare, pornește de la pasul 1
+      document.getElementById('forgot-step-request').style.display = '';
+      document.getElementById('forgot-step-reset').style.display = 'none';
+      document.getElementById('reset-success').classList.remove('show');
+    }
+  }
+  window.showView = showView;
+
+  function goToResetStep() {
+    document.getElementById('forgot-step-request').style.display = 'none';
+    document.getElementById('forgot-step-reset').style.display = '';
+  }
+  window.goToResetStep = goToResetStep;
+
+  function confirmReset() {
+    document.getElementById('reset-success').classList.add('show');
+  }
+  window.confirmReset = confirmReset;
+</script>
+
