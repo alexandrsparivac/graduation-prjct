@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal Design System - Component Showcase</title>
+  <meta name="description" content="A minimalist black/white design system for Claude AI. Clean, modern, and ready to use.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ========================================
+       MINIMAL DESIGN SYSTEM v2.0
+       HSL-based semantic color tokens
+       ======================================== */
+    
+    :root {
+      /* Semantic Colors - Light Mode */
+      --background: 0 0% 100%;
+      --foreground: 240 10% 3.9%;
+      --card: 0 0% 100%;
+      --card-foreground: 240 10% 3.9%;
+      --primary: 240 5.9% 10%;
+      --primary-foreground: 0 0% 98%;
+      --secondary: 240 4.8% 95.9%;
+      --secondary-foreground: 240 5.9% 10%;
+      --muted: 240 4.8% 95.9%;
+      --muted-foreground: 240 3.8% 46.1%;
+      --accent: 240 4.8% 95.9%;
+      --accent-foreground: 240 5.9% 10%;
+      --border: 240 5.9% 90%;
+      --input: 240 5.9% 90%;
+      --ring: 240 5.9% 10%;
+      
+      /* Border Radius */
+      --radius: 0.5rem;
+      
+      /* Legacy aliases for backwards compatibility */
+      --color-bg: hsl(var(--background));
+      --color-fg: hsl(var(--foreground));
+      --color-muted: hsl(var(--muted-foreground));
+      --color-border: hsl(var(--border));
+      --color-subtle-bg: hsl(var(--secondary));
+      --color-hover-bg: hsl(var(--accent));
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: 240 10% 3.9%;
+        --foreground: 0 0% 98%;
+        --card: 240 10% 3.9%;
+        --card-foreground: 0 0% 98%;
+        --primary: 0 0% 98%;
+        --primary-foreground: 240 5.9% 10%;
+        --secondary: 240 3.7% 15.9%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 240 3.7% 15.9%;
+        --muted-foreground: 240 5% 64.9%;
+        --accent: 240 3.7% 15.9%;
+        --accent-foreground: 0 0% 98%;
+        --border: 240 3.7% 15.9%;
+        --input: 240 3.7% 15.9%;
+        --ring: 240 4.9% 83.9%;
+        
+        /* Legacy aliases */
+        --color-bg: hsl(var(--background));
+        --color-fg: hsl(var(--foreground));
+        --color-muted: hsl(var(--muted-foreground));
+        --color-border: hsl(var(--border));
+        --color-subtle-bg: hsl(var(--secondary));
+        --color-hover-bg: hsl(var(--accent));
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      border-color: hsl(var(--border));
+    }
+
+    body {
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.025em;
+    }
+
+    button, a {
+      transition: all 0.15s ease;
+    }
+
+    /* Focus visible styles for accessibility */
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+      outline: 2px solid hsl(var(--ring));
+      outline-offset: 2px;
+    }
+
+    /* Screen reader only */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+
+    .section-divider {
+      border-top: 1px solid hsl(var(--border));
+      margin: 4rem 0;
+    }
+
+    /* Mobile menu animation */
+    .mobile-menu {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out, margin 0.3s ease-out;
+      opacity: 0;
+      padding: 0;
+      margin: 0;
+      border-top: 1px solid transparent;
+    }
+    
+    .mobile-menu.open {
+      max-height: 300px;
+      opacity: 1;
+      padding-top: 1rem;
+      padding-bottom: 0.5rem;
+      margin-top: 1rem;
+      border-top-color: var(--color-border);
+    }
+
+    .menu-icon {
+      transition: transform 0.2s ease-out;
+    }
+    
+    .menu-icon.rotate {
+      transform: rotate(90deg);
+    }
+
+    /* Overflow Scroll Carousel */
+    :root {
+      --container-5xl: 64rem;
+      --container-7xl: 80rem;
+    }
+
+    .scroll-container {
+      --scroll-padding: max(1.5rem, calc((100vw - var(--container-5xl)) / 2));
+      /* Add container padding (1.5rem = px-6) to start side only for content alignment */
+      padding-inline-start: calc(var(--scroll-padding) + 1.5rem);
+      padding-inline-end: var(--scroll-padding);
+    }
+
+    @media (min-width: 1024px) {
+      .scroll-container {
+        --scroll-padding: max(2rem, calc((100vw - var(--container-7xl)) / 2));
+      }
+    }
+
+    .scroll-card {
+      scroll-margin-inline-start: calc(var(--scroll-padding) + 1.5rem);
+    }
+
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'media',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+          },
+          colors: {
+            bg: 'var(--color-bg)',
+            fg: 'var(--color-fg)',
+            muted: 'var(--color-muted)',
+            border: 'var(--color-border)',
+            'subtle-bg': 'var(--color-subtle-bg)',
+            'hover-bg': 'var(--color-hover-bg)',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen">
+
+  <!-- Responsive Header with Mobile Menu -->
+  <header class="sticky top-0 z-50 bg-[var(--color-bg)] border-b border-[var(--color-border)]">
+    <div class="max-w-7xl mx-auto px-6 py-4 md:py-6 sm:px-8">
+      <div class="flex items-center justify-between">
+        <!-- Logo -->
+        <a href="#" class="text-lg md:text-xl font-bold">Brand</a>
+        
+        <!-- Desktop Navigation -->
+        <nav class="hidden md:flex items-center gap-8">
+          <a href="#" class="font-medium">Home</a>
+          <a href="#" class="text-[var(--color-muted)] hover:text-[var(--color-fg)] transition-colors">Products</a>
+          <a href="#" class="text-[var(--color-muted)] hover:text-[var(--color-fg)] transition-colors">About</a>
+          <a href="#" class="text-[var(--color-muted)] hover:text-[var(--color-fg)] transition-colors">Contact</a>
+        </nav>
+
+        <!-- Desktop CTA -->
+        <div class="hidden md:block">
+          <a href="#" class="px-6 py-3 bg-black text-white font-medium rounded-full hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+            Get Started
+          </a>
+        </div>
+
+        <!-- Mobile Menu Button -->
+        <button id="mobile-menu-btn" class="md:hidden p-2 -mr-2" aria-label="Toggle menu" aria-expanded="false">
+          <svg class="w-6 h-6 menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path id="menu-icon-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            <path id="close-icon-path" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mobile Menu -->
+      <nav id="mobile-menu" class="mobile-menu md:hidden">
+        <div class="flex flex-col gap-4">
+          <a href="#" class="font-medium py-2">Home</a>
+          <a href="#" class="text-[var(--color-muted)] hover:text-[var(--color-fg)] transition-colors py-2">Products</a>
+          <a href="#" class="text-[var(--color-muted)] hover:text-[var(--color-fg)] transition-colors py-2">About</a>
+          <a href="#" class="text-[var(--color-muted)] hover:text-[var(--color-fg)] transition-colors py-2">Contact</a>
+          <a href="#" class="inline-block text-center px-6 py-3 bg-black text-white font-medium rounded-full hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 mt-2">
+            Get Started
+          </a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <script>
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuIconPath = document.getElementById('menu-icon-path');
+    const closeIconPath = document.getElementById('close-icon-path');
+    const menuSvg = mobileMenuBtn.querySelector('svg');
+
+    mobileMenuBtn.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.contains('open');
+      mobileMenu.classList.toggle('open');
+      menuIconPath.classList.toggle('hidden');
+      closeIconPath.classList.toggle('hidden');
+      menuSvg.classList.toggle('rotate');
+      mobileMenuBtn.setAttribute('aria-expanded', !isOpen);
+    });
+  </script>
+
+  <main class="max-w-7xl mx-auto px-6 py-16 sm:px-8">
+
+    <!-- Navigation Section -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-12">Navigation</h2>
+      <p class="text-[var(--color-muted)] mb-4">See the header above for a complete responsive navigation example. On mobile (below 768px), it transforms into an animated hamburger menu.</p>
+      <p class="text-[var(--color-muted)]">Key features: Smooth CSS transitions, accessible ARIA attributes, and Tailwind's responsive utilities (hidden md:flex, md:hidden).</p>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Overflow Scroll Carousel Section -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-4">Overflow Scroll Carousel</h2>
+      <p class="text-[var(--color-muted)] max-w-2xl mb-4">A horizontal scroll slider aligned to the content container on the left, but extending beyond the viewport on the right. Also known as "Edge-to-Edge Carousel" or "Bleed Slider".</p>
+      <p class="text-[var(--color-muted)] max-w-2xl">No JavaScript required. Uses CSS scroll-snap for smooth card snapping and a dynamic --scroll-padding variable for container alignment.</p>
+    </section>
+  </main>
+
+  <!-- Overflow Scroll Carousel Demo (outside max-width container) -->
+  <section class="overflow-hidden mb-24">
+    
+    <!-- Section Header (uses scroll-container for alignment) -->
+    <header class="scroll-container">
+      <p class="text-sm font-medium tracking-wider uppercase text-[var(--color-muted)] mb-3">Testimonials</p>
+      <h3 class="text-2xl sm:text-3xl font-semibold">What our customers say</h3>
+    </header>
+    
+    <!-- Scroll Container -->
+    <div id="carousel-1" class="scroll-container mt-10 flex gap-6 overflow-x-auto hide-scrollbar snap-x snap-mandatory overscroll-x-contain scroll-smooth">
+      
+      <!-- Card 1 -->
+      <article class="scroll-card shrink-0 w-72 sm:w-96 snap-start">
+        <div class="bg-[var(--color-subtle-bg)] rounded-2xl p-8 h-full flex flex-col">
+          <blockquote class="flex-1 mb-6">
+            <p class="text-lg leading-relaxed">"An excellent product with outstanding support. Our productivity has increased significantly."</p>
+          </blockquote>
+          <footer class="flex items-center gap-4 pt-6 border-t border-[var(--color-border)]">
+            <div class="w-12 h-12 rounded-full bg-[var(--color-border)]"></div>
+            <div>
+              <p class="font-semibold">Anna Schmidt</p>
+              <p class="text-sm text-[var(--color-muted)]">VP of Sales, TechCorp</p>
+            </div>
+          </footer>
+        </div>
+      </article>
+      
+      <!-- Card 2 -->
+      <article class="scroll-card shrink-0 w-72 sm:w-96 snap-start">
+        <div class="bg-[var(--color-subtle-bg)] rounded-2xl p-8 h-full flex flex-col">
+          <blockquote class="flex-1 mb-6">
+            <p class="text-lg leading-relaxed">"The best investment of the year. Easy to implement and immediately visible results."</p>
+          </blockquote>
+          <footer class="flex items-center gap-4 pt-6 border-t border-[var(--color-border)]">
+            <div class="w-12 h-12 rounded-full bg-[var(--color-border)]"></div>
+            <div>
+              <p class="font-semibold">Marcus Weber</p>
+              <p class="text-sm text-[var(--color-muted)]">CTO, StartupAG</p>
+            </div>
+          </footer>
+        </div>
+      </article>
+      
+      <!-- Card 3 -->
+      <article class="scroll-card shrink-0 w-72 sm:w-96 snap-start">
+        <div class="bg-[var(--color-subtle-bg)] rounded-2xl p-8 h-full flex flex-col">
+          <blockquote class="flex-1 mb-6">
+            <p class="text-lg leading-relaxed">"We exceeded all our goals. The team is thrilled with how easy it is to use."</p>
+          </blockquote>
+          <footer class="flex items-center gap-4 pt-6 border-t border-[var(--color-border)]">
+            <div class="w-12 h-12 rounded-full bg-[var(--color-border)]"></div>
+            <div>
+              <p class="font-semibold">Lisa Müller</p>
+              <p class="text-sm text-[var(--color-muted)]">CEO, DigitalWerk</p>
+            </div>
+          </footer>
+        </div>
+      </article>
+      
+      <!-- Card 4 -->
+      <article class="scroll-card shrink-0 w-72 sm:w-96 snap-start">
+        <div class="bg-[var(--color-subtle-bg)] rounded-2xl p-8 h-full flex flex-col">
+          <blockquote class="flex-1 mb-6">
+            <p class="text-lg leading-relaxed">"A game-changer for our marketing. The analytics are detailed and the UI is intuitive."</p>
+          </blockquote>
+          <footer class="flex items-center gap-4 pt-6 border-t border-[var(--color-border)]">
+            <div class="w-12 h-12 rounded-full bg-[var(--color-border)]"></div>
+            <div>
+              <p class="font-semibold">Thomas Becker</p>
+              <p class="text-sm text-[var(--color-muted)]">CMO, MarketingHub</p>
+            </div>
+          </footer>
+        </div>
+      </article>
+      
+      <!-- Card 5 -->
+      <article class="scroll-card shrink-0 w-72 sm:w-96 snap-start">
+        <div class="bg-[var(--color-subtle-bg)] rounded-2xl p-8 h-full flex flex-col">
+          <blockquote class="flex-1 mb-6">
+            <p class="text-lg leading-relaxed">"Finally a solution that delivers on its promises. Highly recommended!"</p>
+          </blockquote>
+          <footer class="flex items-center gap-4 pt-6 border-t border-[var(--color-border)]">
+            <div class="w-12 h-12 rounded-full bg-[var(--color-border)]"></div>
+            <div>
+              <p class="font-semibold">Julia Hoffman</p>
+              <p class="text-sm text-[var(--color-muted)]">Product Lead, InnovateCo</p>
+            </div>
+          </footer>
+        </div>
+      </article>
+      
+      <!-- Spacer at end -->
+      <div class="shrink-0 w-[var(--scroll-padding)]" aria-hidden="true"></div>
+      
+    </div>
+    
+    <!-- Dots Navigation (functional) -->
+    <nav class="scroll-container mt-8 flex justify-end" aria-label="Carousel navigation">
+      <div id="dots-1" class="flex gap-2">
+        <button class="w-2.5 h-2.5 rounded-full bg-[var(--color-fg)] transition-colors" aria-label="Go to slide 1" aria-current="true"></button>
+        <button class="w-2.5 h-2.5 rounded-full bg-[var(--color-border)] hover:bg-[var(--color-muted)] transition-colors" aria-label="Go to slide 2"></button>
+        <button class="w-2.5 h-2.5 rounded-full bg-[var(--color-border)] hover:bg-[var(--color-muted)] transition-colors" aria-label="Go to slide 3"></button>
+        <button class="w-2.5 h-2.5 rounded-full bg-[var(--color-border)] hover:bg-[var(--color-muted)] transition-colors" aria-label="Go to slide 4"></button>
+        <button class="w-2.5 h-2.5 rounded-full bg-[var(--color-border)] hover:bg-[var(--color-muted)] transition-colors" aria-label="Go to slide 5"></button>
+      </div>
+    </nav>
+    
+  </section>
+
+  <!-- Carousel Navigation Script -->
+  <script>
+    function initCarousel(carouselId, dotsId) {
+      const carousel = document.getElementById(carouselId);
+      const dotsContainer = document.getElementById(dotsId);
+      if (!carousel || !dotsContainer) return;
+      
+      const dots = dotsContainer.querySelectorAll('button');
+      const cards = carousel.querySelectorAll('.scroll-card');
+      
+      // Click handler for dots
+      dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+          const card = cards[index];
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+          }
+        });
+      });
+      
+      // Scroll handler to update active dot
+      carousel.addEventListener('scroll', () => {
+        const scrollLeft = carousel.scrollLeft;
+        const cardWidth = cards[0]?.offsetWidth || 0;
+        const gap = 24; // gap-6 = 24px
+        const activeIndex = Math.round(scrollLeft / (cardWidth + gap));
+        
+        dots.forEach((dot, index) => {
+          if (index === activeIndex) {
+            dot.classList.remove('bg-[var(--color-border)]');
+            dot.classList.add('bg-[var(--color-fg)]');
+            dot.setAttribute('aria-current', 'true');
+          } else {
+            dot.classList.remove('bg-[var(--color-fg)]');
+            dot.classList.add('bg-[var(--color-border)]');
+            dot.removeAttribute('aria-current');
+          }
+        });
+      });
+    }
+    
+    // Initialize carousel
+    initCarousel('carousel-1', 'dots-1');
+  </script>
+
+  <!-- Dark Cards Variant -->
+  <section class="overflow-hidden py-16 bg-[var(--color-subtle-bg)] mb-24">
+    
+    <!-- Section Header (uses scroll-container for alignment) -->
+    <header class="scroll-container">
+      <p class="text-sm font-medium tracking-wider uppercase text-[var(--color-muted)] mb-3">Variant</p>
+      <h3 class="text-2xl sm:text-3xl font-semibold">Dark cards with overlay</h3>
+    </header>
+    
+    <div class="scroll-container mt-10 flex gap-6 overflow-x-auto hide-scrollbar snap-x snap-mandatory overscroll-x-contain scroll-smooth">
+      
+      <!-- Dark Card 1 -->
+      <article class="scroll-card shrink-0 w-72 sm:w-96 snap-start">
+        <div class="relative aspect-[9/16] sm:aspect-[3/4] rounded-2xl overflow-hidden flex flex-col justify-end">
+          <div class="absolute inset-0 bg-neutral-300 dark:bg-neutral-700"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black from-[44%] sm:from-25%"></div>
+          <figure class="relative p-8">
+            <blockquote>
+              <p class="text-xl leading-7 text-white">"An excellent product with outstanding support."</p>
+            </blockquote>
+            <figcaption class="mt-6 pt-6 border-t border-white/20">
+              <p class="text-sm font-medium text-white">Anna Schmidt</p>
+              <p class="text-sm font-medium text-neutral-400">VP of Sales, TechCorp</p>
+            </figcaption>
+          </figure>
+        </div>
+      </article>
+      
+      <!-- Dark Card 2 -->
+      <article class="scroll-card shrink-0 w-72 sm:w-96 snap-start">
+        <div class="relative aspect-[9/16] sm:aspect-[3/4] rounded-2xl overflow-hidden flex flex-col justify-end">
+          <div class="absolute inset-0 bg-neutral-400 dark:bg-neutral-600"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black from-[44%] sm:from-25%"></div>
+          <figure class="relative p-8">
+            <blockquote>
+              <p class="text-xl leading-7 text-white">"The best investment of the year."</p>
+            </blockquote>
+            <figcaption class="mt-6 pt-6 border-t border-white/20">
+              <p class="text-sm font-medium text-white">Marcus Weber</p>
+              <p class="text-sm font-medium text-neutral-400">CTO, StartupAG</p>
+            </figcaption>
+          </figure>
+        </div>
+      </article>
+      
+      <!-- Dark Card 3 -->
+      <article class="scroll-card shrink-0 w-72 sm:w-96 snap-start">
+        <div class="relative aspect-[9/16] sm:aspect-[3/4] rounded-2xl overflow-hidden flex flex-col justify-end">
+          <div class="absolute inset-0 bg-neutral-500"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black from-[44%] sm:from-25%"></div>
+          <figure class="relative p-8">
+            <blockquote>
+              <p class="text-xl leading-7 text-white">"We exceeded all our goals."</p>
+            </blockquote>
+            <figcaption class="mt-6 pt-6 border-t border-white/20">
+              <p class="text-sm font-medium text-white">Lisa Müller</p>
+              <p class="text-sm font-medium text-neutral-400">CEO, DigitalWerk</p>
+            </figcaption>
+          </figure>
+        </div>
+      </article>
+      
+      <!-- Dark Card 4 -->
+      <article class="scroll-card shrink-0 w-72 sm:w-96 snap-start">
+        <div class="relative aspect-[9/16] sm:aspect-[3/4] rounded-2xl overflow-hidden flex flex-col justify-end">
+          <div class="absolute inset-0 bg-neutral-600 dark:bg-neutral-500"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black from-[44%] sm:from-25%"></div>
+          <figure class="relative p-8">
+            <blockquote>
+              <p class="text-xl leading-7 text-white">"A game-changer for our marketing."</p>
+            </blockquote>
+            <figcaption class="mt-6 pt-6 border-t border-white/20">
+              <p class="text-sm font-medium text-white">Thomas Becker</p>
+              <p class="text-sm font-medium text-neutral-400">CMO, MarketingHub</p>
+            </figcaption>
+          </figure>
+        </div>
+      </article>
+      
+      <!-- Spacer -->
+      <div class="shrink-0 w-[var(--scroll-padding)]" aria-hidden="true"></div>
+      
+    </div>
+    
+  </section>
+
+  <main class="max-w-7xl mx-auto px-6 py-16 sm:px-8">
+
+    <!-- Buttons Section -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-12">Buttons</h2>
+      
+      <div class="space-y-8">
+        <div>
+          <h3 class="text-xl font-medium mb-4">Button Variants</h3>
+          <div class="flex flex-wrap gap-3">
+            <button class="px-6 py-3 bg-black text-white font-medium rounded-md hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              Primary Button
+            </button>
+            <button class="px-6 py-3 bg-transparent text-black font-medium rounded-md border border-gray-300 hover:bg-gray-50 dark:text-white dark:border-gray-700 dark:hover:bg-gray-900">
+              Secondary Button
+            </button>
+            <button class="px-6 py-3 bg-transparent text-black font-medium rounded-md hover:bg-gray-100 dark:text-white dark:hover:bg-gray-900">
+              Ghost Button
+            </button>
+            <button class="px-2 py-1 text-black font-medium underline-offset-4 hover:underline dark:text-white">
+              Link Button
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-medium mb-4">Button Sizes</h3>
+          <div class="flex flex-wrap items-center gap-3">
+            <button class="px-5 py-2.5 text-sm bg-black text-white font-medium rounded-md hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              Small
+            </button>
+            <button class="px-6 py-3 bg-black text-white font-medium rounded-md hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              Default
+            </button>
+            <button class="px-8 py-4 text-lg bg-black text-white font-medium rounded-md hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              Large
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-medium mb-4">Icon Buttons</h3>
+          <div class="flex flex-wrap gap-3">
+            <button class="px-6 py-3 flex items-center gap-2 bg-black text-white font-medium rounded-md hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Add Item
+            </button>
+            <button class="px-6 py-3 flex items-center gap-2 bg-black text-white font-medium rounded-md hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              Continue
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+            <button class="p-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors border border-gray-300 dark:border-gray-700" aria-label="Close">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-medium mb-4">Rounded Buttons (Pill Style)</h3>
+          <div class="flex flex-wrap gap-3">
+            <button class="px-6 py-3 bg-black text-white font-medium rounded-full hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              Primary Pill
+            </button>
+            <button class="px-6 py-3 bg-transparent text-black font-medium rounded-full border border-gray-300 hover:bg-gray-50 dark:text-white dark:border-gray-700 dark:hover:bg-gray-900">
+              Secondary Pill
+            </button>
+            <button class="px-6 py-3 bg-transparent text-black font-medium rounded-full hover:bg-gray-100 dark:text-white dark:hover:bg-gray-900">
+              Ghost Pill
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-medium mb-4">Rounded Button Sizes</h3>
+          <div class="flex flex-wrap items-center gap-3">
+            <button class="px-5 py-2.5 text-sm bg-black text-white font-medium rounded-full hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              Small Pill
+            </button>
+            <button class="px-6 py-3 bg-black text-white font-medium rounded-full hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              Default Pill
+            </button>
+            <button class="px-8 py-4 text-lg bg-black text-white font-medium rounded-full hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              Large Pill
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-medium mb-4">Rounded Icon Buttons</h3>
+          <div class="flex flex-wrap gap-3">
+            <button class="px-6 py-3 flex items-center gap-2 bg-black text-white font-medium rounded-full hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Add Item
+            </button>
+            <button class="px-6 py-3 flex items-center gap-2 bg-black text-white font-medium rounded-full hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+              Continue
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+            <button class="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors border border-gray-300 dark:border-gray-700" aria-label="Close">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Forms Section -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-12">Forms</h2>
+      
+      <div class="grid gap-12 lg:grid-cols-2">
+        <!-- Login Form -->
+        <div>
+          <h3 class="text-xl font-medium mb-6">Login Form</h3>
+          <div class="p-8 border border-gray-200 rounded-lg dark:border-gray-800">
+            <h4 class="text-2xl font-semibold mb-6">Sign In</h4>
+            
+            <form class="space-y-4">
+              <div class="space-y-2">
+                <label for="email" class="block text-sm font-medium">Email</label>
+                <input 
+                  type="email" 
+                  id="email"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-900 dark:border-gray-700 dark:focus:ring-white"
+                  placeholder="you@example.com"
+                />
+              </div>
+              
+              <div class="space-y-2">
+                <label for="password" class="block text-sm font-medium">Password</label>
+                <input 
+                  type="password" 
+                  id="password"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-900 dark:border-gray-700 dark:focus:ring-white"
+                  placeholder="••••••••"
+                />
+              </div>
+              
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                  <span class="text-sm">Remember me</span>
+                </label>
+                <a href="#" class="text-sm hover:underline">Forgot password?</a>
+              </div>
+              
+              <button type="submit" class="w-full px-6 py-3 bg-black text-white font-medium rounded-md hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+                Sign In
+              </button>
+            </form>
+            
+            <p class="mt-6 text-sm text-center text-muted">
+              Don't have an account? <a href="#" class="font-medium hover:underline">Sign up</a>
+            </p>
+          </div>
+        </div>
+
+        <!-- Input Fields -->
+        <div>
+          <h3 class="text-xl font-medium mb-6">Input Fields</h3>
+          <div class="space-y-6">
+            <div class="space-y-2">
+              <label for="name" class="block text-sm font-medium">Full Name</label>
+              <input 
+                type="text" 
+                id="name"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-900 dark:border-gray-700 dark:focus:ring-white"
+                placeholder="John Doe"
+              />
+            </div>
+
+            <div class="space-y-2">
+              <label for="select-field" class="block text-sm font-medium">Select Option</label>
+              <select 
+                id="select-field"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-900 dark:border-gray-700 dark:focus:ring-white"
+              >
+                <option>Option 1</option>
+                <option>Option 2</option>
+                <option>Option 3</option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label for="message" class="block text-sm font-medium">Message</label>
+              <textarea 
+                id="message"
+                rows="4"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-900 dark:border-gray-700 dark:focus:ring-white"
+                placeholder="Your message..."
+              ></textarea>
+            </div>
+
+            <div class="space-y-3">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                <span class="text-sm">Subscribe to newsletter</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                <span class="text-sm">I agree to the terms and conditions</span>
+              </label>
+            </div>
+
+            <div class="space-y-3">
+              <p class="text-sm font-medium">Preferred Contact Method</p>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="contact-showcase" class="w-4 h-4 border-gray-300">
+                <span class="text-sm">Email</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="contact-showcase" class="w-4 h-4 border-gray-300">
+                <span class="text-sm">Phone</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Cards Section -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-12">Cards</h2>
+      
+      <div class="space-y-12">
+        <!-- Basic Cards -->
+        <div>
+          <h3 class="text-xl font-medium mb-6">Basic Cards</h3>
+          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="p-6 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors dark:border-gray-800 dark:hover:border-gray-700">
+              <h4 class="text-lg font-semibold mb-2">Simple Card</h4>
+              <p class="text-sm text-muted">Basic card with title and description. Perfect for features or services.</p>
+            </div>
+            <div class="p-6 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors dark:border-gray-800 dark:hover:border-gray-700">
+              <h4 class="text-lg font-semibold mb-2">Another Card</h4>
+              <p class="text-sm text-muted">Consistent styling across all card components with subtle hover states.</p>
+            </div>
+            <div class="p-6 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors dark:border-gray-800 dark:hover:border-gray-700">
+              <h4 class="text-lg font-semibold mb-2">Third Card</h4>
+              <p class="text-sm text-muted">Minimal design with clear hierarchy and generous padding.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div>
+          <h3 class="text-xl font-medium mb-6">Stats Cards</h3>
+          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="p-6 border border-gray-200 rounded-lg dark:border-gray-800">
+              <p class="text-sm text-muted mb-1">Total Revenue</p>
+              <p class="text-3xl font-bold mb-1">$45,231</p>
+              <p class="text-sm text-muted">+20.1% from last month</p>
+            </div>
+            <div class="p-6 border border-gray-200 rounded-lg dark:border-gray-800">
+              <p class="text-sm text-muted mb-1">Active Users</p>
+              <p class="text-3xl font-bold mb-1">2,350</p>
+              <p class="text-sm text-muted">+180.1% from last month</p>
+            </div>
+            <div class="p-6 border border-gray-200 rounded-lg dark:border-gray-800">
+              <p class="text-sm text-muted mb-1">Conversion Rate</p>
+              <p class="text-3xl font-bold mb-1">3.24%</p>
+              <p class="text-sm text-muted">+5.2% from last month</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Image Cards -->
+        <div>
+          <h3 class="text-xl font-medium mb-6">Image Cards</h3>
+          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="border border-gray-200 rounded-lg overflow-hidden hover:border-gray-300 transition-colors dark:border-gray-800 dark:hover:border-gray-700">
+              <div class="aspect-video bg-gray-100 dark:bg-gray-900"></div>
+              <div class="p-6">
+                <h4 class="text-lg font-semibold mb-2">Project Alpha</h4>
+                <p class="text-sm text-muted mb-4">Description of the project with key highlights and features.</p>
+                <button class="text-sm font-medium hover:underline">Learn more →</button>
+              </div>
+            </div>
+            <div class="border border-gray-200 rounded-lg overflow-hidden hover:border-gray-300 transition-colors dark:border-gray-800 dark:hover:border-gray-700">
+              <div class="aspect-video bg-gray-100 dark:bg-gray-900"></div>
+              <div class="p-6">
+                <h4 class="text-lg font-semibold mb-2">Project Beta</h4>
+                <p class="text-sm text-muted mb-4">Another project card with consistent layout and spacing.</p>
+                <button class="text-sm font-medium hover:underline">Learn more →</button>
+              </div>
+            </div>
+            <div class="border border-gray-200 rounded-lg overflow-hidden hover:border-gray-300 transition-colors dark:border-gray-800 dark:hover:border-gray-700">
+              <div class="aspect-video bg-gray-100 dark:bg-gray-900"></div>
+              <div class="p-6">
+                <h4 class="text-lg font-semibold mb-2">Project Gamma</h4>
+                <p class="text-sm text-muted mb-4">Third card showcasing the flexible card design system.</p>
+                <button class="text-sm font-medium hover:underline">Learn more →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Table Section -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-12">Tables</h2>
+      <div class="overflow-x-auto border border-gray-200 rounded-lg dark:border-gray-800">
+        <table class="w-full">
+          <caption class="sr-only">User management table showing team members with their roles and status</caption>
+          <thead class="border-b border-gray-200 dark:border-gray-800">
+            <tr class="bg-gray-50 dark:bg-gray-900">
+              <th class="px-6 py-3 text-left text-sm font-medium">Name</th>
+              <th class="px-6 py-3 text-left text-sm font-medium">Email</th>
+              <th class="px-6 py-3 text-left text-sm font-medium">Role</th>
+              <th class="px-6 py-3 text-left text-sm font-medium">Status</th>
+              <th class="px-6 py-3 text-right text-sm font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-900">
+              <td class="px-6 py-4 text-sm font-medium">John Doe</td>
+              <td class="px-6 py-4 text-sm text-muted">john@example.com</td>
+              <td class="px-6 py-4 text-sm text-muted">Admin</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button class="text-sm hover:underline">Edit</button>
+              </td>
+            </tr>
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-900">
+              <td class="px-6 py-4 text-sm font-medium">Jane Smith</td>
+              <td class="px-6 py-4 text-sm text-muted">jane@example.com</td>
+              <td class="px-6 py-4 text-sm text-muted">Developer</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button class="text-sm hover:underline">Edit</button>
+              </td>
+            </tr>
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-900">
+              <td class="px-6 py-4 text-sm font-medium">Mike Johnson</td>
+              <td class="px-6 py-4 text-sm text-muted">mike@example.com</td>
+              <td class="px-6 py-4 text-sm text-muted">Designer</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">Pending</span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button class="text-sm hover:underline">Edit</button>
+              </td>
+            </tr>
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-900">
+              <td class="px-6 py-4 text-sm font-medium">Sarah Wilson</td>
+              <td class="px-6 py-4 text-sm text-muted">sarah@example.com</td>
+              <td class="px-6 py-4 text-sm text-muted">Manager</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button class="text-sm hover:underline">Edit</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Lists Section -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-12">Lists</h2>
+      
+      <div class="grid gap-12 lg:grid-cols-2">
+        <!-- Simple List -->
+        <div>
+          <h3 class="text-xl font-medium mb-6">Checklist</h3>
+          <ul class="space-y-3">
+            <li class="flex items-start gap-2">
+              <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              <span>Generous whitespace for breathing room</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              <span>Clear typography hierarchy</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              <span>Minimal color palette (black, white, grays)</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              <span>Perfect light/dark mode symmetry</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              <span>Tailwind CSS for rapid development</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Feature List -->
+        <div>
+          <h3 class="text-xl font-medium mb-6">Features</h3>
+          <div class="space-y-4">
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center border border-gray-200 rounded-lg dark:border-gray-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+              </div>
+              <div>
+                <h4 class="font-medium mb-1">Fast Performance</h4>
+                <p class="text-sm text-muted">Optimized for speed with minimal CSS</p>
+              </div>
+            </div>
+            
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center border border-gray-200 rounded-lg dark:border-gray-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                </svg>
+              </div>
+              <div>
+                <h4 class="font-medium mb-1">Highly Customizable</h4>
+                <p class="text-sm text-muted">Easy to adapt to your brand</p>
+              </div>
+            </div>
+            
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center border border-gray-200 rounded-lg dark:border-gray-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <div>
+                <h4 class="font-medium mb-1">Responsive Design</h4>
+                <p class="text-sm text-muted">Works perfectly on all devices</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Badges & Alerts -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-12">Badges & Alerts</h2>
+      
+      <div class="space-y-8">
+        <!-- Badges -->
+        <div>
+          <h3 class="text-xl font-medium mb-4">Status Badges</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Success</span>
+            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Info</span>
+            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Warning</span>
+            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Error</span>
+            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">Neutral</span>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <h3 class="text-xl font-medium mb-4">Tags</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="inline-flex px-3 py-1 text-sm border border-gray-300 rounded-full dark:border-gray-700">React</span>
+            <span class="inline-flex px-3 py-1 text-sm border border-gray-300 rounded-full dark:border-gray-700">TypeScript</span>
+            <span class="inline-flex px-3 py-1 text-sm border border-gray-300 rounded-full dark:border-gray-700">Tailwind CSS</span>
+            <span class="inline-flex px-3 py-1 text-sm border border-gray-300 rounded-full dark:border-gray-700">Design System</span>
+          </div>
+        </div>
+
+        <!-- Alerts -->
+        <div>
+          <h3 class="text-xl font-medium mb-4">Alerts</h3>
+          <div class="space-y-4">
+            <div class="p-4 border border-green-200 bg-green-50 rounded-lg dark:border-green-900 dark:bg-green-950">
+              <div class="flex gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-green-900 dark:text-green-100">Success</p>
+                  <p class="text-sm text-green-700 dark:text-green-300">Your changes have been saved successfully.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 border border-blue-200 bg-blue-50 rounded-lg dark:border-blue-900 dark:bg-blue-950">
+              <div class="flex gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-blue-900 dark:text-blue-100">Information</p>
+                  <p class="text-sm text-blue-700 dark:text-blue-300">This is an informational message with helpful context.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 border border-yellow-200 bg-yellow-50 rounded-lg dark:border-yellow-900 dark:bg-yellow-950">
+              <div class="flex gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-yellow-900 dark:text-yellow-100">Warning</p>
+                  <p class="text-sm text-yellow-700 dark:text-yellow-300">Please review your settings before continuing.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 border border-red-200 bg-red-50 rounded-lg dark:border-red-900 dark:bg-red-950">
+              <div class="flex gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-red-900 dark:text-red-100">Error</p>
+                  <p class="text-sm text-red-700 dark:text-red-300">An error occurred while processing your request.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 border border-gray-200 bg-gray-50 rounded-lg dark:border-gray-800 dark:bg-gray-950">
+              <div class="flex gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Neutral</p>
+                  <p class="text-sm text-gray-700 dark:text-gray-300">This is a neutral informational message.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Data Visualization -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-12">Data Visualization</h2>
+      
+      <div class="space-y-12">
+        <!-- Progress Bars -->
+        <div>
+          <h3 class="text-xl font-medium mb-6">Progress Bars</h3>
+          <div class="space-y-6">
+            <div>
+              <div class="flex justify-between text-sm mb-2">
+                <span class="font-medium">Project Alpha</span>
+                <span class="text-muted">85%</span>
+              </div>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden dark:bg-gray-900">
+                <div class="h-full bg-black rounded-full dark:bg-white" style="width: 85%"></div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="flex justify-between text-sm mb-2">
+                <span class="font-medium">Project Beta</span>
+                <span class="text-muted">60%</span>
+              </div>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden dark:bg-gray-900">
+                <div class="h-full bg-black rounded-full dark:bg-white" style="width: 60%"></div>
+              </div>
+            </div>
+            
+            <div>
+              <div class="flex justify-between text-sm mb-2">
+                <span class="font-medium">Project Gamma</span>
+                <span class="text-muted">40%</span>
+              </div>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden dark:bg-gray-900">
+                <div class="h-full bg-black rounded-full dark:bg-white" style="width: 40%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bar Chart -->
+        <div>
+          <h3 class="text-xl font-medium mb-6">Bar Chart</h3>
+          <div class="space-y-4">
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-medium w-20">Q1 2024</span>
+              <div class="flex-1 h-10 bg-gray-100 rounded overflow-hidden dark:bg-gray-900">
+                <div class="h-full bg-black flex items-center justify-end pr-3 text-white text-sm font-medium dark:bg-white dark:text-black" style="width: 75%">
+                  $75k
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-medium w-20">Q2 2024</span>
+              <div class="flex-1 h-10 bg-gray-100 rounded overflow-hidden dark:bg-gray-900">
+                <div class="h-full bg-black flex items-center justify-end pr-3 text-white text-sm font-medium dark:bg-white dark:text-black" style="width: 90%">
+                  $90k
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-medium w-20">Q3 2024</span>
+              <div class="flex-1 h-10 bg-gray-100 rounded overflow-hidden dark:bg-gray-900">
+                <div class="h-full bg-black flex items-center justify-end pr-3 text-white text-sm font-medium dark:bg-white dark:text-black" style="width: 95%">
+                  $95k
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-medium w-20">Q4 2024</span>
+              <div class="flex-1 h-10 bg-gray-100 rounded overflow-hidden dark:bg-gray-900">
+                <div class="h-full bg-black flex items-center justify-end pr-3 text-white text-sm font-medium dark:bg-white dark:text-black" style="width: 100%">
+                  $100k
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div>
+          <h3 class="text-xl font-medium mb-6">Metrics Grid</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="border border-gray-200 rounded-lg p-4 dark:border-gray-800">
+              <div class="text-sm text-muted mb-1">Total Revenue</div>
+              <div class="text-2xl font-bold">$360k</div>
+              <div class="text-xs text-green-600 dark:text-green-400 mt-1">↑ 12.5%</div>
+            </div>
+            
+            <div class="border border-gray-200 rounded-lg p-4 dark:border-gray-800">
+              <div class="text-sm text-muted mb-1">New Customers</div>
+              <div class="text-2xl font-bold">1,234</div>
+              <div class="text-xs text-green-600 dark:text-green-400 mt-1">↑ 8.3%</div>
+            </div>
+            
+            <div class="border border-gray-200 rounded-lg p-4 dark:border-gray-800">
+              <div class="text-sm text-muted mb-1">Avg. Order</div>
+              <div class="text-2xl font-bold">$292</div>
+              <div class="text-xs text-red-600 dark:text-red-400 mt-1">↓ 3.2%</div>
+            </div>
+            
+            <div class="border border-gray-200 rounded-lg p-4 dark:border-gray-800">
+              <div class="text-sm text-muted mb-1">Conversion</div>
+              <div class="text-2xl font-bold">3.2%</div>
+              <div class="text-xs text-green-600 dark:text-green-400 mt-1">↑ 0.5%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Typography Section -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-12">Typography</h2>
+      
+      <div class="space-y-8">
+        <div>
+          <h3 class="text-xl font-medium mb-6">Headings</h3>
+          <div class="space-y-4">
+            <h1 class="text-5xl font-bold">Heading 1 - 48px Bold</h1>
+            <h2 class="text-3xl font-semibold">Heading 2 - 30px Semibold</h2>
+            <h3 class="text-2xl font-semibold">Heading 3 - 24px Semibold</h3>
+            <h4 class="text-xl font-medium">Heading 4 - 20px Medium</h4>
+            <h5 class="text-lg font-medium">Heading 5 - 18px Medium</h5>
+            <h6 class="text-base font-medium">Heading 6 - 16px Medium</h6>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-medium mb-6">Body Text</h3>
+          <div class="space-y-4 max-w-2xl">
+            <p class="text-lg">Large body text (18px) - Perfect for introductory paragraphs or emphasis. The quick brown fox jumps over the lazy dog.</p>
+            <p class="text-base">Default body text (16px) - The standard for most content. Readable and comfortable for extended reading. The quick brown fox jumps over the lazy dog.</p>
+            <p class="text-sm">Small body text (14px) - Great for secondary information, captions, or supplementary details. The quick brown fox jumps over the lazy dog.</p>
+            <p class="text-sm text-muted">Muted text - Used for less important information with reduced visual weight while maintaining readability.</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-medium mb-6">Font Weights</h3>
+          <div class="space-y-2">
+            <p class="font-normal">Normal (400) - Regular body text</p>
+            <p class="font-medium">Medium (500) - Slightly emphasized</p>
+            <p class="font-semibold">Semibold (600) - Headings and emphasis</p>
+            <p class="font-bold">Bold (700) - Strong emphasis</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Colors Section -->
+    <section class="mb-24">
+      <h2 class="text-3xl font-semibold mb-12">Color System</h2>
+      
+      <div class="space-y-12">
+        <!-- Primary & Secondary Colors -->
+        <div>
+          <h3 class="text-2xl font-medium mb-8">Primary & Secondary Colors</h3>
+          <div class="grid gap-6 sm:grid-cols-2">
+            <!-- Light Mode -->
+            <div>
+              <h4 class="text-lg font-medium mb-4">Light Mode</h4>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-black"></div>
+                  <div>
+                    <p class="font-medium">Primary</p>
+                    <p class="text-sm text-muted">black (#000000)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-gray-50 border border-gray-300"></div>
+                  <div>
+                    <p class="font-medium">Secondary</p>
+                    <p class="text-sm text-muted">gray-50 (#f9fafb)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dark Mode -->
+            <div>
+              <h4 class="text-lg font-medium mb-4">Dark Mode</h4>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-white"></div>
+                  <div>
+                    <p class="font-medium">Primary</p>
+                    <p class="text-sm text-muted">white (#ffffff)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-gray-950 border border-gray-700"></div>
+                  <div>
+                    <p class="font-medium">Secondary</p>
+                    <p class="text-sm text-muted">gray-950 (#030712)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Base Colors -->
+        <div>
+          <h3 class="text-2xl font-medium mb-8">Base Colors</h3>
+          <div class="grid gap-6 sm:grid-cols-2">
+            <!-- Light Mode Colors -->
+            <div>
+              <h4 class="text-lg font-medium mb-4">Light Mode</h4>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-white border-2 border-gray-300"></div>
+                  <div>
+                    <p class="font-medium">Background</p>
+                    <p class="text-sm text-muted">white (#ffffff)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-black"></div>
+                  <div>
+                    <p class="font-medium">Foreground</p>
+                    <p class="text-sm text-muted">black (#000000)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-gray-600"></div>
+                  <div>
+                    <p class="font-medium">Muted</p>
+                    <p class="text-sm text-muted">gray-600 (#525252)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-gray-200 border border-gray-300"></div>
+                  <div>
+                    <p class="font-medium">Border</p>
+                    <p class="text-sm text-muted">gray-200 (#e5e7eb)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dark Mode Colors -->
+            <div>
+              <h4 class="text-lg font-medium mb-4">Dark Mode</h4>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-black border-2 border-gray-700"></div>
+                  <div>
+                    <p class="font-medium">Background</p>
+                    <p class="text-sm text-muted">black (#000000)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-white"></div>
+                  <div>
+                    <p class="font-medium">Foreground</p>
+                    <p class="text-sm text-muted">white (#ffffff)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-gray-400"></div>
+                  <div>
+                    <p class="font-medium">Muted</p>
+                    <p class="text-sm text-muted">gray-400 (#a3a3a3)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-16 rounded-lg bg-gray-800 border border-gray-700"></div>
+                  <div>
+                    <p class="font-medium">Border</p>
+                    <p class="text-sm text-muted">gray-800 (#1f2937)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Semantic Colors -->
+        <div>
+          <h3 class="text-2xl font-medium mb-8">Semantic Colors</h3>
+          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <!-- Success -->
+            <div>
+              <h4 class="text-lg font-medium mb-4">Success</h4>
+              <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-900"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Background</p>
+                    <p class="text-muted">green-50 (#f0fdf4)</p>
+                    <p class="text-muted">green-950 (#052e16)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-green-600 dark:bg-green-400"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Foreground</p>
+                    <p class="text-muted">green-600 (#16a34a)</p>
+                    <p class="text-muted">green-400 (#4ade80)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Badge</p>
+                    <p class="text-muted">green-100 (#dcfce7)</p>
+                    <p class="text-muted">green-900 (#14532d)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Info -->
+            <div>
+              <h4 class="text-lg font-medium mb-4">Info</h4>
+              <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-900"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Background</p>
+                    <p class="text-muted">blue-50 (#eff6ff)</p>
+                    <p class="text-muted">blue-950 (#172554)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-blue-600 dark:bg-blue-400"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Foreground</p>
+                    <p class="text-muted">blue-600 (#2563eb)</p>
+                    <p class="text-muted">blue-400 (#60a5fa)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Badge</p>
+                    <p class="text-muted">blue-100 (#dbeafe)</p>
+                    <p class="text-muted">blue-900 (#1e3a8a)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Warning -->
+            <div>
+              <h4 class="text-lg font-medium mb-4">Warning</h4>
+              <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-yellow-50 border border-yellow-200 dark:bg-yellow-950 dark:border-yellow-900"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Background</p>
+                    <p class="text-muted">yellow-50 (#fefce8)</p>
+                    <p class="text-muted">yellow-950 (#422006)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-yellow-600 dark:bg-yellow-400"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Foreground</p>
+                    <p class="text-muted">yellow-600 (#ca8a04)</p>
+                    <p class="text-muted">yellow-400 (#facc15)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Badge</p>
+                    <p class="text-muted">yellow-100 (#fef9c3)</p>
+                    <p class="text-muted">yellow-900 (#713f12)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Error -->
+            <div>
+              <h4 class="text-lg font-medium mb-4">Error</h4>
+              <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950 dark:border-red-900"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Background</p>
+                    <p class="text-muted">red-50 (#fef2f2)</p>
+                    <p class="text-muted">red-950 (#450a0a)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-red-600 dark:bg-red-400"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Foreground</p>
+                    <p class="text-muted">red-600 (#dc2626)</p>
+                    <p class="text-muted">red-400 (#f87171)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Badge</p>
+                    <p class="text-muted">red-100 (#fee2e2)</p>
+                    <p class="text-muted">red-900 (#7f1d1d)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Neutral -->
+            <div>
+              <h4 class="text-lg font-medium mb-4">Neutral</h4>
+              <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-gray-50 border border-gray-200 dark:bg-gray-950 dark:border-gray-800"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Background</p>
+                    <p class="text-muted">gray-50 (#f9fafb)</p>
+                    <p class="text-muted">gray-950 (#030712)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-gray-600 dark:bg-gray-400"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Foreground</p>
+                    <p class="text-muted">gray-600 (#4b5563)</p>
+                    <p class="text-muted">gray-400 (#9ca3af)</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800"></div>
+                  <div class="text-sm">
+                    <p class="font-medium">Badge</p>
+                    <p class="text-muted">gray-100 (#f3f4f6)</p>
+                    <p class="text-muted">gray-800 (#1f2937)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>
