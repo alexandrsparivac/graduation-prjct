@@ -36,7 +36,7 @@
 <script type="module">
   import { getSupabase, requireSession, getProfile, renderTopbar } from '/js/supabase.js';
   import { hidePageLoader, toast } from '/js/ui.js';
-  import { initI18n, t, tp, applyI18n, onLangChange } from '/js/i18n.js';
+  import { initI18n, t, tp, applyI18n, onLangChange, topicName } from '/js/i18n.js';
   import { LOGO_SVG, renderFooter } from '/js/brand.js';
   import { applyPrefs, speechRate } from '/js/prefs.js';
   import { speak, stopSpeaking, toLocale, ttsSupported } from '/js/speech.js';
@@ -115,7 +115,7 @@
       <div class="rev-card">
         <div class="rev-meta">
           <span class="tag">${esc(t('rev.kind.' + (current.kind || 'word')))}</span>
-          ${current.topic ? `<span class="rev-topic">${esc(current.topic)}</span>` : ''}
+          ${current.topic ? `<span class="rev-topic">${esc(topicName(current.domain_slug, current.topic))}</span>` : ''}
         </div>
 
         <div class="rev-term" lang="${esc(language)}" dir="auto">

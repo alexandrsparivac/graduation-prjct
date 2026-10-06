@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Clair',
   'set.theme.dark': 'Sombre',
   'set.language': 'Langue de l’interface',
-  'set.language.hint': 'Ne change que les menus et les boutons. Les leçons restent dans la langue que vous apprenez.',
+  'set.language.hint': "Modifie les textes, les domaines et les explications des leçons. La langue étudiée reste celle choisie.",
   'set.lessons': 'Leçons',
   'set.showTranslations': 'Afficher les traductions d’emblée',
   'set.showTranslations.hint': 'Désactivé, le texte de lecture reste sans traduction jusqu’à ce que vous la demandiez.',
@@ -351,5 +351,8 @@ export default {
   'les.cnt.exercises': ['{n} exercice', '{n} exercices'],
   'les.cnt.clips': ['{n} extrait', '{n} extraits'],
   'les.cnt.sentences': ['{n} phrase', '{n} phrases'],
-  'les.cnt.tips': ['{n} conseil', '{n} conseils']
+  'les.cnt.tips': ['{n} conseil', '{n} conseils'],
+  'set.language.saveFailed': "La langue est appliquée ici, mais nous ne pouvons pas l’enregistrer dans ton compte. Réessaie.",
+  'les.language.needsSetup': "Les leçons dans cette langue de base ne sont pas encore configurées. Contacte l’administrateur.",
+  'les.quota': "La limite quotidienne gratuite de l’IA est atteinte. Réessaie plus tard. Les leçons enregistrées et les progrès restent disponibles.",
 };

@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Vaalea',
   'set.theme.dark': 'Tumma',
   'set.language': 'Käyttöliittymän kieli',
-  'set.language.hint': 'Vaihtaa vain valikot ja painikkeet. Oppitunnit pysyvät opiskelemallasi kielellä.',
+  'set.language.hint': "Muuttaa sivujen tekstit, alat ja oppituntien selitykset. Opiskeltava kieli pysyy valittuna.",
   'set.lessons': 'Oppitunnit',
   'set.showTranslations': 'Näytä käännökset heti',
   'set.showTranslations.hint': 'Pois päältä lukuteksti pysyy kääntämättä, kunnes pyydät käännöstä.',
@@ -351,5 +351,8 @@ export default {
   'les.cnt.exercises': ['{n} tehtävä', '{n} tehtävää'],
   'les.cnt.clips': ['{n} pätkä', '{n} pätkää'],
   'les.cnt.sentences': ['{n} lause', '{n} lauseita'],
-  'les.cnt.tips': ['{n} vinkki', '{n} vinkkiä']
+  'les.cnt.tips': ['{n} vinkki', '{n} vinkkiä'],
+  'set.language.saveFailed': "Kieli on käytössä täällä, mutta sitä ei voitu tallentaa tilillesi. Yritä uudelleen.",
+  'les.language.needsSetup': "Tämän pohjakielen oppitunteja ei ole vielä määritetty. Ota yhteyttä ylläpitäjään.",
+  'les.quota': "Päivittäinen maksuton tekoälyraja on saavutettu. Yritä myöhemmin. Tallennetut oppitunnit ja edistyminen ovat käytettävissä.",
 };

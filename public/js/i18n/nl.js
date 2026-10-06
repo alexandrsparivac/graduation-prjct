@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Licht',
   'set.theme.dark': 'Donker',
   'set.language': 'Taal van de interface',
-  'set.language.hint': 'Verandert alleen menu’s en knoppen. De lessen blijven in de taal die je leert.',
+  'set.language.hint': "Wijzigt paginateksten, vakgebieden en uitleg in lessen. Je gekozen leertaal blijft hetzelfde.",
   'set.lessons': 'Lessen',
   'set.showTranslations': 'Vertalingen meteen tonen',
   'set.showTranslations.hint': 'Uit betekent dat de leestekst onvertaald blijft tot je erom vraagt.',
@@ -351,5 +351,8 @@ export default {
   'les.cnt.exercises': ['{n} oefening', '{n} oefeningen'],
   'les.cnt.clips': ['{n} fragment', '{n} fragmenten'],
   'les.cnt.sentences': ['{n} zin', '{n} zinnen'],
-  'les.cnt.tips': ['{n} tip', '{n} tips']
+  'les.cnt.tips': ['{n} tip', '{n} tips'],
+  'set.language.saveFailed': "De taal is hier toegepast, maar kon niet in je account worden opgeslagen. Probeer opnieuw.",
+  'les.language.needsSetup': "Lessen in deze basistaal zijn nog niet ingesteld. Neem contact op met de beheerder.",
+  'les.quota': "De dagelijkse gratis AI-limiet is bereikt. Probeer het later opnieuw. Opgeslagen lessen en voortgang blijven beschikbaar.",
 };

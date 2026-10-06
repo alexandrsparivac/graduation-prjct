@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Claro',
   'set.theme.dark': 'Escuro',
   'set.language': 'Idioma da interface',
-  'set.language.hint': 'Muda só os menus e os botões. As lições ficam no idioma que está a aprender.',
+  'set.language.hint': "Altera os textos, as áreas e as explicações das lições. O idioma estudado continua a ser o escolhido.",
   'set.lessons': 'Lições',
   'set.showTranslations': 'Mostrar as traduções à partida',
   'set.showTranslations.hint': 'Se desligar, o texto de leitura fica sem tradução até a pedir.',
@@ -351,5 +351,8 @@ export default {
   'les.cnt.exercises': ['{n} exercício', '{n} exercícios'],
   'les.cnt.clips': ['{n} excerto', '{n} excertos'],
   'les.cnt.sentences': ['{n} frase', '{n} frases'],
-  'les.cnt.tips': ['{n} dica', '{n} dicas']
+  'les.cnt.tips': ['{n} dica', '{n} dicas'],
+  'set.language.saveFailed': "O idioma foi aplicado aqui, mas não foi possível guardá-lo na tua conta. Tenta novamente.",
+  'les.language.needsSetup': "As lições neste idioma base ainda não estão configuradas. Contacta o administrador.",
+  'les.quota': "O limite diário gratuito de IA foi atingido. Tenta mais tarde. As lições guardadas e o progresso continuam disponíveis.",
 };

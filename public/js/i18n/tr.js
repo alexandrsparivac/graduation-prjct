@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Açık',
   'set.theme.dark': 'Koyu',
   'set.language': 'Arayüz dili',
-  'set.language.hint': 'Yalnızca menüleri ve düğmeleri değiştirir. Dersler öğrendiğin dilde kalır.',
+  'set.language.hint': "Sayfa metinlerini, alanları ve ders açıklamalarını değiştirir. Öğrendiğin dil seçtiğin dil olarak kalır.",
   'set.lessons': 'Dersler',
   'set.showTranslations': 'Çeviriyi baştan göster',
   'set.showTranslations.hint': 'Kapalıyken okuma metni sen isteyene kadar çevrilmeden kalır.',
@@ -350,5 +350,8 @@ export default {
   'les.cnt.exercises': ['{n} alıştırma'],
   'les.cnt.clips': ['{n} kayıt'],
   'les.cnt.sentences': ['{n} cümle'],
-  'les.cnt.tips': ['{n} çıkarım']
+  'les.cnt.tips': ['{n} çıkarım'],
+  'set.language.saveFailed': "Dil burada uygulandı, ancak hesabına kaydedilemedi. Tekrar dene.",
+  'les.language.needsSetup': "Bu temel dildeki dersler henüz yapılandırılmamış. Yöneticiyle iletişime geç.",
+  'les.quota': "Günlük ücretsiz yapay zekâ sınırına ulaşıldı. Daha sonra tekrar dene. Kaydedilen dersler ve ilerleme kullanılabilir.",
 };

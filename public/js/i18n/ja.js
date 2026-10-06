@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'ライト',
   'set.theme.dark': 'ダーク',
   'set.language': '表示言語',
-  'set.language.hint': 'メニューとボタンだけが変わります。レッスンは学習中の言語のままです。',
+  'set.language.hint': "ページの文章、学習分野、レッスンの解説を変更します。学習する言語は選択したままです。",
   'set.lessons': 'レッスン',
   'set.showTranslations': '訳を最初から表示する',
   'set.showTranslations.hint': 'オフにすると、読解文は求めるまで訳が出ません。',
@@ -350,5 +350,8 @@ export default {
   'les.cnt.exercises': ['{n} 問'],
   'les.cnt.clips': ['音声 {n} 本'],
   'les.cnt.sentences': ['{n} 文'],
-  'les.cnt.tips': ['{n} 項目']
+  'les.cnt.tips': ['{n} 項目'],
+  'set.language.saveFailed': "言語はここで適用されましたが、アカウントに保存できませんでした。もう一度お試しください。",
+  'les.language.needsSetup': "この基本言語でのレッスンはまだ設定されていません。管理者にお問い合わせください。",
+  'les.quota': "AIの1日の無料利用上限に達しました。後でもう一度お試しください。保存済みのレッスンと進捗は引き続き利用できます。",
 };

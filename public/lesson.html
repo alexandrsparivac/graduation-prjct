@@ -59,7 +59,8 @@
   import { getSupabase, requireSession, getProfile, renderTopbar, showMsg } from '/js/supabase.js';
   import { setLoading, stagger, hidePageLoader, toast } from '/js/ui.js';
   import { speak, stopSpeaking, listen, similarity, toLocale, ttsSupported, sttSupported } from '/js/speech.js';
-  import { initI18n, t, tp, onLangChange, getLang, UI_LANGS } from '/js/i18n.js';
+  import { initI18n, t, tp, onLangChange, getLang, languageName, domainName, topicName, langMeta } from '/js/i18n.js';
+  import { loadLocalizedLesson, saveLocalizedLesson } from '/js/lesson-cache.js';
   import { buildFlow, lessonPlan, estimateMinutes, sectionProgress, currentSection, cleanTitle, sectionTone, SECTIONS } from '/js/lesson-plan.js';
   import { domainIcon, domainTone } from '/js/domain-icons.js';
   import { LOGO_SVG, renderFooter } from '/js/brand.js';
@@ -82,10 +83,9 @@
   const params = { lang: q.get('lang'), domain: q.get('domain'), topic: q.get('topic'), level: q.get('level') };
   if (!params.lang || !params.domain || !params.topic || !params.level) location.replace('/dashboard');
   const locale = toLocale(params.lang);
-  // Titles, intros and goals are written in the learner's native language, not
-  // the interface language. Marking them lets a screen reader switch voice and
-  // lets a Latin paragraph keep its own direction inside an Arabic interface.
-  const contentLang = UI_LANGS.find(l => l.label === (profile?.native_language || 'Română'))?.code || 'ro';
+  // Explanations follow the selected base language. Marking them lets a screen
+  // reader switch voice and keeps their direction inside an Arabic interface.
+  const contentLang = getLang();
   const contentAttrs = `lang="${contentLang}" dir="auto"`;
 
   const $ = id => document.getElementById(id);
@@ -96,18 +96,17 @@
   const speakerBtn = (text, cls = '') => `<button class="speak-btn ${cls}" data-say="${esc(text)}" title="${esc(t('les.listen'))}" aria-label="${esc(t('les.listen'))}">${ICON_SPEAKER}</button>`;
   const normalize = s => s.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, '').replace(/\s+/g, ' ').trim();
 
-  const [{ data: L }, { data: D }] = await Promise.all([
-    sb.from('languages').select('*').eq('code', params.lang).maybeSingle(),
-    sb.from('domains').select('*').eq('slug', params.domain).maybeSingle()
-  ]);
+  const { data: D } = await sb.from('domains').select('*').eq('slug', params.domain).maybeSingle();
 
   let lessonRow = null;
 
   async function loadCached() {
-    const { data } = await sb.from('lessons').select('*')
-      .eq('language_code', params.lang).eq('domain_slug', params.domain)
-      .eq('topic', params.topic).eq('level', params.level).maybeSingle();
-    return data;
+    try {
+      return await loadLocalizedLesson(sb, params, contentLang);
+    } catch (err) {
+      if (err.code === 'localization_setup') throw new Error(t('les.language.needsSetup'));
+      throw err;
+    }
   }
 
   let stepTimer;
@@ -134,11 +133,11 @@
   async function askForLesson() {
     const { data: { session: s } } = await sb.auth.getSession();
     const payload = JSON.stringify({
-      language: L?.name || params.lang,
-      domain: D?.name || params.domain,
-      topic: params.topic,
+      language: languageName(params.lang, 'en'),
+      domain: domainName(D || params.domain),
+      topic: topicName(params.domain, params.topic),
       level: params.level,
-      nativeLanguage: profile?.native_language || 'Română'
+      nativeLanguage: langMeta(contentLang)?.label || contentLang
     });
 
     for (let round = 1; ; round++) {
@@ -152,10 +151,10 @@
       const body = r ? await r.json().catch(() => ({})) : {};
       if (r?.ok && body.lesson) return body;
       if (r?.status === 401) throw new Error('redirect');
-      if (r?.status === 400) throw new Error(body.error || 'Cerere invalidă.');
+      if (r?.status === 400) throw new Error(t('les.failed'));
       // Daily AI quota never clears within these retries — show the message
       // at once instead of burning three more rounds of waiting.
-      if (body.quota) throw new Error(body.reason || body.error || t('les.stillWorking'));
+      if (body.quota) throw new Error(t('les.quota'));
 
       // Anything else is transient: the AI was rate limited or returned a
       // section that failed validation. Keep the loader up and try again,
@@ -171,23 +170,13 @@
     const body = await askForLesson();
     stopSteps();
 
-    const row = { language_code: params.lang, domain_slug: params.domain, topic: params.topic, level: params.level, content: body.lesson, model: body.model, created_by: user.id };
-    if (lessonRow?.id) {
-      const { error } = await sb.from('lessons').update({ content: body.lesson, model: body.model }).eq('id', lessonRow.id);
-      if (error) console.warn('Could not refresh cached lesson:', error.message);
-      return { ...lessonRow, ...row };
+    try {
+      return await saveLocalizedLesson(sb, { params, nativeLanguage: contentLang,
+        content: body.lesson, model: body.model, userId: user.id, baseRow: lessonRow });
+    } catch (err) {
+      if (err.code === 'localization_setup') throw new Error(t('les.language.needsSetup'));
+      throw err;
     }
-    const { data, error } = await sb.from('lessons').insert(row).select().single();
-    if (error) {
-      // Another user generated the same lesson meanwhile — reuse it
-      const existing = await loadCached();
-      if (isCompleteLesson(existing?.content)) return existing;
-      // Keep the freshly validated content for this visit even if a stale shared
-      // cache entry cannot be replaced by the current user under RLS.
-      if (existing?.id) return { ...existing, ...row, id: existing.id };
-      throw new Error(error.message);
-    }
-    return data;
   }
 
   // The server accepts a reading passage of 80-220 words (validateLesson in
@@ -371,11 +360,7 @@
   // an English reader, "engleză" to a Romanian one. The row from the database
   // only has the Romanian name.
   function targetLanguageName() {
-    try {
-      const n = new Intl.DisplayNames([getLang()], { type: 'language' }).of(params.lang);
-      if (n && n !== params.lang) return n.charAt(0).toLocaleUpperCase(getLang()) + n.slice(1);
-    } catch { /* an engine without DisplayNames falls through */ }
-    return L?.name || params.lang;
+    return languageName(params.lang);
   }
 
   // Swap an element's tone-* class. The class only sets --tone-* variables;
@@ -434,10 +419,11 @@
     switch (st.kind) {
       case 'intro': {
         const title = cleanTitle(c.title, params.level);
-        const domain = D?.name || params.domain;
+        const domain = domainName(D || params.domain);
         const squash = v => String(v || '').toLocaleLowerCase().replace(/\s+/g, ' ').trim();
         // The topic is usually the title already; say it only when it is not.
-        const topic = squash(title).includes(squash(params.topic)) ? '' : params.topic;
+        const localizedTopic = topicName(params.domain, params.topic);
+        const topic = squash(title).includes(squash(localizedTopic)) ? '' : localizedTopic;
         const plan = lessonPlan(c);
         const facts = [
           [t('les.fact.level'), params.level],

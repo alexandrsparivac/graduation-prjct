@@ -1,7 +1,8 @@
 // The settings panel: theme, interface language, lesson behaviour, background.
 // It is rendered into the /settings page; the top bar only links to it.
 
-import { UI_LANGS, getLang, setLang, t, applyI18n, onLangChange } from './i18n.js';
+import { UI_LANGS, getLang, setLang, t, applyI18n, onLangChange, loadCatalogTranslations } from './i18n.js';
+import { saveProfileLanguage } from './profile-language.js';
 import { getPrefs, setPref, resetPrefs, applyPrefs } from './prefs.js';
 import { toast, setLoading } from './ui.js';
 
@@ -96,8 +97,17 @@ export function renderSettingsPanel(host, { showLessonPrefs = true, account = nu
     const b = e.target.closest('[data-lang]');
     if (!b || b.classList.contains('active')) return;
     await setLang(b.dataset.lang);
+    if (account) {
+      try {
+        await saveProfileLanguage(account.sb, account.user.id);
+        await loadCatalogTranslations(account.sb);
+      } catch (err) {
+        console.warn('Language preference not saved:', err.message);
+        toast(t('set.language.saveFailed'), 'error');
+      }
+    }
     host.querySelectorAll('[data-lang]').forEach(x => {
-      const on = x === b;
+      const on = x.dataset.lang === getLang();
       x.classList.toggle('active', on);
       x.setAttribute('aria-checked', on);
     });

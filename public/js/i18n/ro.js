@@ -24,7 +24,7 @@ export default {
   'set.theme.light': 'Luminoasă',
   'set.theme.dark': 'Întunecată',
   'set.language': 'Limba interfeței',
-  'set.language.hint': 'Schimbă doar meniurile și butoanele. Lecțiile rămân în limba pe care o înveți.',
+  'set.language.hint': "Schimbă textele, domeniile și explicațiile lecțiilor. Limba pe care o studiezi rămâne cea aleasă.",
   'set.lessons': 'Lecții',
   'set.showTranslations': 'Arată traducerile din start',
   'set.showTranslations.hint': 'Când e oprit, textul de citire îți apare fără traducere până ceri tu.',
@@ -356,5 +356,8 @@ export default {
   'les.cnt.exercises': ['{n} exercițiu', '{n} exerciții', '{n} de exerciții'],
   'les.cnt.clips': ['{n} fragment', '{n} fragmente', '{n} de fragmente'],
   'les.cnt.sentences': ['{n} propoziție', '{n} propoziții', '{n} de propoziții'],
-  'les.cnt.tips': ['{n} idee', '{n} idei', '{n} de idei']
+  'les.cnt.tips': ['{n} idee', '{n} idei', '{n} de idei'],
+  'set.language.saveFailed': "Limba se aplică aici, dar nu am putut salva preferința în cont. Încearcă din nou.",
+  'les.language.needsSetup': "Lecțiile în această limbă de bază nu sunt configurate încă. Contactează administratorul.",
+  'les.quota': "Limita zilnică gratuită a AI-ului a fost atinsă. Încearcă mai târziu. Lecțiile salvate și progresul rămân disponibile.",
 };

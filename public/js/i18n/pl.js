@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Jasny',
   'set.theme.dark': 'Ciemny',
   'set.language': 'Język interfejsu',
-  'set.language.hint': 'Zmienia tylko menu i przyciski. Lekcje zostają w języku, którego się uczysz.',
+  'set.language.hint': "Zmienia teksty stron, dziedziny i wyjaśnienia lekcji. Wybrany język nauki pozostaje ten sam.",
   'set.lessons': 'Lekcje',
   'set.showTranslations': 'Od razu pokazuj tłumaczenia',
   'set.showTranslations.hint': 'Po wyłączeniu tekst do czytania zostaje bez tłumaczenia, dopóki o nie nie poprosisz.',
@@ -351,5 +351,8 @@ export default {
   'les.cnt.exercises': ['{n} ćwiczenie', '{n} ćwiczenia', '{n} ćwiczeń'],
   'les.cnt.clips': ['{n} fragment', '{n} fragmenty', '{n} fragmentów'],
   'les.cnt.sentences': ['{n} zdanie', '{n} zdania', '{n} zdań'],
-  'les.cnt.tips': ['{n} wskazówka', '{n} wskazówki', '{n} wskazówek']
+  'les.cnt.tips': ['{n} wskazówka', '{n} wskazówki', '{n} wskazówek'],
+  'set.language.saveFailed': "Język jest tu używany, ale nie udało się zapisać go na koncie. Spróbuj ponownie.",
+  'les.language.needsSetup': "Lekcje w tym języku bazowym nie są jeszcze skonfigurowane. Skontaktuj się z administratorem.",
+  'les.quota': "Osiągnięto dzienny bezpłatny limit AI. Spróbuj później. Zapisane lekcje i postępy pozostają dostępne.",
 };

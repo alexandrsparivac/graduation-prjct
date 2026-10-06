@@ -1,6 +1,6 @@
 # LinguaDomains
 
-Language-learning platform organized by **professional domain** (IT, Medical, Business, Legal, Tourism, ...) with AI-generated lessons. The UI is in Romanian; code, comments and docs are in English.
+Language-learning platform organized by **professional domain** (IT, Medical, Business, Legal, Tourism, ...) with AI-generated lessons. The UI, domain catalog and lesson explanations support 25 base languages; code, comments and docs are in English.
 
 **Stack:** Node.js + Express · Supabase (Auth + Postgres, free tier) · Groq API (Llama 3.3, free) · vanilla HTML/CSS/JS.
 
@@ -33,6 +33,7 @@ public/
 
 1. Create a project at <https://supabase.com> → **New project**.
 2. **SQL Editor** → **New query** → paste `supabase/schema.sql` → **Run**.
+   Run `supabase/migrations/006_localization.sql` too. For an existing database, run only this migration to add all localized catalogs and lesson caches without resetting selections or progress.
 3. **Project Settings → API** → copy `Project URL` and the `anon public` key.
 4. **Authentication → URL Configuration**:
    - Site URL: `http://localhost:3000`
@@ -76,12 +77,16 @@ npm run dev        # http://localhost:3000
 | `profiles` | user data (auto-created on sign-up by trigger) |
 | `languages` | available languages |
 | `domains` | domains + each domain's topic list |
+| `domain_translations` | domain names, descriptions and topic labels in each base language |
 | `user_languages` | user's chosen languages + level |
 | `user_domains` | chosen domains + topics, per language |
 | `lessons` | AI-generated lessons (unique cache per language+domain+topic+level) |
+| `lesson_localizations` | lesson content in other base languages, sharing the original lesson id |
 | `user_progress` | completed lessons + quiz score |
 
 All tables use **Row Level Security**: a user can only read/write their own rows; languages, domains and lessons are read-only for all authenticated users.
+
+Choose the base language in **Settings**, before or after login. It is saved in `profiles.native_language` as a language code and restored on login; a choice made before login takes precedence. Domain slugs and topic keys stay stable in the learning tables, while `domain_translations` holds their localized display text. The matching catalogs in `public/js/catalog/` also work when the database translation table is unavailable. Keep topic array order aligned with `catalog/ro.js` when updating a bundled catalog.
 
 ## Security
 

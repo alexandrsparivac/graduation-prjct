@@ -213,7 +213,7 @@
 <script type="module">
   import { getSupabase, getProfile, showMsg, hideMsg } from '/js/supabase.js';
   import { setLoading, hidePageLoader } from '/js/ui.js';
-  import { initI18n, t } from '/js/i18n.js';
+  import { initI18n, t, getLang } from '/js/i18n.js';
   import { LOGO_SVG, LOGO_TILE, BRAND_NAME } from '/js/brand.js';
   import { applyPrefs } from '/js/prefs.js';
 
@@ -306,7 +306,7 @@
     const { data, error } = await sb.auth.signUp({
       email: document.getElementById('reg-email').value.trim(),
       password: pw,
-      options: { data: { full_name: document.getElementById('reg-name').value.trim() }, emailRedirectTo: window.location.origin + '/login' }
+      options: { data: { full_name: document.getElementById('reg-name').value.trim(), native_language: getLang() }, emailRedirectTo: window.location.origin + '/login' }
     });
     setLoading(btn, false);
     if (error) return showMsg(msg, error.message);

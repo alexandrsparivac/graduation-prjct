@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { wireDropdown } from './ui.js';
-import { t, applyI18n, onLangChange } from './i18n.js';
+import { t, applyI18n, onLangChange, loadCatalogTranslations } from './i18n.js';
+import { restoreProfileLanguage } from './profile-language.js';
 import { logoLockup } from './brand.js';
 import { ICON_GEAR } from './settings.js';
 
@@ -28,6 +29,8 @@ export async function requireSession() {
 
 export async function getProfile(sb, userId) {
   const { data } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
+  await restoreProfileLanguage(sb, userId, data);
+  await loadCatalogTranslations(sb);
   return data;
 }
 

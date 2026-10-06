@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Ljust',
   'set.theme.dark': 'Mörkt',
   'set.language': 'Gränssnittets språk',
-  'set.language.hint': 'Ändrar bara menyer och knappar. Lektionerna stannar på språket du lär dig.',
+  'set.language.hint': "Ändrar sidtexter, ämnesområden och lektionsförklaringar. Språket du lär dig är fortfarande det valda.",
   'set.lessons': 'Lektioner',
   'set.showTranslations': 'Visa översättningarna direkt',
   'set.showTranslations.hint': 'Avstängt står lästexten utan översättning tills du ber om den.',
@@ -351,5 +351,8 @@ export default {
   'les.cnt.exercises': ['{n} övning', '{n} övningar'],
   'les.cnt.clips': ['{n} klipp', '{n} klipp'],
   'les.cnt.sentences': ['{n} mening', '{n} meningar'],
-  'les.cnt.tips': ['{n} tips', '{n} tips']
+  'les.cnt.tips': ['{n} tips', '{n} tips'],
+  'set.language.saveFailed': "Språket används här, men kunde inte sparas i ditt konto. Försök igen.",
+  'les.language.needsSetup': "Lektioner på detta basspråk är inte konfigurerade ännu. Kontakta administratören.",
+  'les.quota': "Den dagliga kostnadsfria AI-gränsen har nåtts. Försök senare. Sparade lektioner och framsteg är tillgängliga.",
 };

@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Light',
   'set.theme.dark': 'Dark',
   'set.language': 'Interface language',
-  'set.language.hint': 'Changes menus and buttons only. Lessons stay in the language you are learning.',
+  'set.language.hint': "Changes page text, fields and lesson explanations. Your chosen learning language stays the same.",
   'set.lessons': 'Lessons',
   'set.showTranslations': 'Show translations upfront',
   'set.showTranslations.hint': 'When off, the reading passage stays untranslated until you ask for it.',
@@ -350,5 +350,8 @@ export default {
   'les.cnt.exercises': ['{n} exercise', '{n} exercises'],
   'les.cnt.clips': ['{n} clip', '{n} clips'],
   'les.cnt.sentences': ['{n} sentence', '{n} sentences'],
-  'les.cnt.tips': ['{n} tip', '{n} tips']
+  'les.cnt.tips': ['{n} tip', '{n} tips'],
+  'set.language.saveFailed': "The language is applied here, but we could not save it to your account. Try again.",
+  'les.language.needsSetup': "Lessons in this base language are not set up yet. Contact the administrator.",
+  'les.quota': "The daily free AI limit has been reached. Try again later. Saved lessons and progress remain available.",
 };

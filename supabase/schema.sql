@@ -6,7 +6,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
   avatar_url text,
-  native_language text default 'Română',
+  native_language text default 'ro',
   onboarding_done boolean default false,
   created_at timestamptz default now()
 );
@@ -36,6 +36,17 @@ create table if not exists public.user_languages (
   primary key (user_id, language_code)
 );
 
+-- Localized display text, keyed by interface language. Topic keys stay equal
+-- to domains.topics so existing selections and progress keep their identity.
+create table if not exists public.domain_translations (
+  domain_slug text references public.domains(slug) on delete cascade,
+  language_code text references public.languages(code) on delete cascade,
+  name text not null,
+  description text not null default '',
+  topics jsonb not null default '{}',
+  primary key (domain_slug, language_code)
+);
+
 create table if not exists public.user_domains (
   user_id uuid references public.profiles(id) on delete cascade,
   language_code text references public.languages(code) on delete cascade,
@@ -53,10 +64,22 @@ create table if not exists public.lessons (
   topic text not null,
   level text not null,
   content jsonb not null,
+  native_language text not null default 'ro',
   model text,
   created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz default now(),
   unique (language_code, domain_slug, topic, level)
+);
+
+-- All language variants use the same lesson id and therefore the same progress.
+create table if not exists public.lesson_localizations (
+  lesson_id uuid references public.lessons(id) on delete cascade,
+  native_language text not null references public.languages(code),
+  content jsonb not null,
+  model text,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz default now(),
+  primary key (lesson_id, native_language)
 );
 
 create table if not exists public.user_progress (
@@ -74,11 +97,12 @@ create table if not exists public.user_progress (
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, full_name, avatar_url)
+  insert into public.profiles (id, full_name, avatar_url, native_language)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
-    new.raw_user_meta_data->>'avatar_url'
+    new.raw_user_meta_data->>'avatar_url',
+    coalesce(new.raw_user_meta_data->>'native_language', 'ro')
   )
   on conflict (id) do nothing;
   return new;
@@ -99,6 +123,8 @@ alter table public.user_languages enable row level security;
 alter table public.user_domains enable row level security;
 alter table public.lessons enable row level security;
 alter table public.user_progress enable row level security;
+alter table public.domain_translations enable row level security;
+alter table public.lesson_localizations enable row level security;
 
 create policy "profiles: own" on public.profiles for all using (auth.uid() = id) with check (auth.uid() = id);
 create policy "languages: read" on public.languages for select using (true);
@@ -108,6 +134,10 @@ create policy "user_domains: own" on public.user_domains for all using (auth.uid
 create policy "lessons: read" on public.lessons for select using (auth.role() = 'authenticated');
 create policy "lessons: insert" on public.lessons for insert with check (auth.uid() = created_by);
 create policy "user_progress: own" on public.user_progress for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "domain_translations: read" on public.domain_translations for select using (true);
+create policy "lesson_localizations: read" on public.lesson_localizations for select using (auth.role() = 'authenticated');
+create policy "lesson_localizations: insert" on public.lesson_localizations for insert with check (auth.uid() = created_by);
+create policy "lesson_localizations: update own" on public.lesson_localizations for update using (auth.uid() = created_by) with check (auth.uid() = created_by);
 
 -- ============ SEED: LANGUAGES ============
 
@@ -196,3 +226,4 @@ on conflict (slug) do nothing;
 
 -- ============ LEVEL PROGRESSION ============
 -- See migrations/002_level_progression.sql (kept separate so it can be re-run independently).
+-- Run migrations/006_localization.sql as well to seed all 25 translated catalogs.

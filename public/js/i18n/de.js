@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Hell',
   'set.theme.dark': 'Dunkel',
   'set.language': 'Sprache der Oberfläche',
-  'set.language.hint': 'Ändert nur Menüs und Schaltflächen. Die Lektionen bleiben in der Sprache, die Sie lernen.',
+  'set.language.hint': "Ändert Seitentexte, Fachgebiete und Lektionserklärungen. Die gewählte Lernsprache bleibt gleich.",
   'set.lessons': 'Lektionen',
   'set.showTranslations': 'Übersetzungen gleich anzeigen',
   'set.showTranslations.hint': 'Ausgeschaltet bleibt der Lesetext ohne Übersetzung, bis Sie danach fragen.',
@@ -351,5 +351,8 @@ export default {
   'les.cnt.exercises': ['{n} Übung', '{n} Übungen'],
   'les.cnt.clips': ['{n} Ausschnitt', '{n} Ausschnitte'],
   'les.cnt.sentences': ['{n} Satz', '{n} Sätze'],
-  'les.cnt.tips': ['{n} Tipp', '{n} Tipps']
+  'les.cnt.tips': ['{n} Tipp', '{n} Tipps'],
+  'set.language.saveFailed': "Die Sprache wurde hier geändert, konnte aber nicht im Konto gespeichert werden. Versuche es erneut.",
+  'les.language.needsSetup': "Lektionen in dieser Basissprache sind noch nicht eingerichtet. Wende dich an die Administration.",
+  'les.quota': "Das tägliche kostenlose KI-Limit ist erreicht. Versuche es später erneut. Gespeicherte Lektionen und Fortschritte bleiben verfügbar.",
 };

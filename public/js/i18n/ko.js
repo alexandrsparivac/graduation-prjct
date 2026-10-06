@@ -22,7 +22,7 @@ export default {
   'set.theme.light': '밝게',
   'set.theme.dark': '어둡게',
   'set.language': '인터페이스 언어',
-  'set.language.hint': '메뉴와 버튼만 바뀝니다. 수업은 배우는 언어 그대로입니다.',
+  'set.language.hint': "페이지 문구, 학습 분야 및 수업 설명을 변경합니다. 학습할 언어는 선택한 언어로 유지됩니다.",
   'set.lessons': '수업',
   'set.showTranslations': '번역을 처음부터 보여주기',
   'set.showTranslations.hint': '꺼두면 읽기 지문은 요청할 때까지 번역 없이 표시됩니다.',
@@ -350,5 +350,8 @@ export default {
   'les.cnt.exercises': ['{n}문제'],
   'les.cnt.clips': ['음성 {n}개'],
   'les.cnt.sentences': ['문장 {n}개'],
-  'les.cnt.tips': ['핵심 {n}가지']
+  'les.cnt.tips': ['핵심 {n}가지'],
+  'set.language.saveFailed': "언어가 여기에는 적용되었지만 계정에 저장하지 못했습니다. 다시 시도해 주세요.",
+  'les.language.needsSetup': "이 기본 언어로 된 수업이 아직 설정되지 않았습니다. 관리자에게 문의하세요.",
+  'les.quota': "AI의 일일 무료 사용 한도에 도달했습니다. 나중에 다시 시도해 주세요. 저장된 수업과 진행 상황은 계속 이용할 수 있습니다.",
 };

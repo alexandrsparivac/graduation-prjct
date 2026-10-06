@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Lyst',
   'set.theme.dark': 'Mørkt',
   'set.language': 'Sprog i brugerfladen',
-  'set.language.hint': 'Ændrer kun menuer og knapper. Lektionerne bliver på det sprog, du lærer.',
+  'set.language.hint': "Ændrer sidetekster, fagområder og forklaringer i lektionerne. Det valgte læringssprog er det samme.",
   'set.lessons': 'Lektioner',
   'set.showTranslations': 'Vis oversættelserne med det samme',
   'set.showTranslations.hint': 'Er den slået fra, står læseteksten uden oversættelse, indtil du beder om den.',
@@ -351,5 +351,8 @@ export default {
   'les.cnt.exercises': ['{n} opgave', '{n} opgaver'],
   'les.cnt.clips': ['{n} klip', '{n} klip'],
   'les.cnt.sentences': ['{n} sætning', '{n} sætninger'],
-  'les.cnt.tips': ['{n} råd', '{n} råd']
+  'les.cnt.tips': ['{n} råd', '{n} råd'],
+  'set.language.saveFailed': "Sproget bruges her, men kunne ikke gemmes på din konto. Prøv igen.",
+  'les.language.needsSetup': "Lektioner på dette grundsprog er endnu ikke konfigureret. Kontakt administratoren.",
+  'les.quota': "Den daglige gratis AI-grænse er nået. Prøv senere. Gemte lektioner og fremskridt er stadig tilgængelige.",
 };

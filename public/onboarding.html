@@ -83,7 +83,7 @@
   import { getSupabase, requireSession, getProfile, renderTopbar, showMsg, hideMsg } from '/js/supabase.js';
   import { setLoading, skeletonCards, stagger, hidePageLoader, toast } from '/js/ui.js';
   import { domainIcon } from '/js/domain-icons.js';
-  import { initI18n, t, tp, onLangChange } from '/js/i18n.js';
+  import { initI18n, t, tp, onLangChange, languageName, domainName, domainDescription, topicName } from '/js/i18n.js';
   import { LOGO_SVG, renderFooter } from '/js/brand.js';
   import { applyPrefs } from '/js/prefs.js';
 
@@ -146,11 +146,14 @@
   };
 
   // Step 1
-  byId('lang-grid').innerHTML = (languages || []).map(l => `
+  function renderLanguages() {
+    byId('lang-grid').innerHTML = (languages || []).map(l => `
     <button class="option ${state.language === l.code ? 'active' : ''}" data-code="${l.code}">
-      <span class="name">${l.name}</span>
-      <span class="desc">${l.native_name}</span>
+      <span class="name">${esc(languageName(l.code))}</span>
+      <span class="desc" lang="${esc(l.code)}" dir="auto">${esc(l.native_name)}</span>
     </button>`).join('');
+  }
+  renderLanguages();
   stagger(byId('lang-grid'));
   byId('next-1').disabled = !state.language;
   byId('lang-grid').addEventListener('click', e => {
@@ -183,12 +186,15 @@
   byId('next-2').addEventListener('click', () => show(3));
 
   // Step 3
-  byId('domain-grid').innerHTML = (domains || []).map(d => `
+  function renderDomains() {
+    byId('domain-grid').innerHTML = (domains || []).map(d => `
     <button class="option ${state.domains.has(d.slug) ? 'active' : ''}" data-slug="${d.slug}">
       <span class="icon">${domainIcon(d.slug)}</span>
-      <span class="name">${esc(d.name)}</span>
-      <span class="desc">${esc(d.description || '')}</span>
+      <span class="name">${esc(domainName(d))}</span>
+      <span class="desc">${esc(domainDescription(d))}</span>
     </button>`).join('');
+  }
+  renderDomains();
   stagger(byId('domain-grid'));
   byId('next-3').disabled = state.domains.size === 0;
   byId('domain-grid').addEventListener('click', e => {
@@ -211,11 +217,11 @@
       return `
         <div class="section">
           <div class="section-head">
-            <h2>${d.name}</h2>
+            <h2>${esc(domainName(d))}</h2>
             <button class="btn-ghost" data-all="${slug}">${t(allOn ? 'ob.deselectAll' : 'ob.selectAll')}</button>
           </div>
           <div class="option-grid topic-options" data-domain="${slug}">
-            ${d.topics.map(topic => `<button type="button" class="option ${state.topics[slug].has(topic) ? 'active' : ''}" data-topic="${esc(topic)}" aria-pressed="${state.topics[slug].has(topic)}"><span class="name">${esc(topic)}</span></button>`).join('')}
+            ${d.topics.map(topic => `<button type="button" class="option ${state.topics[slug].has(topic) ? 'active' : ''}" data-topic="${esc(topic)}" aria-pressed="${state.topics[slug].has(topic)}"><span class="name">${esc(topicName(slug, topic))}</span></button>`).join('')}
           </div>
         </div>`;
     }).join('');
@@ -270,6 +276,8 @@
 
   // Level cards, the select-all buttons and the counters are built in JS.
   onLangChange(() => {
+    renderLanguages();
+    renderDomains();
     renderLevels();
     if (state.domains.size) renderTopics();
     updateCounts();

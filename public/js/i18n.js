@@ -8,6 +8,8 @@
 // language's own rule — see pluralIndex().
 
 import ro from './i18n/ro.js';
+import roCatalog from './catalog/ro.js';
+import { localizedDomain, localizedTopic } from './catalog-labels.js';
 
 // Every language the interface can be switched to. `dir` is only set where it
 // is not left-to-right. The flag is decorative and appears only in the language
@@ -46,6 +48,7 @@ const STORE_KEY = 'uiLang';
 
 const KNOWN = new Set(UI_LANGS.map(l => l.code));
 const loaded = { ro };
+const catalogs = { ro: roCatalog };
 const inFlight = {};
 
 export const langMeta = code => UI_LANGS.find(l => l.code === code);
@@ -69,17 +72,45 @@ export const getLang = () => current;
 
 /** Fetch a language file. A missing or broken file degrades to the fallback. */
 async function load(code) {
-  if (loaded[code]) return loaded[code];
+  if (loaded[code] && catalogs[code]) return loaded[code];
   if (!inFlight[code]) {
-    inFlight[code] = import(`./i18n/${code}.js`)
+    const strings = import(`./i18n/${code}.js`)
       .then(m => { loaded[code] = m.default; return m.default; })
       .catch(err => {
         console.warn(`No translation file for "${code}":`, err.message);
         loaded[code] = {};
         return loaded[code];
       });
+    const catalog = import(`./catalog/${code}.js`)
+      .then(m => { catalogs[code] = m.default; })
+      .catch(err => { console.warn(`No study catalog for "${code}":`, err.message); });
+    inFlight[code] = Promise.all([strings, catalog]).then(([dict]) => dict);
   }
   return inFlight[code];
+}
+
+const activeCatalog = () => catalogs[current] || catalogs.en || roCatalog;
+export const domainName = domain => localizedDomain(domain, activeCatalog());
+export const domainDescription = domain => localizedDomain(domain, activeCatalog(), 'description');
+export const topicName = (slug, topic) => localizedTopic(slug, topic, activeCatalog());
+
+export function languageName(code, locale = current) {
+  try {
+    const name = new Intl.DisplayNames([locale], { type: 'language' }).of(code);
+    if (name && name !== code) return name.charAt(0).toLocaleUpperCase(locale) + name.slice(1);
+  } catch { /* older browser */ }
+  return langMeta(code)?.label || code;
+}
+
+// Database translations can also cover fields added outside the original seed.
+// Bundled catalogs keep the UI working before migration 006 is installed.
+export async function loadCatalogTranslations(sb) {
+  const code = current;
+  const { data, error } = await sb.from('domain_translations')
+    .select('domain_slug, name, description, topics').eq('language_code', code);
+  if (!error && data?.length) {
+    catalogs[code] = { ...catalogs[code], ...Object.fromEntries(data.map(d => [d.domain_slug, d])) };
+  }
 }
 
 // Plural form index. Romanian, Russian and Ukrainian need three forms; Polish
@@ -195,14 +226,19 @@ function applyDir(code) {
   document.documentElement.lang = code;
 }
 
-export async function setLang(code) {
-  if (!KNOWN.has(code) || code === current) return;
+let languageRequest = 0;
+export async function setLang(code, { rememberChoice = true } = {}) {
+  if (!KNOWN.has(code)) return;
+  const request = ++languageRequest;
   await Promise.all([load(code), ...FALLBACK_CHAIN.map(load)]);
+  if (request !== languageRequest) return;
+  const changed = code !== current;
   current = code;
   store.set(STORE_KEY, code);
+  if (rememberChoice) store.set('uiLangPending', code);
   applyDir(code);
   applyI18n();
-  listeners.forEach(fn => fn(code));
+  if (changed) listeners.forEach(fn => fn(code));
 }
 
 /**

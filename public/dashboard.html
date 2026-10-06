@@ -56,7 +56,7 @@
   import { getSupabase, requireSession, getProfile, renderTopbar, showMsg } from '/js/supabase.js';
   import { stagger, hidePageLoader, toast, wireDropdown } from '/js/ui.js';
   import { domainIcon, domainTone } from '/js/domain-icons.js';
-  import { initI18n, t, tp, onLangChange, getLang, applyI18n } from '/js/i18n.js';
+  import { initI18n, t, tp, onLangChange, getLang, applyI18n, languageName, domainName as localizedDomainName, topicName } from '/js/i18n.js';
   import { LOGO_SVG, renderFooter } from '/js/brand.js';
   import { applyPrefs } from '/js/prefs.js';
   import {
@@ -127,7 +127,7 @@
 
   const langByCode = Object.fromEntries((languages || []).map(l => [l.code, l]));
   const domainBySlug = Object.fromEntries((domains || []).map(d => [d.slug, d]));
-  const domainName = slug => domainBySlug[slug]?.name || slug;
+  const domainName = slug => localizedDomainName(domainBySlug[slug] || slug);
 
   let active = localStorage.getItem('activeLanguage');
   if (!userLangs.some(l => l.language_code === active)) active = userLangs[0].language_code;
@@ -143,7 +143,7 @@
       const M = langByCode[l.language_code];
       const on = l.language_code === active;
       return `<button type="button" class="lang-item${on ? ' is-on' : ''}" role="menuitemradio" aria-checked="${on}" data-code="${esc(l.language_code)}">
-        <span class="lang-item-name">${esc(M?.name || l.language_code)}</span>
+        <span class="lang-item-name">${esc(languageName(l.language_code))}</span>
         <span class="lang-item-meta">${esc(M?.native_name || '')} · ${esc(l.level)}</span>
       </button>`;
     };
@@ -152,7 +152,7 @@
     sw.innerHTML = `
       <button type="button" class="lang-trigger" id="langBtn" aria-haspopup="menu" aria-expanded="false">
         <span class="lang-trigger-text">
-          <span class="lang-trigger-name">${esc(L?.name || active)}</span>
+          <span class="lang-trigger-name">${esc(languageName(active))}</span>
           <span class="lang-trigger-meta">${esc(L?.native_name || '')} · ${esc(userLangs.find(l => l.language_code === active)?.level || '')}</span>
         </span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
@@ -205,8 +205,7 @@
   function render() {
     const { ud, lessons, progress, deck } = data;
     const ul = userLangs.find(l => l.language_code === active);
-    const L = langByCode[active];
-    $('sub').textContent = t('dash.sub', { lang: L?.name?.toLowerCase() || active, level: ul.level });
+    $('sub').textContent = t('dash.sub', { lang: languageName(active), level: ul.level });
 
     const key = (d, topic) => `${d}|${topic}`;
     const lessonMap = Object.fromEntries(lessons.map(l => [key(l.domain_slug, l.topic), l]));
@@ -314,7 +313,7 @@
       // rests on the colour alone.
       return `<a class="tcard ${cls}" href="${lessonUrl(d.domain_slug, topic, level)}">
         <span class="tcard-top"><span class="tcard-n" aria-hidden="true">${finished ? '✓' : (i + 1)}</span>${side}</span>
-        <span class="tcard-title">${esc(topic)}</span>
+        <span class="tcard-title">${esc(topicName(d.domain_slug, topic))}</span>
       </a>`;
     }).join('');
 
@@ -450,7 +449,7 @@
           <p class="panel-note">${esc(t('dash.rev.note', { pass: PASS_PCT }))}</p>
           <div class="rowlist">${weak.slice(0, 5).map(w => {
             const p = progOf(w.domain, w.topic);
-            return `<a class="rowlink${toneOf(w.domain)}" href="${lessonUrl(w.domain, w.topic, level)}"><span class="row-icon" aria-hidden="true">${domainIcon(w.domain)}</span><span class="t">${esc(w.topic)}</span><span class="s">${p.score}/${p.total}</span></a>`;
+            return `<a class="rowlink${toneOf(w.domain)}" href="${lessonUrl(w.domain, w.topic, level)}"><span class="row-icon" aria-hidden="true">${domainIcon(w.domain)}</span><span class="t">${esc(topicName(w.domain, w.topic))}</span><span class="s">${p.score}/${p.total}</span></a>`;
           }).join('')}</div>
         </section>`);
     }
@@ -489,7 +488,7 @@
             const d = new Date(p.completed_at); d.setHours(0, 0, 0, 0);
             const ago = Math.round((today - d) / 86400000);
             const Ls = p.lessons;
-            return `<a class="rowlink${toneOf(Ls.domain_slug)}" href="${lessonUrl(Ls.domain_slug, Ls.topic, Ls.level)}"><span class="row-icon" aria-hidden="true">${domainIcon(Ls.domain_slug)}</span><span class="t">${esc(Ls.topic)}</span><span class="s">${esc(fmtAgo(ago))}</span></a>`;
+            return `<a class="rowlink${toneOf(Ls.domain_slug)}" href="${lessonUrl(Ls.domain_slug, Ls.topic, Ls.level)}"><span class="row-icon" aria-hidden="true">${domainIcon(Ls.domain_slug)}</span><span class="t">${esc(topicName(Ls.domain_slug, Ls.topic))}</span><span class="s">${esc(fmtAgo(ago))}</span></a>`;
           }).join('')}</div>
         </section>`);
     }

@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Světlý',
   'set.theme.dark': 'Tmavý',
   'set.language': 'Jazyk rozhraní',
-  'set.language.hint': 'Mění jen nabídky a tlačítka. Lekce zůstávají v jazyce, který se učíte.',
+  'set.language.hint': "Mění texty stránek, obory a vysvětlení lekcí. Zvolený jazyk studia zůstává stejný.",
   'set.lessons': 'Lekce',
   'set.showTranslations': 'Zobrazovat překlad rovnou',
   'set.showTranslations.hint': 'Když je vypnuté, text ke čtení zůstane bez překladu, dokud si o něj neřeknete.',
@@ -350,5 +350,8 @@ export default {
   'les.cnt.exercises': ['{n} cvičení', '{n} cvičení', '{n} cvičení'],
   'les.cnt.clips': ['{n} nahrávka', '{n} nahrávky', '{n} nahrávek'],
   'les.cnt.sentences': ['{n} věta', '{n} věty', '{n} vět'],
-  'les.cnt.tips': ['{n} tip', '{n} tipy', '{n} tipů']
+  'les.cnt.tips': ['{n} tip', '{n} tipy', '{n} tipů'],
+  'set.language.saveFailed': "Jazyk se zde používá, ale nepodařilo se ho uložit do účtu. Zkus to znovu.",
+  'les.language.needsSetup': "Lekce v tomto základním jazyce ještě nejsou nastaveny. Kontaktuj správce.",
+  'les.quota': "Byl dosažen denní bezplatný limit AI. Zkus to později. Uložené lekce a pokrok jsou nadále dostupné.",
 };

@@ -22,7 +22,7 @@ export default {
   'set.theme.light': 'Világos',
   'set.theme.dark': 'Sötét',
   'set.language': 'A felület nyelve',
-  'set.language.hint': 'Csak a menüket és a gombokat változtatja. A leckék a tanult nyelven maradnak.',
+  'set.language.hint': "Módosítja az oldalak szövegét, a szakterületeket és a leckék magyarázatait. A tanult nyelv a kiválasztott marad.",
   'set.lessons': 'Leckék',
   'set.showTranslations': 'Fordítás rögtön látszódjon',
   'set.showTranslations.hint': 'Kikapcsolva az olvasmány fordítás nélkül marad, amíg nem kéred.',
@@ -350,5 +350,8 @@ export default {
   'les.cnt.exercises': ['{n} gyakorlat'],
   'les.cnt.clips': ['{n} felvétel'],
   'les.cnt.sentences': ['{n} mondat'],
-  'les.cnt.tips': ['{n} tanulság']
+  'les.cnt.tips': ['{n} tanulság'],
+  'set.language.saveFailed': "A nyelv itt érvényes, de nem sikerült elmenteni a fiókodba. Próbáld újra.",
+  'les.language.needsSetup': "Az ezen az alapnyelven elérhető leckék még nincsenek beállítva. Fordulj a rendszergazdához.",
+  'les.quota': "Elérted a napi ingyenes MI-korlátot. Próbáld később. A mentett leckék és az előrehaladás továbbra is elérhető.",
 };

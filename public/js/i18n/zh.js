@@ -22,7 +22,7 @@ export default {
   'set.theme.light': '浅色',
   'set.theme.dark': '深色',
   'set.language': '界面语言',
-  'set.language.hint': '只改变菜单和按钮。课程仍使用你正在学的语言。',
+  'set.language.hint': "更改页面文字、学习领域和课程讲解。你选择的学习语言保持不变。",
   'set.lessons': '课程',
   'set.showTranslations': '直接显示译文',
   'set.showTranslations.hint': '关闭后，阅读短文在你主动要求前不显示译文。',
@@ -350,5 +350,8 @@ export default {
   'les.cnt.exercises': ['{n} 道练习题'],
   'les.cnt.clips': ['{n} 段音频'],
   'les.cnt.sentences': ['{n} 个句子'],
-  'les.cnt.tips': ['{n} 个要点']
+  'les.cnt.tips': ['{n} 个要点'],
+  'set.language.saveFailed': "语言已在此应用，但未能保存到你的账户。请重试。",
+  'les.language.needsSetup': "尚未配置以此基础语言讲解的课程。请联系管理员。",
+  'les.quota': "已达到每日免费人工智能使用上限。请稍后重试。已保存的课程和进度仍可使用。",
 };
