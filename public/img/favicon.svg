@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="LD Platform">
+  <rect width="32" height="32" rx="8" fill="#1a1b1d"/>
+  <g transform="translate(4 4) scale(1)" fill="none" stroke="#ffffff" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.5 5V19h4"/>
+    <path d="M11 19V5h2.5C17.1 5 19.5 8.1 19.5 12s-2.4 7-6 7H11Z"/>
+  </g>
+</svg>

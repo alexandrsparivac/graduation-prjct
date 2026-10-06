@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-i18n="les.pageTitle">Lecție · LD Platform</title>
+<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/antd.css">
+<script>
+  // Apply the saved theme and text direction before the first paint.
+  try {
+    var p = JSON.parse(localStorage.getItem('prefs') || '{}');
+    if (p.theme && p.theme !== 'system') document.documentElement.dataset.theme = p.theme;
+    if (p.bgWords === false) document.documentElement.classList.add('no-bg-words');
+    var l = localStorage.getItem('uiLang');
+    if (l) {
+      document.documentElement.lang = l;
+      if (l === 'ar' || l === 'he') document.documentElement.dir = 'rtl';
+    }
+  } catch (e) {}
+</script>
+</head>
+<body class="page-top">
+  <div class="page-loader" id="pageLoader"><div class="mark" id="loaderMark"></div></div>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="card xwide">
+    <a class="back-link" href="/dashboard">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <span data-i18n="les.back">Înapoi la panou</span>
+    </a>
+
+    <div class="msg" id="msg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span></span></div>
+
+    <div class="loader" id="loader">
+      <div class="spinner"></div>
+      <div id="loader-text" data-i18n="les.loading">Un moment, deschidem lecția.</div>
+      <ul class="loader-steps" id="loader-steps" style="display:none">
+        <li data-i18n="les.step1">Alegem cuvintele care contează în domeniul tău</li>
+        <li data-i18n="les.step2">Scriem un dialog cum ai purta la muncă</li>
+        <li data-i18n="les.step3">Pregătim un text scurt de citit</li>
+        <li data-i18n="les.step4">Punem la punct exercițiile de ascultare și vorbire</li>
+        <li data-i18n="les.step5">Ultimele retușuri la test</li>
+      </ul>
+    </div>
+
+    <div id="lesson" style="display:none">
+      <div class="flow-top">
+        <div class="flow-segs" id="fp-segs" role="progressbar" aria-valuemin="1"></div>
+        <span class="counter" id="fp-text" aria-hidden="true"></span>
+      </div>
+      <div id="exercise"></div>
+      <div class="flow-foot" id="flow-foot"><span class="flow-extra" id="flow-extra"></span><button class="btn-primary auto" id="flow-btn"></button></div>
+    </div>
+  </main>
+
+<script type="module">
+  import { getSupabase, requireSession, getProfile, renderTopbar, showMsg } from '/js/supabase.js';
+  import { setLoading, stagger, hidePageLoader, toast } from '/js/ui.js';
+  import { speak, stopSpeaking, listen, similarity, toLocale, ttsSupported, sttSupported } from '/js/speech.js';
+  import { initI18n, t, tp, onLangChange, getLang, UI_LANGS } from '/js/i18n.js';
+  import { buildFlow, lessonPlan, estimateMinutes, sectionProgress, currentSection, cleanTitle, sectionTone, SECTIONS } from '/js/lesson-plan.js';
+  import { domainIcon, domainTone } from '/js/domain-icons.js';
+  import { LOGO_SVG, renderFooter } from '/js/brand.js';
+  import { applyPrefs, getPref, speechRate } from '/js/prefs.js';
+  import { saveLessonVocabulary } from '/js/vocab.js';
+
+  applyPrefs();
+  document.getElementById('loaderMark').innerHTML = LOGO_SVG;
+  await initI18n();
+
+  const session = await requireSession();
+  if (!session) throw new Error('redirect');
+  const sb = await getSupabase();
+  const user = session.user;
+  const profile = await getProfile(sb, user.id);
+  renderTopbar({ profile, user });
+  hidePageLoader();
+
+  const q = new URLSearchParams(location.search);
+  const params = { lang: q.get('lang'), domain: q.get('domain'), topic: q.get('topic'), level: q.get('level') };
+  if (!params.lang || !params.domain || !params.topic || !params.level) location.replace('/dashboard');
+  const locale = toLocale(params.lang);
+  // Titles, intros and goals are written in the learner's native language, not
+  // the interface language. Marking them lets a screen reader switch voice and
+  // lets a Latin paragraph keep its own direction inside an Arabic interface.
+  const contentLang = UI_LANGS.find(l => l.label === (profile?.native_language || 'Română'))?.code || 'ro';
+  const contentAttrs = `lang="${contentLang}" dir="auto"`;
+
+  const $ = id => document.getElementById(id);
+  const msg = $('msg');
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const ICON_SPEAKER = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>';
+  const ICON_MIC = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg>';
+  const speakerBtn = (text, cls = '') => `<button class="speak-btn ${cls}" data-say="${esc(text)}" title="${esc(t('les.listen'))}" aria-label="${esc(t('les.listen'))}">${ICON_SPEAKER}</button>`;
+  const normalize = s => s.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, '').replace(/\s+/g, ' ').trim();
+
+  const [{ data: L }, { data: D }] = await Promise.all([
+    sb.from('languages').select('*').eq('code', params.lang).maybeSingle(),
+    sb.from('domains').select('*').eq('slug', params.domain).maybeSingle()
+  ]);
+
+  let lessonRow = null;
+
+  async function loadCached() {
+    const { data } = await sb.from('lessons').select('*')
+      .eq('language_code', params.lang).eq('domain_slug', params.domain)
+      .eq('topic', params.topic).eq('level', params.level).maybeSingle();
+    return data;
+  }
+
+  let stepTimer;
+  function startSteps() {
+    const ul = $('loader-steps'); const items = [...ul.children];
+    ul.style.display = '';
+    $('loader-text').textContent = t('les.generating');
+    items.forEach(li => li.className = '');
+    let i = 0; items[0].classList.add('on');
+    stepTimer = setInterval(() => { if (i >= items.length - 1) return; items[i].className = 'done'; i++; items[i].classList.add('on'); }, 1400);
+  }
+  function stopSteps() { clearInterval(stepTimer); $('loader-steps').style.display = 'none'; $('loader-text').textContent = t('les.loading'); }
+
+  /**
+   * Ask the server for a lesson and do not stop until it returns a complete,
+   * validated one. The server generates the 4 sections in parallel (typically
+   * 15-40s) with its own per-section retries; rate limits and half-finished
+   * sections are normal on the free tier, so the client simply keeps asking
+   * with a growing pause instead of surfacing an error the learner can do
+   * nothing about. Only three things end the loop early: a signed-out session,
+   * a malformed request, and the daily AI quota running out — none of which a
+   * retry can fix.
+   */
+  async function askForLesson() {
+    const { data: { session: s } } = await sb.auth.getSession();
+    const payload = JSON.stringify({
+      language: L?.name || params.lang,
+      domain: D?.name || params.domain,
+      topic: params.topic,
+      level: params.level,
+      nativeLanguage: profile?.native_language || 'Română'
+    });
+
+    for (let round = 1; ; round++) {
+      const r = await fetch('/api/lesson', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s.access_token}` },
+        body: payload,
+        signal: AbortSignal.timeout(150_000)
+      }).catch(() => null);
+
+      const body = r ? await r.json().catch(() => ({})) : {};
+      if (r?.ok && body.lesson) return body;
+      if (r?.status === 401) throw new Error('redirect');
+      if (r?.status === 400) throw new Error(body.error || 'Cerere invalidă.');
+      // Daily AI quota never clears within these retries — show the message
+      // at once instead of burning three more rounds of waiting.
+      if (body.quota) throw new Error(body.reason || body.error || t('les.stillWorking'));
+
+      // Anything else is transient: the AI was rate limited or returned a
+      // section that failed validation. Keep the loader up and try again,
+      // backing off to at most 15s so we stop hammering a busy tier.
+      $('loader-text').textContent = t('les.stillWorking');
+      await new Promise(done => setTimeout(done, Math.min(3000 * round, 15_000)));
+    }
+  }
+
+  async function generate() {
+    $('loader').style.display = ''; $('lesson').style.display = 'none';
+    startSteps();
+    const body = await askForLesson();
+    stopSteps();
+
+    const row = { language_code: params.lang, domain_slug: params.domain, topic: params.topic, level: params.level, content: body.lesson, model: body.model, created_by: user.id };
+    if (lessonRow?.id) {
+      const { error } = await sb.from('lessons').update({ content: body.lesson, model: body.model }).eq('id', lessonRow.id);
+      if (error) console.warn('Could not refresh cached lesson:', error.message);
+      return { ...lessonRow, ...row };
+    }
+    const { data, error } = await sb.from('lessons').insert(row).select().single();
+    if (error) {
+      // Another user generated the same lesson meanwhile — reuse it
+      const existing = await loadCached();
+      if (isCompleteLesson(existing?.content)) return existing;
+      // Keep the freshly validated content for this visit even if a stale shared
+      // cache entry cannot be replaced by the current user under RLS.
+      if (existing?.id) return { ...existing, ...row, id: existing.id };
+      throw new Error(error.message);
+    }
+    return data;
+  }
+
+  // The server accepts a reading passage of 80-220 words (validateLesson in
+  // lib/lesson-prompt.js). A stricter range here would reject every lesson the
+  // server just stored, and regenerate it on each visit.
+  const READING_MIN_WORDS = 80;
+  const READING_MAX_WORDS = 220;
+
+  // Cached lessons may have been created before the complete lesson format.
+  // Do not render a partial cache entry: it would leave empty or broken steps.
+  function isCompleteLesson(c) {
+    const text = value => typeof value === 'string' && value.trim();
+    const exact = (items, count) => Array.isArray(items) && items.length === count;
+    const fields = (item, names) => item && names.every(name => text(item[name]));
+    const words = value => value.trim().split(/\s+/).filter(Boolean).length;
+    const choice = (item, names = []) => fields(item, ['question', ...names])
+      && exact(item.options, 4) && item.options.every(text)
+      && Number.isInteger(item.answer) && item.answer >= 0 && item.answer <= 3;
+
+    return c && text(c.title) && text(c.intro)
+      && exact(c.objectives, 3) && c.objectives.every(text)
+      && exact(c.vocabulary, 15) && c.vocabulary.every(item => fields(item, ['term', 'translation', 'partOfSpeech', 'example', 'exampleTranslation']))
+      && exact(c.phrases, 8) && c.phrases.every(item => fields(item, ['phrase', 'translation', 'usage']))
+      && c.dialogue && text(c.dialogue.context) && Array.isArray(c.dialogue.lines) && c.dialogue.lines.length >= 12 && c.dialogue.lines.length <= 14 && c.dialogue.lines.every(item => fields(item, ['speaker', 'text', 'translation']))
+      && c.reading && fields(c.reading, ['title', 'passage', 'translation']) && words(c.reading.passage) >= READING_MIN_WORDS && words(c.reading.passage) <= READING_MAX_WORDS && exact(c.reading.questions, 3) && c.reading.questions.every(q => choice(q))
+      && c.grammar && fields(c.grammar, ['title', 'explanation']) && exact(c.grammar.examples, 4) && c.grammar.examples.every(text) && exact(c.grammar.practice, 4) && c.grammar.practice.every(item => fields(item, ['sentence', 'answer', 'hint']) && /_{3,}/.test(item.sentence))
+      && exact(c.listening, 5) && c.listening.every(item => choice(item, ['text']))
+      && exact(c.speaking, 6) && c.speaking.every(item => fields(item, ['text', 'translation', 'tip']))
+      && exact(c.quiz, 8) && c.quiz.every(item => choice(item, ['explanation']))
+      && exact(c.tips, 4) && c.tips.every(text);
+  }
+
+  // ------------------------------------------------------------------ flow --
+  // One exercise per screen: intro -> study decks -> questions -> results.
+  let content = null;
+  let flow = [];
+  let stepIdx = 0;
+  let saved = false;
+  const S = { mcq: {}, gap: {}, deck: { i: 0, flipped: false } };
+
+  function startFlow(row) {
+    lessonRow = row;
+    content = row.content;
+    flow = buildFlow(content);
+    stepIdx = 0;
+    saved = false;
+    S.mcq = {}; S.gap = {}; S.deck = { i: 0, flipped: false };
+    document.title = `${cleanTitle(content.title, params.level)} · LD Platform`;
+    $('loader').style.display = 'none'; $('lesson').style.display = '';
+    renderStep();
+  }
+
+  function next() {
+    if (stepIdx >= flow.length - 1) return;
+    stepIdx++;
+    renderStep();
+    const ex = $('exercise');
+    const top = ex.querySelector('.ex-eyebrow, h1, h2, h3') || ex;
+    top.setAttribute('tabindex', '-1');
+    top.focus({ preventScroll: true });
+  }
+
+  function foot(label, { disabled = false, onClick = null, hidden = false, icon = '' } = {}) {
+    const btn = $('flow-btn');
+    btn.innerHTML = `<span>${esc(label)}</span>${icon}`;
+    btn.disabled = disabled;
+    btn.onclick = onClick;
+    $('flow-foot').style.display = hidden ? 'none' : '';
+  }
+
+  // ---- Speech (toggle mic) ----
+  let speakSession = null;
+  let speakSeq = 0;
+  const stopRec = rec => { try { rec.stop(); } catch { /* already ended */ } };
+  function retireSpeaking() {
+    if (speakSession) {
+      speakSession.retired = true;
+      stopRec(speakSession.rec);
+      speakSession.mic?.classList.remove('rec');
+      speakSession = null;
+    }
+  }
+  function wireMic(mic, out, expected) {
+    mic.addEventListener('click', () => {
+      if (speakSession && speakSession.mic === mic) { stopRec(speakSession.rec); return; }
+      if (speakSession) { speakSession.retired = true; stopRec(speakSession.rec); speakSession.mic?.classList.remove('rec'); }
+      stopSpeaking();
+      mic.classList.add('rec');
+      out.innerHTML = `<span class="counter">${esc(t('les.speak.tapStop'))}</span>`;
+      const session = speakSession = { id: ++speakSeq, rec: null, mic, out, expected, gotResult: false, retired: false };
+      const alive = () => speakSession !== null && speakSession.id === session.id && !session.retired;
+      session.rec = listen(locale, {
+        onresult: alts => {
+          if (!alive()) return;
+          session.gotResult = true;
+          const best = alts.map(a => ({ a, s: similarity(expected, a) })).sort((x, y) => y.s - x.s)[0];
+          const pct = Math.round(best.s * 100);
+          const cls = pct >= 80 ? 'good' : pct >= 50 ? 'mid' : 'bad';
+          const verdict = t(pct >= 80 ? 'les.speak.good' : pct >= 50 ? 'les.speak.close' : 'les.speak.again');
+          out.innerHTML = `<div class="speak-score ${cls}"><b>${esc(verdict)}</b> · ${pct}%</div><div class="heard">${esc(t('les.speak.heard', { text: best.a }))}</div>`;
+        },
+        onerror: err => {
+          if (!alive()) return;
+          const kk = (err === 'not-allowed' || err === 'service-not-allowed') ? 'les.speak.noMic' : 'les.speak.noResult';
+          out.innerHTML = `<span class="counter">${esc(t(kk))}</span>`;
+        },
+        onend: () => {
+          if (!alive()) return;
+          mic.classList.remove('rec');
+          speakSession = null;
+          if (!session.gotResult) out.innerHTML = `<span class="counter">${esc(t('les.speak.noResult'))}</span>`;
+        }
+      });
+      if (!session.rec) {
+        mic.classList.remove('rec');
+        if (speakSession && speakSession.id === session.id) speakSession = null;
+      }
+    });
+  }
+
+  // ---- Speech (delegated TTS) ----
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-say]');
+    if (!b) return;
+    const slow = b.classList.contains('listen-slow');
+    document.querySelectorAll('.speak-btn.playing').forEach(x => x.classList.remove('playing'));
+    b.classList.add('playing');
+    speak(b.dataset.say, locale, { rate: slow ? speechRate() * 0.75 : speechRate(), onend: () => b.classList.remove('playing') });
+  });
+
+  // Shared multiple-choice renderer: select -> check -> continue.
+  // The footer is driven from here so a restored state (e.g. after a
+  // language switch) always gets a working button.
+  function renderMcq(box, q, st, { transcript = null, onChecked = null } = {}) {
+    const sel = st.selected;
+    const checked = st.checked;
+    box.innerHTML = `
+      <div class="q${checked ? ' revealed' : ''}">
+        <div class="qt">${esc(q.question)}</div>
+        <div class="opts">${q.options.map((o, j) => `<button class="opt${sel === j ? ' selected' : ''}${checked ? (j === q.answer ? ' correct' : sel === j ? ' wrong' : '') : ''}" data-j="${j}" ${checked ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>
+        ${checked && transcript ? `<div class="expl">${esc(t('les.listening.said'))} <i>${esc(transcript)}</i></div>` : ''}
+        ${checked && q.explanation ? `<div class="expl">${esc(q.explanation)}</div>` : ''}
+      </div>`;
+    const doCheck = () => {
+      if (st.selected == null || st.checked) return;
+      st.checked = true;
+      onChecked?.(st.selected === q.answer);
+      renderStep();
+      foot(t('les.continue'), { onClick: next });
+    };
+    if (checked) {
+      foot(t('les.continue'), { onClick: next });
+      return;
+    }
+    foot(t('les.check'), st.selected == null ? { disabled: true } : { onClick: doCheck });
+    box.querySelectorAll('.opt').forEach(o => o.addEventListener('click', () => {
+      if (st.checked) return;
+      st.selected = +o.dataset.j;
+      box.querySelectorAll('.opt').forEach(x => x.classList.toggle('selected', x === o));
+      foot(t('les.check'), { onClick: doCheck });
+    }));
+  }
+
+  // One line icon per section, drawn on the same 24 grid as the rest of the app.
+  const SECTION_ICON = {
+    vocab: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
+    phrases: '<path d="M17 6H3"/><path d="M21 12H8"/><path d="M21 18H8"/><path d="M3 12v6"/>',
+    dialogue: '<path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/>',
+    reading: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+    grammar: '<path d="M12 20h9"/><path d="M16.4 3.6a2.1 2.1 0 0 1 3 3L7.4 18.6a2 2 0 0 1-.9.5l-2.9.8.8-2.9a2 2 0 0 1 .5-.9z"/>',
+    listening: '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
+    speaking: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/>',
+    quiz: '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>',
+    tips: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  };
+  const sectionIcon = key => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SECTION_ICON[key] || ''}</svg>`;
+  const ICON_ARROW = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  const sectionTab = key => t(SECTIONS.find(s => s.key === key)?.tab || '');
+
+  // The language being learnt, named in the interface language: "English" to
+  // an English reader, "engleză" to a Romanian one. The row from the database
+  // only has the Romanian name.
+  function targetLanguageName() {
+    try {
+      const n = new Intl.DisplayNames([getLang()], { type: 'language' }).of(params.lang);
+      if (n && n !== params.lang) return n.charAt(0).toLocaleUpperCase(getLang()) + n.slice(1);
+    } catch { /* an engine without DisplayNames falls through */ }
+    return L?.name || params.lang;
+  }
+
+  // Swap an element's tone-* class. The class only sets --tone-* variables;
+  // whatever reads them falls back to neutral when there is none.
+  function setTone(el, tone) {
+    [...el.classList].filter(c => c.startsWith('tone-')).forEach(c => el.classList.remove(c));
+    if (tone) el.classList.add(`tone-${tone}`);
+  }
+
+  // One segment per section, as wide as the screens it holds, each in its
+  // section's colour. The segment the learner is in fills as they go, so the
+  // bar says where they are in the lesson's structure, not just how far along
+  // a line of 34 dashes. Segments are updated in place rather than rebuilt,
+  // otherwise the fill would jump instead of sliding.
+  function renderProgress() {
+    const segs = sectionProgress(flow, stepIdx);
+    const here = currentSection(flow, stepIdx);
+    const bar = $('fp-segs');
+    if (bar.children.length !== segs.length || [...bar.children].some((el, i) => el.dataset.key !== segs[i].key)) {
+      bar.innerHTML = segs.map(sg => `<span class="flow-seg tone-${sectionTone(sg.key)}" data-key="${sg.key}" style="flex-grow:${sg.steps}"><i></i></span>`).join('');
+    }
+    const st = flow[stepIdx];
+    const inStep = st?.kind === 'deck' ? (S.deck.i + 1) / (content.vocabulary?.length || 1) : 1;
+    segs.forEach((sg, i) => {
+      const el = bar.children[i];
+      const shown = sg.key === here ? sg.done + inStep : sg.done;
+      el.title = sectionTab(sg.key);
+      el.classList.toggle('is-current', sg.key === here);
+      el.classList.toggle('is-done', sg.done === sg.steps);
+      el.firstElementChild.style.width = `${Math.round(shown / sg.steps * 100)}%`;
+    });
+
+    // The page wears the current section's colour, or the field's on intro and
+    // results, so eyebrows and the counter dot match the segment being filled.
+    setTone($('lesson'), here ? sectionTone(here) : domainTone(params.domain));
+
+    const counter = t('les.stepOf', { n: stepIdx + 1, total: flow.length });
+    const label = here ? `${sectionTab(here)} · ${counter}` : counter;
+    $('fp-text').innerHTML = (here ? '<span class="flow-dot"></span>' : '') + esc(label);
+    bar.setAttribute('aria-valuemax', String(flow.length));
+    bar.setAttribute('aria-valuenow', String(stepIdx + 1));
+    bar.setAttribute('aria-valuetext', label);
+    bar.setAttribute('aria-label', t('les.progressLabel'));
+  }
+
+  function renderStep() {
+    retireSpeaking();
+    stopSpeaking();
+    const st = flow[stepIdx];
+    renderProgress();
+    $('flow-extra').innerHTML = '';
+    window.scrollTo({ top: 0 });
+    const ex = $('exercise');
+    const c = content;
+
+    switch (st.kind) {
+      case 'intro': {
+        const title = cleanTitle(c.title, params.level);
+        const domain = D?.name || params.domain;
+        const squash = v => String(v || '').toLocaleLowerCase().replace(/\s+/g, ' ').trim();
+        // The topic is usually the title already; say it only when it is not.
+        const topic = squash(title).includes(squash(params.topic)) ? '' : params.topic;
+        const plan = lessonPlan(c);
+        const facts = [
+          [t('les.fact.level'), params.level],
+          [t('les.fact.language'), targetLanguageName()],
+          [t('les.fact.duration'), t('les.minutes', { n: estimateMinutes(c) })],
+          [t('les.fact.steps'), String(flow.length)],
+        ];
+        ex.innerHTML = `
+          <header class="li-head">
+            <div class="li-crumb">
+              <span class="li-crumb-icon" aria-hidden="true">${domainIcon(params.domain)}</span>
+              <span>${esc(domain)}</span>${topic ? `<span class="li-crumb-sep" aria-hidden="true">/</span><span ${contentAttrs}>${esc(topic)}</span>` : ''}
+            </div>
+            <h1 ${contentAttrs}>${esc(title)}</h1>
+            <p class="li-intro" ${contentAttrs}>${esc(c.intro || '')}</p>
+          </header>
+          <dl class="li-facts">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+          <div class="li-grid">
+            <section class="li-panel" aria-labelledby="li-goals-h">
+              <h2 id="li-goals-h">${esc(t('les.goals'))}</h2>
+              <ol class="li-goals">${(c.objectives || []).map((o, i) => `<li><span class="li-n" aria-hidden="true">${i + 1}</span><span ${contentAttrs}>${esc(o)}</span></li>`).join('')}</ol>
+            </section>
+            <section class="li-panel" aria-labelledby="li-plan-h">
+              <h2 id="li-plan-h">${esc(t('les.plan'))}</h2>
+              <ol class="li-plan">${plan.map(p => `<li class="tone-${p.tone}">
+                <span class="li-plan-icon">${sectionIcon(p.key)}</span>
+                <span class="li-plan-text">
+                  <span class="li-plan-name">${esc(t(p.tab))}</span>
+                  <span class="li-plan-count">${esc(tp(p.unit, p.count))}</span>
+                </span>
+              </li>`).join('')}</ol>
+            </section>
+          </div>`;
+        $('flow-extra').innerHTML = `<button type="button" class="btn-ghost" id="regen2">${esc(t('les.regen'))}</button>`;
+        foot(t('les.begin'), { onClick: next, icon: ICON_ARROW });
+        $('regen2').addEventListener('click', async e => {
+          const b = e.currentTarget; setLoading(b, true, t('common.moment'));
+          try { startFlow(await generate()); toast(t('les.regen.done'), 'success'); }
+          catch (err) { showMsg(msg, err.message); }
+          finally { if (b.isConnected) setLoading(b, false); }
+        });
+        break;
+      }
+      case 'deck': {
+        const items = c.vocabulary;
+        const ds = S.deck;
+        const v = items[ds.i];
+        ex.innerHTML = `
+          <div class="ex-eyebrow">${esc(t('tab.vocab'))} · ${ds.i + 1}/${items.length}</div>
+          <p class="subtitle">${esc(t('les.deckHint'))}</p>
+          <div class="flip-card${ds.flipped ? ' flipped' : ''}" id="flip" tabindex="0" role="button" aria-pressed="${ds.flipped}">
+            <div class="flip-inner">
+              <div class="flip-face flip-front">
+                <div class="flip-term">${esc(v.term)}</div>
+                <div class="tr">${esc(v.translation)}${v.partOfSpeech ? ` <em>· ${esc(v.partOfSpeech)}</em>` : ''}</div>
+                ${speakerBtn(v.term)}
+              </div>
+              <div class="flip-face flip-back">
+                <div class="flip-term sm">${esc(v.term)}</div>
+                <div class="ex">„${esc(v.example)}” ${speakerBtn(v.example, 'sm')}</div>
+                <div class="ex-tr">${esc(v.exampleTranslation)}</div>
+              </div>
+            </div>
+          </div>`;
+        const flip = () => {
+          ds.flipped = !ds.flipped;
+          $('flip').classList.toggle('flipped', ds.flipped);
+          $('flip').setAttribute('aria-pressed', ds.flipped);
+        };
+        $('flip').addEventListener('click', e => { if (!e.target.closest('[data-say]')) flip(); });
+        $('flip').addEventListener('keydown', e => {
+          if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); flip(); }
+        });
+        foot(ds.i < items.length - 1 ? t('les.nextCard') : t('les.continue'), { onClick: () => {
+          if (ds.i < items.length - 1) { ds.i++; ds.flipped = false; renderStep(); }
+          else next();
+        }});
+        break;
+      }
+      case 'phrases': {
+        ex.innerHTML = `
+          <div class="ex-eyebrow">${esc(t('tab.phrases'))}</div>
+          <p class="subtitle">${esc(t('les.phrases.sub'))}</p>
+          <div class="phrase-list">${(c.phrases || []).map(p => `
+            <div class="phrase">
+              <div class="phrase-main"><div class="term">${esc(p.phrase)}</div>${speakerBtn(p.phrase)}</div>
+              <div class="tr">${esc(p.translation)}</div>
+              <div class="usage">${esc(p.usage)}</div>
+            </div>`).join('')}</div>`;
+        stagger(ex.querySelector('.phrase-list'));
+        foot(t('les.continue'), { onClick: next });
+        break;
+      }
+      case 'dialogue': {
+        const speakers = [...new Set((c.dialogue?.lines || []).map(l => l.speaker))];
+        ex.innerHTML = `
+          <div class="ex-eyebrow">${esc(t('tab.dialogue'))}</div>
+          <div class="dialogue-ctx">${esc(c.dialogue?.context || '')}</div>
+          <div class="panel-head"><span></span><button class="btn-ghost" id="dlg-all">${esc(t('les.dialogue.all'))}</button></div>
+          <div id="dlg">${(c.dialogue?.lines || []).map(l => `
+            <div class="line ${speakers.indexOf(l.speaker) % 2 ? 'alt' : ''}">
+              <div class="who">${esc((l.speaker || '?')[0])}</div>
+              <div class="bubble">
+                <div class="sp">${esc(l.speaker)}</div>
+                <div class="tx">${esc(l.text)} ${speakerBtn(l.text, 'sm')}</div>
+                <div class="tl">${esc(l.translation)}</div>
+              </div>
+            </div>`).join('')}</div>`;
+        $('dlg-all').addEventListener('click', () => {
+          let i = 0;
+          const txs = [...$('dlg').querySelectorAll('.tx')].map(x => x.textContent.trim());
+          const play = () => { if (i < txs.length) speak(txs[i++], locale, { rate: speechRate(), onend: play }); };
+          play();
+        });
+        foot(t('les.continue'), { onClick: next });
+        break;
+      }
+      case 'reading': {
+        ex.innerHTML = `
+          <div class="ex-eyebrow">${esc(t('tab.reading'))}</div>
+          <div class="reading-box">
+            <div class="panel-head"><h3>${esc(c.reading?.title || '')}</h3><div><button class="btn-ghost" id="rd-play">${esc(t('les.reading.play'))}</button><button class="btn-ghost" id="rd-tr"></button></div></div>
+            <p class="passage" id="passage">${esc(c.reading?.passage || '')}</p>
+            <p class="passage-tr" id="passage-tr" style="display:none">${esc(c.reading?.translation || '')}</p>
+          </div>`;
+        const setTr = on => {
+          $('passage-tr').style.display = on ? '' : 'none';
+          $('rd-tr').textContent = t(on ? 'les.reading.hideTr' : 'les.reading.showTr');
+        };
+        setTr(getPref('showTranslations'));
+        $('rd-tr').addEventListener('click', () => setTr($('passage-tr').style.display === 'none'));
+        $('rd-play').addEventListener('click', () => speak($('passage').textContent, locale, { rate: speechRate() }));
+        foot(t('les.continue'), { onClick: next });
+        break;
+      }
+      case 'rmcq': {
+        const key = 'r' + st.index;
+        if (!S.mcq[key]) S.mcq[key] = { selected: null, checked: false };
+        const mst = S.mcq[key];
+        ex.innerHTML = `<div class="ex-eyebrow">${esc(t('tab.reading'))} · ${esc(t('les.reading.q'))}</div><div id="mcqbox"></div>`;
+        renderMcq($('mcqbox'), st.q, mst, {});
+        break;
+      }
+      case 'grammar': {
+        const g = c.grammar || {};
+        ex.innerHTML = `
+          <div class="ex-eyebrow">${esc(t('tab.grammar'))}</div>
+          <div class="grammar-box">
+            <h3>${esc(g.title || '')}</h3>
+            <p>${esc(g.explanation || '')}</p>
+            <ul>${(g.examples || []).map(x => `<li>${esc(x)} ${speakerBtn(x, 'sm')}</li>`).join('')}</ul>
+          </div>
+          <h3>${esc(t('les.grammar.q'))}</h3>`;
+        foot(t('les.continue'), { onClick: next });
+        break;
+      }
+      case 'gap': {
+        const key = 'g' + st.index;
+        if (!S.gap[key]) S.gap[key] = { value: '', checked: false, ok: false };
+        const gst = S.gap[key];
+        ex.innerHTML = `
+          <div class="ex-eyebrow">${esc(t('tab.grammar'))} · ${st.index + 1}/${c.grammar.practice.length}</div>
+          <div class="gap${gst.checked ? (gst.ok ? ' correct' : ' wrong') : ''}" id="gapbox">
+            <div class="gap-s">${esc(st.p.sentence)}</div>
+            <div class="input-wrap gap-in"><input id="gap-in" type="text" placeholder="${esc(t('les.gap.ph'))}" autocomplete="off" value="${esc(gst.value)}" ${gst.checked ? 'readonly' : ''}>${st.p.hint ? `<button type="button" class="gap-hint" data-tip="${esc(st.p.hint)}" aria-label="${esc(st.p.hint)}">?</button>` : ''}</div>
+            ${gst.checked ? `<div class="expl" style="display:block">${esc(t('les.gap.answer'))} <b>${esc(st.p.answer)}</b>${st.p.hint ? ` · ${esc(st.p.hint)}` : ''}</div>` : ''}
+          </div>`;
+        if (!gst.checked) {
+          $('gap-in').addEventListener('input', e => { gst.value = e.target.value; });
+          foot(t('les.check'), { onClick: () => {
+            gst.checked = true;
+            gst.ok = normalize(gst.value) === normalize(st.p.answer);
+            renderStep();
+            foot(t('les.continue'), { onClick: next });
+          }});
+        } else {
+          foot(t('les.continue'), { onClick: next });
+        }
+        break;
+      }
+      case 'listen': {
+        const key = 'l' + st.index;
+        if (!S.mcq[key]) S.mcq[key] = { selected: null, checked: false };
+        const mst = S.mcq[key];
+        ex.innerHTML = `
+          <div class="ex-eyebrow">${esc(t('tab.listening'))} · ${st.index + 1}/${c.listening.length}</div>
+          <p class="subtitle">${esc(t('les.listening.sub'))}</p>
+          ${ttsSupported ? '' : `<div class="msg msg-info show"><span>${esc(t('les.ttsWarn'))}</span></div>`}
+          <div class="listen-ctl">
+            <button class="btn-secondary auto" id="ls-play">${esc(t('les.listening.play', { n: st.index + 1 }))}</button>
+            <button class="btn-ghost" id="ls-slow">${esc(t('les.listening.slow'))}</button>
+          </div>
+          <div id="mcqbox"></div>`;
+        $('ls-play').addEventListener('click', () => speak(st.it.text, locale, { rate: speechRate() }));
+        $('ls-slow').addEventListener('click', () => speak(st.it.text, locale, { rate: speechRate() * 0.75 }));
+        renderMcq($('mcqbox'), { question: st.it.question, options: st.it.options, answer: st.it.answer }, mst, { transcript: st.it.text });
+        break;
+      }
+      case 'speak': {
+        ex.innerHTML = `
+          <div class="ex-eyebrow">${esc(t('tab.speaking'))} · ${st.index + 1}/${c.speaking.length}</div>
+          <p class="subtitle">${esc(t('les.speaking.sub'))}</p>
+          ${sttSupported ? '' : `<div class="msg msg-info show"><span>${esc(t('les.sttWarn'))}</span></div>`}
+          <div class="speak-item">
+            <div class="speak-top">
+              <div><div class="term">${esc(st.it.text)}</div><div class="tr">${esc(st.it.translation)}</div></div>
+              <div class="speak-actions">${speakerBtn(st.it.text)}<button class="mic-btn" id="mic" ${sttSupported ? '' : 'disabled'} title="${esc(t('les.sayIt'))}" aria-label="${esc(t('les.sayIt'))}">${ICON_MIC}</button></div>
+            </div>
+            <div class="usage">${esc(st.it.tip)}</div>
+            <div class="speak-result" id="speak-out"></div>
+          </div>`;
+        if (sttSupported) wireMic($('mic'), $('speak-out'), st.it.text);
+        foot(t('les.continue'), { onClick: next });
+        break;
+      }
+      case 'quiz': {
+        const key = 'q' + st.index;
+        if (!S.mcq[key]) S.mcq[key] = { selected: null, checked: false };
+        const mst = S.mcq[key];
+        ex.innerHTML = `<div class="ex-eyebrow">${esc(t('tab.quiz'))} · ${st.index + 1}/${c.quiz.length}</div><div id="mcqbox"></div>`;
+        renderMcq($('mcqbox'), st.q, mst, {});
+        break;
+      }
+      case 'tips': {
+        ex.innerHTML = `
+          <div class="ex-eyebrow">${esc(t('tab.tips'))}</div>
+          <ul class="tips">${(c.tips || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+        foot(t('les.continue'), { onClick: next });
+        break;
+      }
+      case 'results': {
+        const total = c.quiz.length;
+        let score = 0;
+        c.quiz.forEach((qq, i) => { if (S.mcq['q' + i]?.checked && S.mcq['q' + i]?.selected === qq.answer) score++; });
+        const pctR = Math.round(score / total * 100);
+        ex.innerHTML = `
+          <div class="results-hero">
+            <div class="big">${score}/${total}</div>
+            <div class="subtitle">${esc(pctR === 100 ? t('les.result.perfect') : pctR >= 70 ? t('les.result.good') : t('les.result.low', { pass: 70 }))}</div>
+          </div>
+          <div class="actions" style="justify-content:center">
+            <a class="btn-primary auto" href="/dashboard">${esc(t('les.back'))}</a>
+            <button class="btn-secondary auto" id="regen3">${esc(t('les.regen'))}</button>
+          </div>`;
+        foot('', { hidden: true });
+        if (!saved) {
+          saved = true;
+          (async () => {
+            const { error } = await sb.from('user_progress').upsert({ user_id: user.id, lesson_id: lessonRow.id, completed: true, score, total, completed_at: new Date().toISOString() });
+            toast(error ? t('les.result.saveFailed') : t('les.result.saved'), error ? 'error' : 'success');
+            if (error) return;
+            // The words this lesson taught now join the review deck, due
+            // tomorrow. Nothing here is allowed to spoil a finished lesson, so
+            // a failure is logged and the result screen stays as it is.
+            try {
+              const { added, skipped } = await saveLessonVocabulary(sb, {
+                userId: user.id, language: params.lang, domain: params.domain,
+                topic: params.topic, content: lessonRow.content,
+              });
+              if (added && !skipped) toast(tp('les.result.vocab', added, { n: added }), 'success');
+            } catch (err) {
+              console.warn('Vocabulary was not saved:', err.message);
+            }
+          })();
+        }
+        $('regen3').addEventListener('click', async e => {
+          const b = e.currentTarget; setLoading(b, true, t('common.moment'));
+          try { startFlow(await generate()); toast(t('les.regen.done'), 'success'); }
+          catch (err) { showMsg(msg, err.message); }
+          finally { setLoading(b, false); }
+        });
+        break;
+      }
+    }
+  }
+
+  window.addEventListener('beforeunload', () => { retireSpeaking(); stopSpeaking(); });
+  renderFooter();
+
+  // Scaffolding labels only — exercise answers live in S and survive.
+  onLangChange(() => { if (content) renderStep(); });
+
+  try {
+    const cached = await loadCached();
+    if (cached && !isCompleteLesson(cached.content)) lessonRow = cached;
+    startFlow(isCompleteLesson(cached?.content) ? cached : await generate());
+  } catch (err) {
+    stopSteps(); $('loader').style.display = 'none'; showMsg(msg, err.message);
+    if (!$('retry-lesson')) {
+      const btn = document.createElement('button');
+      btn.id = 'retry-lesson';
+      btn.className = 'btn-primary auto';
+      btn.style.marginTop = '12px';
+      btn.textContent = t('les.regen');
+      btn.addEventListener('click', () => window.location.reload());
+      msg.after(btn);
+    }
+  }
+</script>
+</body>
+</html>

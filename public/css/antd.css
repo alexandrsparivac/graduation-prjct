@@ -1,0 +1,2508 @@
+/* Ant Design 5 component layer.
+   Ported from the antd source (github.com/ant-design/ant-design, components/<name>/style)
+   onto the tokens defined at the top of styles.css. Loaded after styles.css on every
+   page, so these rules win by cascade order. */
+
+/* =================== general =================== */
+
+/* ---------- antd global: body, links, focus (components/style/index.tsx, style/reset.css) ---------- */
+body {
+  background: var(--ant-bg-layout);
+  color: var(--ant-text);
+  font-family: var(--ant-font);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  -webkit-tap-highlight-color: transparent;
+}
+/* Clears the fixed 64px Layout.Header plus marginLG (24). */
+body.page-top { padding-top: 80px; }
+
+/* genLinkStyle. colorLink follows the ink primary; antd would otherwise derive it from blue colorInfo. */
+a {
+  color: var(--ant-primary);
+  text-decoration: none;
+  background-color: transparent;
+  cursor: pointer;
+  transition: color var(--ant-motion-mid);
+}
+a:not([class]):hover { color: var(--ant-primary-hover); }
+a:not([class]):active { color: var(--ant-primary-active); }
+
+/* genFocusOutline: lineWidthFocus (lineWidth * 3) solid colorPrimaryBorder, offset 1px. The ink seed
+   has no usable primary-border tint, so the ring takes text-tertiary, which holds 3:1 in both themes. */
+:focus-visible {
+  outline: 3px solid var(--ant-text-tertiary);
+  outline-offset: 1px;
+}
+
+/* ---------- antd Card as Layout Content (components/card/style/index.ts) ---------- */
+.card,
+body.page-top .card {
+  color: var(--ant-text);
+  background: var(--ant-bg-container);
+  border: 0;
+  border-radius: var(--ant-radius-lg);
+  box-shadow: var(--ant-shadow-tertiary); /* borderless card */
+  padding: 24px; /* bodyPadding = paddingLG */
+  transition: none;
+  animation: antFadeIn var(--ant-motion-mid) linear both; /* style/motion/fade.ts */
+}
+.card.wide { max-width: 560px; }
+.card.xwide { max-width: 860px; }
+.card.full { max-width: 1040px; }
+@keyframes antFadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+/* ---------- antd Typography (components/typography/style/index.ts, mixins.ts) ---------- */
+h1, h2, h3 {
+  margin: 0 0 0.5em; /* titleMarginBottom */
+  color: var(--ant-text); /* colorTextHeading */
+  font-weight: 600; /* fontWeightStrong */
+  letter-spacing: normal;
+  text-transform: none;
+  text-wrap: wrap;
+  word-break: break-word;
+}
+/* One step down the antd scale to stay minimal: h1 -> h3, h2 -> h4, h3 -> h5.
+   lineHeightHeadingN = (fontSize + 8) / fontSize. */
+h1,
+.dash-head h1,
+#exercise h1 {
+  font-size: var(--ant-h3);
+  line-height: 1.3333333; /* 32 / 24 */
+  letter-spacing: normal;
+  text-wrap: wrap;
+}
+h2 { font-size: var(--ant-h4); line-height: 1.4; /* 28 / 20 */ }
+h3 { font-size: var(--ant-h5); line-height: 1.5; /* 24 / 16 */ }
+
+/* Paragraph type="secondary". antd's colorTextDescription is text-tertiary (3.4:1);
+   running text takes text-secondary so it stays WCAG AA. */
+.subtitle {
+  margin: 0 0 1em;
+  color: var(--ant-text-secondary);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  text-wrap: wrap;
+}
+.eyebrow,
+.step-label,
+.ex-eyebrow {
+  color: var(--ant-text-secondary);
+  font-size: var(--ant-font-size);
+  font-weight: 400;
+  line-height: var(--ant-line-height);
+  letter-spacing: normal;
+  text-transform: none;
+}
+.step-label,
+.ex-eyebrow { margin: 0 0 4px; } /* marginXXS */
+
+/* ---------- antd Button, size="large" (components/button/style/index.ts, token.ts, variant.ts) ---------- */
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* iconGap = marginXS */
+  height: var(--ant-control-height-lg);
+  margin: 0;
+  padding: 0 15px; /* paddingInlineLG = paddingContentHorizontal - lineWidth */
+  border: 1px solid transparent;
+  border-radius: var(--ant-radius-lg);
+  font-family: inherit;
+  font-size: var(--ant-font-size-lg); /* contentFontSizeLG */
+  font-weight: 400;
+  line-height: var(--ant-line-height-lg); /* contentLineHeightLG = 24 / 16 */
+  letter-spacing: normal;
+  text-align: center;
+  text-decoration: none;
+  text-transform: none;
+  white-space: nowrap;
+  background-image: none;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  opacity: 1;
+  transform: none;
+  transition:
+    color var(--ant-motion-mid) var(--ant-ease-in-out),
+    background-color var(--ant-motion-mid) var(--ant-ease-in-out),
+    border-color var(--ant-motion-mid) var(--ant-ease-in-out),
+    opacity var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.btn-primary svg,
+.btn-secondary svg,
+.btn-ghost svg { flex: none; width: 1em; height: 1em; }
+
+/* type="primary" (solid) */
+.btn-primary {
+  width: 100%; /* block */
+  color: var(--ant-text-light-solid);
+  background-color: var(--ant-primary);
+  border-color: transparent; /* primaryShadow: 0 controlOutlineWidth 0 controlOutline */
+}
+.btn-primary:hover:not(:disabled) {
+  opacity: 1;
+  color: var(--ant-text-light-solid);
+  background-color: var(--ant-primary-hover);
+}
+.btn-primary:active:not(:disabled) {
+  transform: none;
+  color: var(--ant-text-light-solid);
+  background-color: var(--ant-primary-active);
+}
+
+/* default (outlined) */
+.btn-secondary {
+  width: 100%; /* block */
+  color: var(--ant-text);
+  background-color: var(--ant-bg-container);
+  border-color: var(--ant-border); /* defaultShadow: controlTmpOutline */
+}
+.btn-secondary:hover:not(:disabled) {
+  color: var(--ant-primary-hover);
+  background-color: var(--ant-bg-container);
+  border-color: var(--ant-primary-hover);
+}
+.btn-secondary:active:not(:disabled) {
+  transform: none;
+  color: var(--ant-primary-active);
+  background-color: var(--ant-bg-container);
+  border-color: var(--ant-primary-active);
+}
+
+/* type="text" */
+.btn-ghost {
+  color: var(--ant-text); /* textTextColor */
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn-ghost:hover:not(:disabled) {
+  color: var(--ant-text);
+  background-color: var(--ant-fill-tertiary); /* textHoverBg */
+}
+.btn-ghost:active:not(:disabled) {
+  color: var(--ant-text);
+  background-color: var(--ant-fill); /* color-light-active */
+}
+/* icon-only: width = controlHeightLG, paddingInline 0 */
+#settingsBtn.btn-ghost { width: var(--ant-control-height-lg); padding-inline: 0; }
+
+.btn-primary.auto,
+.btn-secondary.auto { width: auto; margin: 0; }
+
+/* disabled: colorBgContainerDisabled / colorBorderDisabled / colorTextDisabled */
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  color: var(--ant-text-quaternary);
+  background-color: var(--ant-fill-tertiary);
+  border-color: var(--ant-border);
+  box-shadow: none;
+}
+.btn-ghost:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  color: var(--ant-text-quaternary);
+  background-color: transparent;
+  border-color: transparent;
+}
+.btn-primary:disabled > *,
+.btn-secondary:disabled > *,
+.btn-ghost:disabled > * { pointer-events: none; }
+
+/* loading: ui.js setLoading() also disables the button, but antd keeps the variant colours at opacityLoading */
+.is-loading { opacity: 0.65; cursor: default; pointer-events: none; }
+.btn-primary.is-loading:disabled,
+.btn-secondary.is-loading:disabled,
+.btn-ghost.is-loading:disabled { opacity: 0.65; cursor: default; }
+.btn-primary.is-loading:disabled {
+  color: var(--ant-text-light-solid);
+  background-color: var(--ant-primary);
+  border-color: transparent;
+}
+.btn-secondary.is-loading:disabled {
+  color: var(--ant-text);
+  background-color: var(--ant-bg-container);
+  border-color: var(--ant-border);
+}
+.btn-ghost.is-loading:disabled { color: var(--ant-text); }
+
+/* LoadingOutlined at 1em; genIconStyle spins it 1s linear */
+.btn-spinner {
+  display: inline-block;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  border: 0.125em solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ---------- antd Typography.Link (typography/style/mixins.ts getLinkStyles, style/index.tsx operationUnit) ---------- */
+/* Back links are type="secondary"; links inside the login copy are plain links. */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ant-control-height-lg);
+  margin: 0 0 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ant-text-secondary);
+  font-family: inherit;
+  font-size: var(--ant-font-size);
+  font-weight: 400;
+  line-height: var(--ant-line-height);
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--ant-motion-mid);
+}
+.back-link:hover { color: var(--ant-primary-hover); }
+.back-link:active { color: var(--ant-primary-active); }
+.row .back-link,
+.signup-line .back-link { color: var(--ant-primary); }
+.row .back-link:hover,
+.signup-line .back-link:hover { color: var(--ant-primary-hover); }
+.row .back-link:active,
+.signup-line .back-link:active { color: var(--ant-primary-active); }
+
+/* ---------- antd Divider, plain with text (components/divider/style/index.ts) ---------- */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1em; /* textPaddingInline */
+  width: 100%;
+  min-width: 100%;
+  margin: 16px 0; /* dividerHorizontalWithTextGutterMargin = margin */
+  color: var(--ant-text);
+  font-size: var(--ant-font-size);
+  font-weight: 400;
+  line-height: var(--ant-line-height);
+  white-space: nowrap;
+  text-align: center;
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1 1 50%;
+  width: 50%;
+  height: 0;
+  background: none;
+  border-block-start: 1px solid var(--ant-split);
+}
+
+/* ---------- antd Form item (vertical) + Input size="large" (components/input/style/index.ts, token.ts, variants.ts) ---------- */
+.field { margin: 0 0 24px; } /* itemMarginBottom = marginLG */
+.field > label {
+  display: block;
+  margin: 0;
+  padding: 0 0 8px; /* verticalLabelPadding = 0 0 paddingXS */
+  color: var(--ant-text);
+  font-size: var(--ant-font-size);
+  font-weight: 400;
+  line-height: var(--ant-line-height);
+}
+.form-grid { gap: 0 16px; }
+.hint {
+  margin: -8px 0 24px;
+  color: var(--ant-text-secondary);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+}
+.row {
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: var(--ant-font-size);
+}
+.signup-line {
+  margin: 16px 0 0;
+  color: var(--ant-text-secondary);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+}
+
+/* affix wrapper, outlined */
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px; /* inputAffixPadding = paddingXXS */
+  width: 100%;
+  min-width: 0;
+  padding: 7px 11px; /* paddingBlockLG = ceil((40 - 16 * 1.5) / 2) - 1; paddingInlineLG = 12 - 1 */
+  color: var(--ant-text);
+  font-size: var(--ant-font-size-lg);
+  line-height: var(--ant-line-height-lg);
+  background-color: var(--ant-bg-container);
+  border: 1px solid var(--ant-border);
+  border-radius: var(--ant-radius-lg);
+  box-shadow: none;
+  transition:
+    border-color var(--ant-motion-mid),
+    box-shadow var(--ant-motion-mid),
+    background-color var(--ant-motion-mid);
+}
+.input-wrap:hover {
+  border-color: var(--ant-primary-hover); /* hoverBorderColor */
+  background-color: var(--ant-bg-container);
+}
+.input-wrap:focus-within {
+  outline: 0;
+  border-color: var(--ant-primary); /* activeBorderColor */
+  box-shadow: 0 0 0 2px var(--ant-control-outline); /* activeShadow */
+  background-color: var(--ant-bg-container);
+}
+.input-wrap:has(input:disabled) {
+  cursor: not-allowed;
+  color: var(--ant-text-quaternary);
+  background-color: var(--ant-fill-tertiary);
+  border-color: var(--ant-border);
+  box-shadow: none;
+}
+.input-wrap svg {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  color: inherit;
+}
+.input-wrap input,
+.input-wrap select {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.input-wrap input { -webkit-appearance: none; appearance: none; }
+.input-wrap input::-ms-reveal,
+.input-wrap input::-ms-clear { display: none; }
+.input-wrap input::-moz-placeholder { opacity: 1; }
+.input-wrap input::placeholder {
+  color: var(--ant-text-quaternary); /* colorTextPlaceholder */
+  user-select: none;
+}
+.input-wrap input:placeholder-shown { text-overflow: ellipsis; }
+.input-wrap input:disabled { cursor: not-allowed; opacity: 1; }
+/* Chrome's autofill paints its own blue; keep the field on the container colour. */
+.input-wrap input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--ant-bg-container) inset;
+  -webkit-text-fill-color: var(--ant-text);
+  caret-color: var(--ant-text);
+}
+
+/* Input.Password icon: colorIcon -> colorIconHover. Stretched to the 40px field height for touch. */
+.toggle-pw {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--ant-control-height-lg);
+  margin-block: -8px;
+  margin-inline-end: -8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--ant-radius-sm);
+  background: none;
+  color: var(--ant-text-tertiary);
+  cursor: pointer;
+  transition: color var(--ant-motion-mid);
+}
+.toggle-pw:hover { color: var(--ant-text); }
+
+/* Lesson gap-fill input: same large Input; checked answers use antd's status border on the disabled field. */
+.gap.correct .gap-in {
+  border-color: var(--ant-success);
+  background-color: var(--ant-bg-container);
+}
+.gap.wrong .gap-in {
+  border-color: var(--ant-error);
+  background-color: var(--ant-bg-container);
+}
+.gap.correct .gap-in:has(input:disabled),
+.gap.wrong .gap-in:has(input:disabled) { background-color: var(--ant-fill-tertiary); }
+.gap.wrong .gap-hint { color: var(--ant-error); } /* colorErrorAffix */
+
+/* ---------- antd Checkbox (components/checkbox/style/index.ts) ---------- */
+.remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  min-height: var(--ant-control-height-lg);
+  margin: 0;
+  color: var(--ant-text);
+  font-size: var(--ant-font-size);
+  font-weight: 400;
+  line-height: var(--ant-line-height);
+  cursor: pointer;
+}
+.remember input + span { padding-inline: 8px; } /* paddingXS */
+.remember input {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  display: block;
+  flex: none;
+  align-self: center;
+  box-sizing: border-box;
+  width: 16px; /* controlInteractiveSize = controlHeight / 2 */
+  height: 16px;
+  margin: 0;
+  direction: ltr; /* antd pins the box to ltr so the tick never mirrors */
+  background-color: var(--ant-bg-container);
+  border: 1px solid var(--ant-border);
+  border-radius: var(--ant-radius-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--ant-motion-mid),
+    border-color var(--ant-motion-mid);
+}
+/* tick: 5/14 x 8/14 of the box, lineWidthBold stroke, at (size / 4 - 1, size / 2 - 1) */
+.remember input::after,
+.remember input:checked::after {
+  content: "";
+  box-sizing: border-box;
+  position: absolute;
+  top: 7px;
+  inset-inline-start: 3px;
+  display: table;
+  width: 5.7142857px;
+  height: 9.1428571px;
+  border: 2px solid var(--ant-text-light-solid); /* colorWhite, flipped with the ink primary */
+  border-top: 0;
+  border-inline-start: 0;
+}
+.remember input::after {
+  opacity: 0;
+  transform: rotate(45deg) scale(0) translate(-50%, -50%);
+  transition:
+    transform var(--ant-motion-fast) var(--ant-ease-in-back, cubic-bezier(0.71, -0.46, 0.88, 0.6)),
+    opacity var(--ant-motion-fast);
+}
+.remember input:checked {
+  background-color: var(--ant-primary);
+  border-color: var(--ant-primary);
+}
+.remember input:checked::after {
+  opacity: 1;
+  transform: rotate(45deg) scale(1) translate(-50%, -50%);
+  transition:
+    transform var(--ant-motion-mid) var(--ant-ease-out-back) var(--ant-motion-fast),
+    opacity var(--ant-motion-mid) var(--ant-ease-out-back) var(--ant-motion-fast);
+}
+@media (hover: hover) and (pointer: fine) {
+  .remember:hover input:not(:disabled) { border-color: var(--ant-primary); }
+  .remember:hover input:checked:not(:disabled) {
+    background-color: var(--ant-primary-hover);
+    border-color: transparent;
+  }
+}
+
+/* ---------- antd Switch (components/switch/style: trackHeight = fontSize * lineHeight = 22,
+   trackPadding 2, handleSize 18, trackMinWidth = 18 * 2 + 2 * 4 = 44, radius 100) ---------- */
+.switch {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  width: 44px;
+  min-width: 44px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 100px;
+  background: var(--ant-text-quaternary);
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--ant-motion-mid);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: auto;
+  inset-inline-start: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--ant-text-light-solid); /* handleBg = colorWhite, flipped with the ink primary */
+  box-shadow: var(--ant-shadow-tertiary);
+  transition: transform var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.switch:hover:not(:disabled) { background: var(--ant-text-tertiary); }
+.switch:checked { background: var(--ant-primary); }
+.switch:checked:hover:not(:disabled) { background: var(--ant-primary-hover); }
+/* checked handle sits at inset-inline-start: calc(100% - (18 + 2)px), i.e. 22px further along */
+.switch:checked::after { transform: translateX(22px); }
+[dir="rtl"] .switch:checked::after { transform: translateX(-22px); }
+.switch:disabled { opacity: 0.65; cursor: not-allowed; }
+.switch:disabled::after { box-shadow: none; }
+
+/* ---------- antd Layout.Header (headerHeight = controlHeight * 2, headerPadding = 0 controlHeightLG * 1.25) ---------- */
+.topbar {
+  height: 64px;
+  padding: 0 50px;
+  gap: 16px;
+  color: var(--ant-text);
+  background: var(--ant-bg-container);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--ant-split);
+}
+.brand {
+  gap: 8px;
+  min-height: var(--ant-control-height-lg);
+  color: var(--ant-text);
+  font-size: var(--ant-font-size-lg);
+  font-weight: 600;
+  line-height: var(--ant-line-height-lg);
+  letter-spacing: normal;
+  text-decoration: none;
+}
+.brand-mark {
+  border-radius: var(--ant-radius-sm);
+  background: var(--ant-primary);
+  color: var(--ant-text-light-solid);
+}
+.brand-name { letter-spacing: normal; }
+.login-brand .brand-name {
+  color: var(--ant-text);
+  font-size: var(--ant-font-size-xl);
+  font-weight: 600;
+  letter-spacing: normal;
+}
+.topbar-right { gap: 8px; } /* Space size="small" */
+.topbar-right .avatar { margin: 0; }
+
+/* Floating settings control on the login page: default Button, icon-only, large */
+.settings-fab {
+  inset-block-start: 16px;
+  inset-inline-end: 16px;
+  width: var(--ant-control-height-lg);
+  height: var(--ant-control-height-lg);
+  color: var(--ant-text);
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border);
+  border-radius: var(--ant-radius-lg);
+  transition:
+    color var(--ant-motion-mid) var(--ant-ease-in-out),
+    border-color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.settings-fab:hover {
+  color: var(--ant-primary-hover);
+  border-color: var(--ant-primary-hover);
+}
+.settings-fab:active {
+  transform: none;
+  color: var(--ant-primary-active);
+  border-color: var(--ant-primary-active);
+}
+
+/* ---------- antd Layout.Footer (footerPadding = controlHeightSM x controlHeightLG * 1.25, footerBg = colorBgLayout) ---------- */
+.site-footer {
+  padding: 24px 50px calc(24px + env(safe-area-inset-bottom, 0px));
+  color: var(--ant-text);
+  font-size: var(--ant-font-size);
+  background: var(--ant-bg-layout);
+  border-top: 0;
+}
+.footer-inner {
+  gap: 12px;
+  color: var(--ant-text-secondary);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+}
+.footer-brand {
+  gap: 8px;
+  color: var(--ant-text);
+  font-weight: 600;
+  letter-spacing: normal;
+}
+.footer-brand .logo-mark { width: 16px; height: 16px; }
+
+/* ---------- antd Space / page rhythm (marginXS 8, marginSM 12, marginLG 24) ---------- */
+.actions { gap: 8px; margin-top: 24px; }
+.section { margin-bottom: 24px; }
+.section-head { gap: 8px; margin-bottom: 12px; }
+
+/* ---------- antd List, split (components/list/style/index.ts) with Typography h5 group titles ---------- */
+.set-section {
+  padding: 24px 0;
+  border-top: 1px solid var(--ant-split);
+}
+.set-section:first-child { padding-top: 0; border-top: 0; }
+.set-head {
+  margin: 0 0 8px; /* titleMarginBottom 0.5em */
+  color: var(--ant-text);
+  font-size: var(--ant-h5);
+  font-weight: 600;
+  line-height: 1.5; /* 24 / 16 */
+  letter-spacing: normal;
+  text-transform: none;
+}
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 48px; /* item-action marginInlineStart = marginXXL */
+  margin: 0;
+  padding: 12px 0; /* itemPadding = paddingContentVertical 0 */
+  color: var(--ant-text);
+  font-size: var(--ant-font-size);
+  font-weight: 400;
+  line-height: var(--ant-line-height);
+  border-block-end: 1px solid var(--ant-split);
+}
+.set-row + .set-row { border-top: 0; }
+.set-row:last-child { border-block-end: 0; }
+label.set-row { cursor: pointer; }
+.set-row-text {
+  display: grid;
+  flex: 1;
+  gap: 4px; /* meta-title margin-bottom = marginXXS */
+  min-width: 0;
+}
+.set-row-label {
+  margin: 0;
+  color: var(--ant-text);
+  font-size: var(--ant-font-size);
+  font-weight: 500; /* meta-title is an h4 under antd's reset (500) */
+  line-height: var(--ant-line-height);
+}
+.set-row-hint {
+  color: var(--ant-text-secondary);
+  font-size: var(--ant-font-size); /* descriptionFontSize */
+  font-weight: 400;
+  line-height: var(--ant-line-height);
+  text-wrap: wrap;
+}
+.set-block-hint { display: block; margin: 0 0 12px; }
+.set-foot {
+  padding: 16px 0 0;
+  border-top: 1px solid var(--ant-split);
+}
+
+/* ---------- responsive (antd screenMD 768, screenSM 576) ---------- */
+@media (max-width: 767px) {
+  .set-row { column-gap: 24px; } /* List: marginLG */
+}
+@media (max-width: 575px) {
+  .card,
+  body.page-top .card { padding: 16px; }
+  .topbar { padding: 0 16px; }
+  .site-footer { padding-inline: 16px; }
+  .set-row { flex-wrap: wrap; column-gap: 12px; } /* List: marginSM */
+}
+
+/* =================== display =================== */
+
+/* ---------- Dashboard layout (antd Row gutter 16, Typography title) ---------- */
+.dash-head { gap: 16px; margin-bottom: 24px; }
+/* Size and line-height come from the shared h1 rule in the general block (antd h3). */
+.dash-head h1 {
+  margin: 0 0 4px; font-weight: 600;
+  letter-spacing: normal; color: var(--ant-text);
+}
+.dash-grid { gap: 16px; margin-top: 16px; }
+.dash-main, .dash-rail { gap: 16px; }
+/* Section heading above the path: Typography h5, (16 + 8) / 16 */
+.dash-main > .panel-title {
+  margin: 0; font-size: var(--ant-h5); line-height: 1.5; font-weight: 600;
+  letter-spacing: normal; color: var(--ant-text);
+}
+
+/* ---------- antd Card size="small" (components/card/style/index.ts) ---------- */
+.panel {
+  position: relative;
+  display: grid; gap: 12px; align-content: start;
+  margin: 0;
+  padding: 12px; /* bodyPaddingSM */
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg);
+  box-shadow: none;
+}
+.panel-title {
+  margin: 0; font-size: var(--ant-font-size); line-height: var(--ant-line-height); font-weight: 600;
+  letter-spacing: normal; color: var(--ant-text);
+}
+/* The leading title is the card head. headerHeightSM = fontSize * lineHeight + paddingXS * 2
+   = 22 + 16 = 38px (37px line + 1px split). Negative margins equal to the body padding
+   carry the split line to both card edges. */
+.panel > .panel-title:first-child {
+  display: block;
+  min-height: 38px;
+  margin: -12px -12px 0;
+  padding: 0 12px; /* headerPaddingSM */
+  line-height: 37px;
+  background: transparent;
+  border-bottom: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg) var(--ant-radius-lg) 0 0;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.panel-note {
+  margin: 0; font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  color: var(--ant-text-secondary);
+}
+.panel-foot {
+  font-size: var(--ant-font-size-sm); line-height: var(--ant-line-height-sm);
+  color: var(--ant-text-secondary); font-variant-numeric: normal;
+}
+/* A Button in a card body keeps its own width instead of stretching across the grid. */
+.panel > .btn-primary, .panel > .btn-secondary { justify-self: start; }
+
+/* ---------- antd Card + Statistic (components/statistic/style/index.ts) ---------- */
+.kpi-strip { gap: 16px; }
+.stats { gap: 16px; margin-bottom: 24px; }
+.kpi, .stat {
+  display: flex; flex-direction: column; gap: 0; align-content: normal;
+  min-width: 0;
+  padding: 24px; /* Card bodyPadding = paddingLG */
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg);
+  box-shadow: none; transform: none; transition: none;
+}
+/* Statistic header: titleFontSize = fontSize, colorTextDescription, paddingBottom marginXXS.
+   The markup puts the value first; order lifts the title above it as antd renders. */
+.kpi-l, .stat .l {
+  order: -1;
+  padding-bottom: 4px;
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height); font-weight: 400;
+  color: var(--ant-text-tertiary);
+}
+/* Statistic content: contentFontSize = fontSizeHeading3, colorTextHeading, regular weight. */
+.kpi-n, .stat .n {
+  display: block; gap: 0; margin: 0;
+  font-family: var(--ant-font); font-size: var(--ant-h3); line-height: var(--ant-line-height);
+  font-weight: 400; letter-spacing: normal; font-variant-numeric: normal;
+  color: var(--ant-text);
+}
+/* Statistic suffix (marginInlineStart marginXXS). .unit is also the path card class, so every
+   card property is undone here. Kept inline rather than antd inline-block so "7/12" stays one
+   number run under RTL; direction pins the gap to the value side without isolating the text. */
+.kpi-n .unit, .stat .n-sub {
+  display: inline; direction: ltr;
+  margin: 0; margin-inline-start: 4px; padding: 0;
+  font-size: inherit; line-height: inherit; font-weight: inherit; letter-spacing: normal;
+  color: inherit;
+  background: none; border: 0; border-radius: 0; box-shadow: none; overflow: visible;
+}
+.kpi-sub {
+  margin-top: 8px;
+  font-size: var(--ant-font-size-sm); line-height: var(--ant-line-height-sm);
+  color: var(--ant-text-secondary); font-variant-numeric: normal;
+}
+
+/* ---------- antd Card hoverable + Button primary large (card, button/style) ---------- */
+.resume {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px;
+  padding: 24px; /* Card bodyPadding */
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  text-decoration: none; cursor: pointer;
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg);
+  box-shadow: none; transform: none;
+  transition: box-shadow var(--ant-motion-mid), border-color var(--ant-motion-mid);
+}
+.resume:hover { border-color: var(--ant-primary); box-shadow: none; transform: none; }
+.resume:active { transform: none; }
+.resume-body { flex: 1 1 260px; min-width: 0; }
+.resume-eyebrow {
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height); font-weight: 400;
+  color: var(--ant-text-tertiary);
+}
+/* Typography h4: fontSizeHeading4, lineHeightHeading4 = (20 + 8) / 20; two-row ellipsis kept. */
+.resume-title {
+  margin: 4px 0;
+  font-size: var(--ant-h4); line-height: 1.4; font-weight: 600; letter-spacing: normal;
+  color: var(--ant-text);
+}
+.resume-meta {
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  color: var(--ant-text-tertiary);
+}
+/* Button primary lg: controlHeightLG, paddingInlineLG = paddingContentHorizontal - lineWidth,
+   contentFontSizeLG with lineHeight (16 + 8) / 16, primaryShadow 0 2px 0 controlOutline. */
+.resume-go {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: var(--ant-control-height-lg); min-height: var(--ant-control-height-lg);
+  padding: 0 15px;
+  font-size: var(--ant-font-size-lg); line-height: 1.5; font-weight: 400; white-space: nowrap;
+  color: var(--ant-text-light-solid);
+  background: var(--ant-primary);
+  border: 1px solid transparent;
+  border-radius: var(--ant-radius-lg);
+  transition: color var(--ant-motion-mid) var(--ant-ease-in-out),
+    background-color var(--ant-motion-mid) var(--ant-ease-in-out),
+    border-color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.resume:hover .resume-go { background: var(--ant-primary-hover); }
+.resume:active .resume-go { background: var(--ant-primary-active); }
+
+/* ---------- antd Card with head (components/card/style/index.ts) ---------- */
+.unit {
+  display: block;
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg);
+  box-shadow: none;
+  overflow: visible; /* antd Card does not clip; hovered topic cards keep their shadow */
+}
+/* headerHeight = fontSizeLG * lineHeightLG + padding * 2 = 24 + 32 = 56px. The title here
+   has two lines, so the block padding is paddingXS to keep them off the edges. */
+.unit-head {
+  display: flex; align-items: center; gap: 16px;
+  min-height: 56px;
+  padding: 8px 24px; /* headerPadding = paddingLG */
+  font-size: var(--ant-font-size-lg); font-weight: 600;
+  color: var(--ant-text);
+  background: transparent;
+  border-bottom: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg) var(--ant-radius-lg) 0 0;
+}
+.unit-head .meta { flex: 1; min-width: 0; }
+.unit-head .meta .t {
+  font-size: var(--ant-font-size-lg); line-height: var(--ant-line-height-lg); font-weight: 600;
+  letter-spacing: normal; color: var(--ant-text);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.unit-head .meta .s {
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height); font-weight: 400;
+  color: var(--ant-text-tertiary); font-variant-numeric: normal;
+}
+.unit-head .progress { flex-shrink: 0; background: var(--ant-fill-secondary); }
+.unit-head .progress > span { background: var(--ant-primary); }
+.topic-grid { gap: 16px; padding: 24px; /* Card bodyPadding */ }
+
+/* ---------- antd Avatar shape="square" (components/avatar/style/index.ts) ---------- */
+.unit-icon, .tcard-n {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  overflow: hidden; white-space: nowrap; text-align: center; vertical-align: middle;
+  font-size: var(--ant-font-size); /* textFontSize and textFontSizeSM are both fontSize */
+  font-weight: inherit; font-variant-numeric: normal;
+  border: 1px solid transparent;
+}
+/* containerSize = controlHeight, square radius = borderRadius */
+.unit-icon {
+  width: var(--ant-control-height); height: var(--ant-control-height);
+  border-radius: var(--ant-radius);
+  color: var(--ant-text);
+  background: var(--ant-fill-secondary);
+}
+/* containerSizeSM = controlHeightSM, square radius = borderRadiusSM */
+.tcard-n {
+  width: var(--ant-control-height-sm); height: var(--ant-control-height-sm);
+  border-radius: var(--ant-radius-sm);
+  color: var(--ant-text-secondary);
+  background: var(--ant-fill-secondary);
+}
+.tcard.done .tcard-n {
+  color: var(--ant-success); background: var(--ant-success-bg); border-color: var(--ant-success-border);
+}
+.tcard.current .tcard-n {
+  color: var(--ant-text-light-solid); background: var(--ant-primary); border-color: transparent;
+}
+
+/* ---------- antd Card size="small" hoverable (components/card/style/index.ts) ---------- */
+.tcard {
+  display: flex; flex-direction: column; gap: 8px;
+  min-height: var(--ant-control-height-lg);
+  padding: 12px; /* bodyPaddingSM */
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  text-decoration: none; cursor: pointer;
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg);
+  box-shadow: none; transform: none;
+  transition: box-shadow var(--ant-motion-mid), border-color var(--ant-motion-mid);
+}
+.tcard:hover { border-color: var(--ant-primary); box-shadow: none; transform: none; }
+.tcard:active { transform: none; }
+.tcard.current { border-color: var(--ant-primary); box-shadow: none; }
+.tcard.current:hover { border-color: var(--ant-primary); box-shadow: none; }
+.tcard-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tcard-title {
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height); font-weight: 600;
+  letter-spacing: normal; color: var(--ant-text);
+}
+
+/* ---------- antd Tag (components/tag/style/index.ts, statusCmp.ts) ---------- */
+/* tagLineHeight = lineHeightSM * fontSizeSM = 20px; paddingInline = 8 - lineWidth */
+.badge, .start-pill {
+  display: inline-block; flex-shrink: 0;
+  height: auto; margin: 0; padding: 0 7px;
+  font-size: var(--ant-font-size-sm); line-height: 20px; font-weight: 400;
+  white-space: nowrap; text-align: start; font-variant-numeric: normal;
+  color: var(--ant-text);
+  background: var(--ant-fill-tertiary);
+  border: 1px solid var(--ant-border);
+  border-radius: var(--ant-radius-sm);
+  transition: color var(--ant-motion-mid), background-color var(--ant-motion-mid), border-color var(--ant-motion-mid);
+}
+.badge.done { color: var(--ant-success); background: var(--ant-success-bg); border-color: var(--ant-success-border); }
+.badge.low { color: var(--ant-error); background: var(--ant-error-bg); border-color: var(--ant-error-border); }
+.badge.ai { background: var(--ant-fill-tertiary); border-color: transparent; } /* variant="filled" */
+.start-pill { color: var(--ant-text-light-solid); background: var(--ant-primary); border-color: transparent; }
+
+/* ---------- antd List bordered size="small" (components/list/style/index.ts) ---------- */
+.rowlist {
+  display: block; gap: 0; margin: 0; padding: 0;
+  border: 1px solid var(--ant-border);
+  border-radius: var(--ant-radius-lg);
+}
+/* itemPaddingSM = paddingContentVerticalSM paddingContentHorizontal; 38px rows raised to 40 for touch. */
+.rowlink {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  min-height: var(--ant-control-height-lg);
+  padding: 8px 16px;
+  color: var(--ant-text); text-decoration: none;
+  background: transparent;
+  border: 0; border-bottom: 1px solid var(--ant-split); border-radius: 0;
+  transform: none;
+  transition: background-color var(--ant-motion-mid);
+}
+/* innerCornerBorderRadius = borderRadiusLG - lineWidth, so the hover fill follows the frame. */
+.rowlink:first-child { border-start-start-radius: 7px; border-start-end-radius: 7px; }
+.rowlink:last-child { border-bottom: 0; border-end-start-radius: 7px; border-end-end-radius: 7px; }
+.rowlink:hover { background: var(--ant-fill-tertiary); border-color: var(--ant-split); }
+.rowlink:active { transform: none; }
+.rowlink:focus-visible { outline-offset: -2px; }
+.rowlink .t {
+  min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height); font-weight: 400;
+  color: var(--ant-text);
+}
+.rowlink .s {
+  flex-shrink: 0;
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  color: var(--ant-text-tertiary); font-variant-numeric: normal;
+}
+
+/* ---------- antd Progress type="line" (components/progress/style/index.ts) ---------- */
+/* Rail = remainingColor (colorFillSecondary), stroke = colorPrimary, lineBorderRadius 100
+   gives the capsule. Default stroke 8px, size="small" 6px. The width is not transitioned:
+   only transform and opacity animate here. */
+.progress {
+  position: relative;
+  height: 8px;
+  background: var(--ant-fill-secondary);
+  border: 0;
+  border-radius: 100px;
+  overflow: hidden;
+}
+.progress > span {
+  display: block; height: 100%;
+  background: var(--ant-primary);
+  border-radius: inherit;
+  transition: none;
+}
+.progress.mini { width: 70px; height: 6px; }
+.progress.mini.wide { width: 110px; }
+
+/* ---------- antd Progress line size="small", status="exception" ---------- */
+.dbars { display: grid; gap: 16px; }
+.dbar { display: grid; gap: 4px; }
+.dbar-top {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+}
+.dbar-name {
+  min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-weight: 400; color: var(--ant-text);
+}
+/* The value is the indicator: colorText at fontSizeSM on a small line, colorError on exception. */
+.dbar-val {
+  flex-shrink: 0; white-space: nowrap;
+  font-size: var(--ant-font-size-sm); font-variant-numeric: normal;
+  color: var(--ant-text);
+}
+.dbar.under .dbar-val { color: var(--ant-error); }
+.dbar-track {
+  position: relative;
+  height: 6px;
+  background: var(--ant-fill-secondary);
+  border: 0;
+  border-radius: 100px;
+}
+.dbar-fill { height: 100%; background: var(--ant-primary); border-radius: inherit; }
+.dbar.under .dbar-fill { background: var(--ant-error); }
+.dbar-track::after { top: -3px; bottom: -3px; width: 1px; background: var(--ant-text-tertiary); }
+.dbar-sub {
+  font-size: var(--ant-font-size-sm); line-height: var(--ant-line-height-sm);
+  color: var(--ant-text-secondary); font-variant-numeric: normal;
+}
+
+/* ---------- antd Segmented, block (components/segmented/style/index.ts) ---------- */
+/* trackPadding = lineWidthBold; item height = controlHeight - trackPadding * 2 = 28px;
+   item padding = controlPaddingHorizontal - lineWidth = 11px. */
+.level-track {
+  display: flex; gap: 0;
+  padding: 2px;
+  color: var(--ant-text-tertiary);
+  background: var(--ant-fill-tertiary);
+  border-radius: var(--ant-radius);
+}
+.lvl {
+  position: relative; flex: 1; min-width: 0;
+  min-height: 28px; padding: 0 11px;
+  font-size: var(--ant-font-size); line-height: 28px; font-weight: 400;
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-variant-numeric: normal;
+  color: var(--ant-text-tertiary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--ant-radius-sm);
+  box-shadow: none;
+  transition: color var(--ant-motion-mid);
+}
+.lvl.past { color: var(--ant-text); background: transparent; }
+.lvl.cur {
+  color: var(--ant-text);
+  background: var(--ant-bg-elevated);
+  border-color: transparent;
+  box-shadow: var(--ant-shadow-tertiary);
+}
+
+/* ---------- Activity heatmap on antd fills ---------- */
+.heat { gap: 3px; }
+.heat-cell {
+  border-radius: var(--ant-radius-xs);
+  background: var(--ant-fill-tertiary);
+  border: 1px solid var(--ant-border-secondary);
+}
+.heat-cell[data-level="1"] { background: color-mix(in srgb, var(--ant-primary) 25%, var(--ant-fill-tertiary)); border-color: transparent; }
+.heat-cell[data-level="2"] { background: color-mix(in srgb, var(--ant-primary) 50%, var(--ant-fill-tertiary)); border-color: transparent; }
+.heat-cell[data-level="3"] { background: color-mix(in srgb, var(--ant-primary) 75%, var(--ant-fill-tertiary)); border-color: transparent; }
+.heat-cell[data-level="4"] { background: var(--ant-primary); border-color: transparent; }
+.heat-cell.future { background: transparent; border-color: var(--ant-border-secondary); border-style: dashed; }
+.heat-legend {
+  gap: 4px;
+  font-size: var(--ant-font-size-sm); line-height: var(--ant-line-height-sm);
+  color: var(--ant-text-secondary);
+}
+
+/* ---------- antd Empty (components/empty/style/index.ts) ---------- */
+/* Empty "normal": marginBlock marginXL, marginInline marginXS, colorTextDescription,
+   footer marginTop = margin. */
+.empty, .panel-empty {
+  display: grid; justify-items: center; gap: 16px;
+  margin: 32px 8px; padding: 0;
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  text-align: center;
+  color: var(--ant-text-tertiary);
+}
+
+/* ---------- antd Result (components/result/style/index.ts) ---------- */
+/* padding = paddingLG * 2, paddingXL; title = fontSizeHeading3 at lineHeightHeading3
+   (24 + 8) / 24, marginBlock marginXS; subtitle colorTextDescription; extra margin-top paddingLG. */
+.path-done {
+  display: grid; justify-items: center; gap: 0;
+  padding: 48px 32px;
+  text-align: center;
+}
+.path-done .eyebrow {
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height); font-weight: 400;
+  color: var(--ant-text-tertiary);
+}
+.path-done .next-title {
+  margin: 8px 0;
+  font-size: var(--ant-h3); line-height: 1.3333; font-weight: 400; letter-spacing: normal;
+  color: var(--ant-text);
+}
+.path-done .next-meta {
+  margin: 0;
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  color: var(--ant-text-tertiary);
+}
+.path-done > .btn-primary, .path-done > .btn-secondary { justify-self: center; margin-top: 24px; }
+
+.results-hero {
+  display: grid; justify-items: center; gap: 0;
+  padding: 48px 32px 0; /* the .actions row that follows is the Result extra */
+  text-align: center;
+}
+/* Statistic value at fontSizeHeading1, lineHeightHeading1 = (38 + 8) / 38; value runs LTR. */
+.results-hero .big {
+  margin: 8px 0;
+  font-family: var(--ant-font); font-size: var(--ant-h1); line-height: 1.2105;
+  font-weight: 400; letter-spacing: normal; font-variant-numeric: normal;
+  color: var(--ant-text);
+  direction: ltr;
+}
+.results-hero .subtitle {
+  margin: 0;
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  color: var(--ant-text-tertiary);
+}
+.results-hero + .actions { margin-top: 24px; gap: 8px; }
+
+/* Skeleton frames mirror the cards above, so nothing shifts when the data lands. */
+.sk-kpi {
+  padding: 24px; gap: 8px;
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg);
+}
+.sk-panel {
+  padding: 12px; gap: 12px;
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg);
+}
+.sk-resume { height: 130px; border-radius: var(--ant-radius-lg); } /* 24 + 22 + 4 + 28 + 4 + 22 + 24 + 2 */
+
+/* =================== selection =================== */
+
+/* ---------- antd CheckCard: Card body + Checkbox badge (card/style, checkbox/style, radio/style) ---------- */
+.option-grid, .lang-grid { gap: 12px; }
+.q .opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 520px) { .q .opts { grid-template-columns: minmax(0, 1fr); } }
+
+.option, .opt {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: flex;
+  min-height: var(--ant-control-height-lg);
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--ant-border);
+  border-radius: var(--ant-radius-lg);
+  background: var(--ant-bg-container);
+  box-shadow: none;
+  color: var(--ant-text);
+  font-family: inherit;
+  font-size: var(--ant-font-size);
+  font-weight: 400;
+  line-height: var(--ant-line-height);
+  text-align: start;
+  overflow-wrap: break-word;
+  cursor: pointer;
+  transform: none;
+  /* box-shadow is deliberately not transitioned. The selected fill is an inset
+     shadow spread to 100vmax; animating it interpolates the spread from 0, so
+     the fill sweeps in from the edges as a band — invisible at 2% black in the
+     light theme, a white streak at 4% white in the dark one. It should just be
+     there. */
+  transition: border-color var(--ant-motion-mid), background-color var(--ant-motion-mid), color var(--ant-motion-mid);
+}
+.option { flex-direction: column; justify-content: flex-start; gap: 4px; }
+/* 36px = badge inset 12 + badge 16 + marginXS 8, so answer text never runs under the mark. */
+.opt { align-items: flex-start; padding-inline-end: 36px; }
+
+.option:hover, .opt:hover { background-color: var(--ant-bg-container); }
+/* antd gates control hover behind this query so touch never leaves a sticky hover border. */
+@media (hover: hover) and (pointer: fine) {
+  .option:hover:not(:disabled), .opt:hover:not(:disabled) { border-color: var(--ant-primary-hover); }
+}
+.option:active:not(:disabled), .opt:active:not(:disabled) { border-color: var(--ant-primary-active); }
+.option:active, .opt:active, .option:hover .icon { transform: none; }
+/* genFocusOutline: lineWidthFocus 3px, offset 1px. */
+.option:focus-visible, .opt:focus-visible { outline: 3px solid var(--ant-text-tertiary); outline-offset: 1px; }
+
+/* Fills are overlays in antd; this lays fill-quaternary over the container instead of over the page. */
+.option.active, .opt.selected {
+  border-color: var(--ant-primary);
+  background-color: var(--ant-bg-container);
+  box-shadow: inset 0 0 0 100vmax var(--ant-fill-quaternary);
+}
+.opt:disabled {
+  cursor: not-allowed;
+  color: var(--ant-text-quaternary);
+  border-color: var(--ant-border);
+  background-color: var(--ant-bg-container);
+  box-shadow: inset 0 0 0 100vmax var(--ant-fill-tertiary);
+}
+.opt.correct { color: var(--ant-success); border-color: var(--ant-success-border); background-color: var(--ant-success-bg); box-shadow: none; }
+.opt.wrong { color: var(--ant-error); border-color: var(--ant-error-border); background-color: var(--ant-error-bg); box-shadow: none; animation: none; }
+
+.option .icon {
+  font-size: var(--ant-font-size-lg);
+  font-weight: 600;
+  line-height: var(--ant-line-height-lg);
+  color: var(--ant-text);
+  transform: none;
+  transition: none;
+}
+/* The first line keeps clear of the badge: 12 inset + 16 badge + 8 gap - 16 padding. */
+.option .name { margin-inline-end: 20px; font-size: var(--ant-font-size); font-weight: 600; line-height: var(--ant-line-height); color: var(--ant-text); }
+.option .desc { font-size: var(--ant-font-size-sm); line-height: var(--ant-line-height-sm); color: var(--ant-text-secondary); }
+.option .desc:empty { display: none; }
+.option .lang-flag { margin-inline-end: 4px; font-size: var(--ant-font-size-lg); line-height: 1; }
+
+/* Check badge = antd Checkbox checked: 16px (controlInteractiveSize), borderRadiusSM. The 1px
+   container ring is antd Badge's colorBorderBg ring, so the badge stays legible over a swatch. */
+.option::after, .option.active::after, .opt::after {
+  content: "";
+  position: absolute;
+  inset-block: 12px auto;
+  inset-inline: auto 12px;
+  display: block;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--ant-primary);
+  border-radius: var(--ant-radius-sm);
+  background: var(--ant-primary);
+  box-shadow: 0 0 0 1px var(--ant-bg-container);
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+  transition: opacity var(--ant-motion-slow), background-color var(--ant-motion-slow), border-color var(--ant-motion-slow);
+}
+.option.active::after, .opt.selected::after, .opt.correct::after, .opt.wrong::after { opacity: 1; }
+.opt.correct::after { border-color: var(--ant-success); background: var(--ant-success); }
+.opt.wrong::after { border-color: var(--ant-error); background: var(--ant-error); }
+
+/* Checkbox tick: 16/14*5 x 16/14*8 box, lineWidthBold stroke. antd's rotate + translate(-50%,-50%)
+   lands its centre 0.68px above the badge centre, hence 14.75 / 17.07. Physical borders on purpose:
+   antd renders the tick with direction: ltr, so it is never mirrored. */
+.option::before, .opt::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset-block: 14.75px auto;
+  inset-inline: auto 17.07px;
+  box-sizing: border-box;
+  width: 5.71px;
+  height: 9.14px;
+  border: 2px solid var(--ant-text-light-solid);
+  border-top: 0;
+  border-left: 0;
+  opacity: 0;
+  transform: rotate(45deg) scale(0);
+  pointer-events: none;
+  /* motionEaseInBack has no token; cubic-bezier is its seed value. */
+  transition: transform var(--ant-motion-fast) cubic-bezier(0.71, -0.46, 0.88, 0.6), opacity var(--ant-motion-fast);
+}
+.option.active::before, .opt.selected::before, .opt.correct::before, .opt.wrong::before {
+  opacity: 1;
+  transform: rotate(45deg) scale(1);
+  transition: transform var(--ant-motion-mid) var(--ant-ease-out-back) var(--ant-motion-fast), opacity var(--ant-motion-mid) var(--ant-ease-out-back) var(--ant-motion-fast);
+}
+/* The error mark is a 2px-armed plus turned 45deg, centred in the 16px badge. */
+.opt.wrong::before, .toast-error::after {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  background: var(--ant-text-light-solid);
+  clip-path: polygon(40% 0, 60% 0, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0 60%, 0 40%, 40% 40%);
+  transform: rotate(45deg);
+}
+.opt.wrong::before { inset-block-start: 15px; inset-inline-end: 15px; }
+
+@media (max-width: 480px) {
+  .option, .opt { padding: 12px; }
+  .opt { padding-inline-end: 36px; }
+}
+
+/* Theme preview. A preview of a fixed theme must not flip with the current one, so these are the
+   literal antd values: light colorBgContainer / colorFillSecondary, dark colorBgContainer / colorBorderSecondary. */
+.option .swatch {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 100%;
+  height: 40px;
+  margin-block-end: 4px;
+  border-radius: var(--ant-radius-sm);
+  outline: 1px solid var(--ant-border-secondary);
+  outline-offset: -1px;
+  overflow: hidden;
+}
+.option .swatch-light, .option .swatch-system { background: #ffffff; }
+.option .swatch-dark { background: #141414; }
+.option .swatch::before, .option .swatch-system::after { content: ""; position: absolute; box-sizing: border-box; }
+.option .swatch::before { inset: 50% 0 0; }
+.option .swatch-light::before, .option .swatch-system::before { background: rgba(0, 0, 0, 0.06); }
+.option .swatch-dark::before { background: #303030; }
+.option .swatch-system::after {
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 50%;
+  background: #141414;
+  border-block-end: 20px solid #303030;
+}
+
+/* ---------- antd Alert (components/alert/style/index.ts) ---------- */
+.msg {
+  display: none;
+  position: relative;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--ant-radius-lg);
+  color: var(--ant-text);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  overflow-wrap: break-word;
+}
+.msg.show { display: flex; animation: none; }
+.msg svg { flex: none; width: 1em; height: 1em; margin: 0; }
+.msg > span { flex: 1; min-width: 0; }
+.msg-success { border-color: var(--ant-success-border); background: var(--ant-success-bg); color: var(--ant-text); }
+.msg-error { border-color: var(--ant-error-border); background: var(--ant-error-bg); color: var(--ant-text); }
+/* colorInfo follows the ink seed here, so info is the neutral preset. */
+.msg-info { border-color: var(--ant-border); background: var(--ant-fill-tertiary); color: var(--ant-text); }
+.msg-success svg { color: var(--ant-success); }
+.msg-error svg { color: var(--ant-error); }
+.msg-info svg { color: var(--ant-primary); }
+
+/* ---------- antd Message (components/message/style, notification/style) ---------- */
+/* top: DEFAULT_OFFSET 8px; list gap: margin 16px; side room: marginLG 24px. */
+#toasts {
+  position: fixed;
+  inset: 8px 0 auto;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-inline: 24px;
+  transform: none;
+  pointer-events: none;
+}
+/* padding-block (controlHeightLG 40 - fontSize 14 * lineHeight 1.5714) / 2 = 9px; enter offset 64px. */
+.toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--ant-radius-lg);
+  background: var(--ant-bg-elevated);
+  box-shadow: var(--ant-shadow);
+  color: var(--ant-text);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  text-align: start;
+  overflow-wrap: break-word;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(-64px);
+  transition: transform var(--ant-motion-mid) var(--ant-ease-in-out), opacity var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.toast.show { opacity: 1; transform: none; }
+/* The type icon (fontSizeLG) is drawn in CSS because the notice is text only. */
+.toast::before { content: ""; flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--ant-primary); }
+.toast-success::before { background: var(--ant-success); }
+.toast-error::before { background: var(--ant-error); }
+.toast::after { content: ""; position: absolute; box-sizing: border-box; pointer-events: none; }
+.toast-info::after {
+  inset-block-start: calc(50% - 4px);
+  inset-inline-start: 19px;
+  width: 2px;
+  height: 8px;
+  border-block-start: 2px solid var(--ant-text-light-solid);
+  padding-block-start: 1.5px;
+  background: var(--ant-text-light-solid) content-box;
+}
+.toast-success::after {
+  inset-block-start: calc(50% - 4.31px);
+  inset-inline-start: 17.75px;
+  width: 4.5px;
+  height: 7.5px;
+  border: 2px solid var(--ant-text-light-solid);
+  border-top: 0;
+  border-left: 0;
+  transform: rotate(45deg);
+}
+.toast-error::after { inset-block-start: calc(50% - 5px); inset-inline-start: 15px; }
+
+/* ---------- antd Skeleton, active (components/skeleton/style/index.ts) ---------- */
+.sk {
+  display: block;
+  border-radius: var(--ant-radius-sm);
+  background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 37%, var(--sk-a) 63%);
+  background-size: 400% 100%;
+  animation: ant-skeleton-loading 1.4s ease infinite;
+}
+@keyframes ant-skeleton-loading {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+/* paragraphLiHeight = controlHeight / 2. */
+.sk-line { height: 16px; }
+.sk-thin { height: 12px; }
+.sk-icon { width: var(--ant-control-height-sm); height: var(--ant-control-height-sm); border-radius: var(--ant-radius-sm); }
+.skeleton-card { gap: 8px; cursor: default; pointer-events: none; }
+.sk-kpi, .sk-panel { border: 1px solid var(--ant-border-secondary); border-radius: var(--ant-radius-lg); background: var(--ant-bg-container); }
+.sk-resume { border-radius: var(--ant-radius-lg); }
+
+/* ---------- antd Spin, fullscreen (components/spin/style/index.ts) ---------- */
+.page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: var(--ant-bg-layout);
+  transition: opacity var(--ant-motion-slow), visibility var(--ant-motion-slow);
+}
+.page-loader.hide { opacity: 0; visibility: hidden; }
+/* dotSizeLG = controlHeight 32px, coloured colorPrimary like the Spin section. */
+.page-loader .mark {
+  display: grid;
+  place-items: center;
+  width: var(--ant-control-height);
+  height: var(--ant-control-height);
+  border-radius: var(--ant-radius);
+  background: var(--ant-primary);
+  color: var(--ant-text-light-solid);
+}
+
+/* =================== lesson =================== */
+
+/* ---------- Tones: an antd preset palette picked per section or field ----------
+   A .tone-* class only sets --tone-*; components read them with a neutral
+   fallback, so anything without a tone stays monochrome. */
+.tone-blue { --tone-1: var(--ant-blue-1); --tone-2: var(--ant-blue-2); --tone-fg: var(--ant-blue-fg); --tone-bar: var(--ant-blue-bar); }
+.tone-purple { --tone-1: var(--ant-purple-1); --tone-2: var(--ant-purple-2); --tone-fg: var(--ant-purple-fg); --tone-bar: var(--ant-purple-bar); }
+.tone-cyan { --tone-1: var(--ant-cyan-1); --tone-2: var(--ant-cyan-2); --tone-fg: var(--ant-cyan-fg); --tone-bar: var(--ant-cyan-bar); }
+.tone-green { --tone-1: var(--ant-green-1); --tone-2: var(--ant-green-2); --tone-fg: var(--ant-green-fg); --tone-bar: var(--ant-green-bar); }
+.tone-magenta { --tone-1: var(--ant-magenta-1); --tone-2: var(--ant-magenta-2); --tone-fg: var(--ant-magenta-fg); --tone-bar: var(--ant-magenta-bar); }
+.tone-red { --tone-1: var(--ant-red-1); --tone-2: var(--ant-red-2); --tone-fg: var(--ant-red-fg); --tone-bar: var(--ant-red-bar); }
+.tone-volcano { --tone-1: var(--ant-volcano-1); --tone-2: var(--ant-volcano-2); --tone-fg: var(--ant-volcano-fg); --tone-bar: var(--ant-volcano-bar); }
+.tone-orange { --tone-1: var(--ant-orange-1); --tone-2: var(--ant-orange-2); --tone-fg: var(--ant-orange-fg); --tone-bar: var(--ant-orange-bar); }
+.tone-gold { --tone-1: var(--ant-gold-1); --tone-2: var(--ant-gold-2); --tone-fg: var(--ant-gold-fg); --tone-bar: var(--ant-gold-bar); }
+.tone-lime { --tone-1: var(--ant-lime-1); --tone-2: var(--ant-lime-2); --tone-fg: var(--ant-lime-fg); --tone-bar: var(--ant-lime-bar); }
+.tone-geekblue { --tone-1: var(--ant-geekblue-1); --tone-2: var(--ant-geekblue-2); --tone-fg: var(--ant-geekblue-fg); --tone-bar: var(--ant-geekblue-bar); }
+
+/* ---------- Dashboard in colour: each figure, field and section keeps one tone ---------- */
+/* Statistic title with a tinted icon tile, the same tile as the lesson contents. */
+.kpi-l { display: flex; align-items: center; gap: 8px; }
+.kpi-icon, .dbar-icon, .row-icon {
+  display: inline-grid; place-items: center; flex: none;
+  border-radius: var(--ant-radius-sm);
+  background: var(--tone-1, var(--ant-fill-tertiary)); color: var(--tone-fg, var(--ant-text));
+}
+.kpi-icon { width: 28px; height: 28px; border-radius: var(--ant-radius); }
+.dbar-icon, .row-icon { width: 22px; height: 22px; }
+.dbar-icon .dom-icon, .row-icon .dom-icon { width: 14px; height: 14px; }
+.dbar-icon { vertical-align: middle; margin-inline-end: 8px; }
+.rowlink .row-icon + .t { flex: 1; }
+.rowlink:has(.row-icon) { gap: 12px; }
+
+/* The open field's icon, progress and pending topic numbers take its colour.
+   The next lesson keeps the ink primary: it is the call to action. */
+.unit-icon { background: var(--tone-1, var(--ant-fill-secondary)); color: var(--tone-fg, var(--ant-text)); }
+.unit .progress > span { background: var(--tone-bar, var(--ant-primary)); }
+.unit .tcard.todo .tcard-n { background: var(--tone-1, var(--ant-fill-secondary)); color: var(--tone-fg, var(--ant-text-secondary)); }
+
+/* Per-field accuracy in the field's colour; under the bar stays error red. */
+.dbar-fill { background: var(--tone-bar, var(--ant-primary)); }
+.dbar.under .dbar-fill { background: var(--ant-error); }
+
+/* Progress to the next level, in the colour of the lessons-done figure. */
+.panel.tone-geekblue .progress > span { background: var(--tone-bar); }
+/* Words due, in the vocabulary blue. */
+.panel.tone-blue .review-n { color: var(--tone-fg); }
+
+/* Activity heatmap on antd's green scale instead of ink. */
+.heat-cell[data-level="1"] { background: color-mix(in srgb, var(--ant-green-bar) 30%, var(--ant-bg-container)); border-color: transparent; }
+.heat-cell[data-level="2"] { background: color-mix(in srgb, var(--ant-green-bar) 55%, var(--ant-bg-container)); border-color: transparent; }
+.heat-cell[data-level="3"] { background: color-mix(in srgb, var(--ant-green-bar) 78%, var(--ant-bg-container)); border-color: transparent; }
+.heat-cell[data-level="4"] { background: var(--ant-green-bar); border-color: transparent; }
+
+/* ==================== Lesson ==================== */
+
+/* ---------- antd Progress, line + steps (components/progress/style/index.ts) ---------- */
+/* The label sits on its own row: inline, its length changed with every section
+   and the bar's width jumped with it. */
+.flow-top {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 24px;
+}
+/* One segment per section (antd Progress steps), each as wide as the screens it
+   holds, so the bar shows the lesson's shape instead of a row of 34 dashes. */
+.flow-segs {
+  flex: auto; min-width: 0;
+  display: flex; gap: 4px; align-items: center;
+}
+.flow-seg {
+  position: relative; overflow: hidden;
+  flex: 1 1 0; min-width: 8px; height: 6px;
+  border-radius: 100px;
+  /* remainingColor, tinted with the section's own colour so the bar previews
+     the lesson's sections before any of them is filled. Mixed from the bar
+     shade rather than the -1 tint, which all but vanishes on the dark card. */
+  background: color-mix(in srgb, var(--tone-bar, var(--ant-text)) 18%, transparent);
+}
+.flow-seg > i {
+  position: absolute; inset-block: 0; inset-inline-start: 0;
+  border-radius: inherit;
+  background: var(--tone-bar, var(--ant-primary));
+  transition: width var(--ant-motion-slow) var(--ant-ease-out);
+}
+/* The section the learner is in reads a step stronger even before it fills. */
+/* progress-indicator */
+.flow-top .counter {
+  order: -1; flex: 1 1 100%; margin: 0;
+  color: var(--ant-text-secondary); font-size: var(--ant-font-size-sm); font-weight: 400;
+  line-height: 1; letter-spacing: normal; white-space: nowrap; word-break: normal;
+  font-variant-numeric: tabular-nums;
+}
+.flow-dot {
+  display: inline-block; width: 8px; height: 8px; margin-inline-end: 6px;
+  border-radius: 50%; background: var(--tone-bar, var(--ant-text-tertiary));
+  vertical-align: 1px;
+}
+/* The section name above each exercise takes the section's colour. */
+#lesson .ex-eyebrow { color: var(--tone-fg, var(--ant-text-secondary)); font-weight: 600; }
+.lesson-progress { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; }
+.lesson-progress .progress { flex: auto; }
+
+/* ---------- antd Layout footer (components/layout/style: footerBg = colorBgLayout) ---------- */
+/* Moving to a new screen focuses its label so Tab starts there; it is not a
+   control, so it takes no ring. */
+#exercise [tabindex="-1"]:focus { outline: none; }
+/* Keyboard focus scrolls clear of the sticky footer instead of landing under it. */
+html:has(.flow-foot) { scroll-padding-block-end: 96px; }
+.flow-foot {
+  position: sticky; bottom: 0; z-index: 1;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px;
+  margin: 24px 0 0;
+  padding: 16px 0 calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--ant-bg-container);
+  border-top: 1px solid var(--ant-split);
+  color: var(--ant-text); font-size: var(--ant-font-size);
+}
+.panel-nav {
+  display: flex; justify-content: flex-end;
+  margin: 24px 0 0; padding: 16px 0 0;
+  border-top: 1px solid var(--ant-split);
+}
+
+/* ---------- antd Typography (components/typography/style/index.ts, mixins.ts) ---------- */
+/* antFadeIn keyframes: defined in the general block */
+#exercise { min-height: 280px; animation: antFadeIn var(--ant-motion-mid) linear both; }
+#exercise h1 {
+  margin: 0 0 0.5em; /* titleMarginBottom */
+  /* size and line-height come from the shared h1 rule (antd h3) */
+  font-weight: 600; letter-spacing: normal; color: var(--ant-text); word-break: break-word;
+}
+#exercise > h3 {
+  margin: 1.2em 0 0.5em; /* titleMarginTop, titleMarginBottom */
+  font-size: var(--ant-h5); line-height: var(--ant-line-height-lg); /* Title level 5: 24 / 16 */
+  font-weight: 600; letter-spacing: normal; color: var(--ant-text);
+}
+/* Typography ul: circle bullets, li marginInline 20px 0, paddingInline 4px 0 */
+.objectives, .tips {
+  display: block; max-width: 70ch;
+  margin: 0 0 1em; padding: 0; list-style: circle;
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+}
+.objectives li, .tips li {
+  position: static; margin: 0; margin-inline-start: 20px; padding: 0; padding-inline-start: 4px;
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+}
+.objectives li::before { content: none; }
+.passage {
+  max-width: 70ch; margin: 0;
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  white-space: pre-line; word-break: break-word;
+}
+.passage-tr {
+  max-width: 70ch; margin: 16px 0 0; padding: 16px 0 0;
+  border-top: 1px dashed var(--ant-split); /* Divider dashed */
+  color: var(--ant-text-secondary); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  white-space: pre-line; word-break: break-word;
+}
+.usage {
+  margin: 8px 0 0; padding: 8px 0 0;
+  border-top: 1px dashed var(--ant-split);
+  color: var(--ant-text-secondary); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+}
+.q .expl, .gap .expl {
+  max-width: 70ch; margin: 12px 0 0;
+  color: var(--ant-text-secondary); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+}
+.q .expl + .expl { margin-top: 8px; }
+.q.revealed .expl { animation: antFadeIn var(--ant-motion-mid) linear both; }
+.q .expl b, .gap .expl b { font-weight: 600; color: var(--ant-text); }
+.heard { margin: 0; color: var(--ant-text-secondary); font-size: var(--ant-font-size); line-height: var(--ant-line-height); }
+.speak-result { margin: 12px 0 0; color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height); }
+
+/* ---------- antd Card (components/card/style/index.ts) ---------- */
+.reading-box, .grammar-box, .q, .gap, .speak-item, .dialogue-ctx, .vocab {
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border-secondary); border-radius: var(--ant-radius-lg);
+  box-shadow: none;
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+}
+/* default size: bodyPadding = paddingLG */
+.reading-box, .grammar-box { margin: 0; padding: 24px; }
+/* small size: bodyPaddingSM = 12 */
+.q, .gap, .speak-item { margin: 0 0 16px; padding: 12px; }
+.dialogue-ctx { margin: 0 0 16px; padding: 12px; color: var(--ant-text-secondary); }
+.speak-item { transition: border-color var(--ant-motion-mid) var(--ant-ease-in-out); }
+.speak-item.done { border-color: var(--ant-success-border); }
+.vocab { padding: 12px; transition: border-color var(--ant-motion-mid) var(--ant-ease-in-out); }
+.vocab:hover { border-color: var(--ant-border-secondary); }
+.vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+
+/* card head: minHeight = fontSizeLG * lineHeightLG + padding * 2 = 16 * 1.5 + 32 = 56.
+   Block padding only takes effect when the title has to wrap. */
+.reading-box > .panel-head, .grammar-box > h3 {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  min-height: 56px; margin: -24px -24px 24px; padding: 8px 24px;
+  border-bottom: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg) var(--ant-radius-lg) 0 0;
+  background: transparent;
+  color: var(--ant-text); font-size: var(--ant-font-size-lg); font-weight: 600;
+  line-height: var(--ant-line-height); letter-spacing: normal;
+}
+.reading-box > .panel-head h3 {
+  flex: 1 1 auto; min-width: 0; margin: 0;
+  color: inherit; font-size: inherit; font-weight: inherit; line-height: inherit; letter-spacing: normal;
+}
+/* card extra */
+.reading-box > .panel-head > div {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-inline-start: auto;
+  color: var(--ant-text); font-size: var(--ant-font-size); font-weight: 400;
+}
+/* small card head: headerHeightSM = fontSize * lineHeight + paddingXS * 2 = 22 + 16 = 38 */
+.q .qt, .gap-s {
+  display: flex; align-items: center;
+  min-height: 38px; margin: -12px -12px 12px; padding: 8px 12px;
+  border-bottom: 1px solid var(--ant-border-secondary);
+  color: var(--ant-text); font-size: var(--ant-font-size); font-weight: 600;
+  line-height: var(--ant-line-height); word-break: break-word;
+}
+.grammar-box > p {
+  max-width: 70ch; margin: 0 0 1em;
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+}
+.grammar-box ul {
+  margin: 8px 0 0; padding: 0; list-style: circle;
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+}
+.grammar-box li { margin: 0; margin-inline-start: 20px; padding: 0; padding-inline-start: 4px; }
+
+.lesson-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; margin: 0 0 8px; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+.panel-head .subtitle { margin: 0; }
+/* Space, size small */
+.listen-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 16px; }
+.speak-actions { display: flex; flex: none; gap: 8px; }
+
+/* ---------- antd List, bordered (components/list/style/index.ts) ---------- */
+/* The list sits straight on the layout, so it takes the container fill a Card would give it. */
+.phrase-list, #dlg {
+  display: block; gap: 0; margin: 0; padding: 0;
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border); border-radius: var(--ant-radius-lg);
+}
+/* bordered item: paddingContentVertical 12 / paddingLG 24, split in colorSplit */
+.phrase, .line {
+  margin: 0; padding: 12px 24px;
+  border: 0; border-block-end: 1px solid var(--ant-split); border-radius: 0;
+  background: none; color: var(--ant-text);
+}
+.phrase:last-child, .line:last-child { border-block-end: 0; }
+/* item-action marginInlineStart: marginXXL, marginLG below screenMD, marginSM below screenSM */
+.phrase-main, .vocab-top { display: flex; align-items: center; justify-content: space-between; column-gap: 48px; }
+.speak-top { display: flex; align-items: flex-start; justify-content: space-between; column-gap: 48px; }
+.phrase-main > .term, .speak-top > :first-child { flex: 1 1 auto; min-width: 0; }
+@media (max-width: 768px) { .phrase-main, .speak-top, .vocab-top { column-gap: 24px; } }
+@media (max-width: 576px) { .phrase-main, .speak-top, .vocab-top { column-gap: 12px; } }
+.phrase .term, .speak-item .term, .vocab .term {
+  margin: 0; color: var(--ant-text);
+  font-size: var(--ant-font-size-lg); line-height: var(--ant-line-height-lg); /* vertical item-meta-title */
+  font-weight: 600; letter-spacing: normal; word-break: break-word;
+}
+.phrase .tr, .speak-item .tr, .vocab .tr {
+  margin: 4px 0 0; /* item-meta-title marginBottom: marginXXS */
+  color: var(--ant-text-secondary); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+}
+.vocab .tr { margin: 4px 0 8px; }
+.vocab .tr em { font-style: normal; color: inherit; opacity: 1; }
+.vocab .ex { margin: 0; color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height); font-style: italic; }
+.vocab .ex-tr { margin: 0; color: var(--ant-text-secondary); font-size: var(--ant-font-size); line-height: var(--ant-line-height); }
+
+/* dialogue: item-meta with avatar (avatarMarginRight = padding) */
+.line { display: flex; align-items: flex-start; gap: 16px; }
+.line .bubble { flex: 1 1 0; min-width: 0; }
+.line .sp {
+  margin: 0 0 4px; color: var(--ant-text-secondary);
+  font-size: var(--ant-font-size-sm); line-height: var(--ant-line-height-sm); font-weight: 400;
+}
+.line .tx { margin: 0; color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height); }
+.line .tl { margin: 4px 0 0; color: var(--ant-text-secondary); font-size: var(--ant-font-size); line-height: var(--ant-line-height); }
+
+/* ---------- antd Avatar (components/avatar/style/index.ts) ---------- */
+/* containerSize = controlHeight. antd's placeholder fill + light-solid text loses contrast
+   in dark mode with these tokens, so the two speakers are a filled and an outlined avatar. */
+.line .who {
+  display: inline-flex; flex: none; align-items: center; justify-content: center; overflow: hidden;
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid transparent;
+  background: var(--ant-fill); color: var(--ant-text);
+  font-size: var(--ant-font-size); font-weight: 400; line-height: 1;
+  white-space: nowrap; text-align: center; vertical-align: middle;
+}
+.line.alt .who { background: var(--ant-bg-container); border-color: var(--ant-border); color: var(--ant-text); }
+
+/* ---------- antd Button, icon-only (components/button/style/index.ts, token.ts, variant.ts) ---------- */
+/* size large: controlHeightLG square, borderRadiusLG, contentFontSizeLG; icon inherits font-size */
+.speak-btn, .mic-btn {
+  position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center;
+  width: 40px; height: 40px; margin: 0; padding: 0;
+  border: 1px solid transparent; border-radius: var(--ant-radius-lg);
+  font-family: inherit; font-size: var(--ant-font-size-lg); font-weight: 400; line-height: 1;
+  white-space: nowrap; text-align: center; vertical-align: middle;
+  background-image: none; outline: none; opacity: 1; transform: none; animation: none;
+  cursor: pointer; user-select: none; touch-action: manipulation;
+  transition: color var(--ant-motion-mid) var(--ant-ease-in-out),
+              background-color var(--ant-motion-mid) var(--ant-ease-in-out),
+              border-color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.speak-btn svg, .mic-btn svg { flex: none; width: 1em; height: 1em; }
+/* default (outlined) */
+.speak-btn {
+  color: var(--ant-text); background-color: var(--ant-bg-container); border-color: var(--ant-border); /* defaultShadow: controlTmpOutline */
+}
+.speak-btn:not(:disabled):hover {
+  color: var(--ant-primary-hover); background-color: var(--ant-bg-container); border-color: var(--ant-primary-hover);
+}
+/* playing is held in the active state */
+.speak-btn:not(:disabled):active, .speak-btn.playing {
+  color: var(--ant-primary-active); background-color: var(--ant-bg-container); border-color: var(--ant-primary-active);
+}
+/* inline speaker: variant text, size small (controlHeightSM, borderRadiusSM) */
+.speak-btn.sm {
+  width: 24px; height: 24px; margin: 0; margin-inline-start: 4px;
+  border-radius: var(--ant-radius-sm); font-size: var(--ant-font-size);
+  color: var(--ant-text); background-color: transparent; border-color: transparent; box-shadow: none;
+}
+/* 22px padding box + 9px each side = the 40px touch target */
+.speak-btn.sm::before { content: ""; position: absolute; inset: -9px; }
+.speak-btn.sm:not(:disabled):hover { color: var(--ant-text); background-color: var(--ant-fill-tertiary); border-color: transparent; }
+.speak-btn.sm:not(:disabled):active, .speak-btn.sm.playing { color: var(--ant-text); background-color: var(--ant-fill); border-color: transparent; }
+/* primary (solid) */
+.mic-btn {
+  color: var(--ant-text-light-solid); background-color: var(--ant-primary); border-color: transparent; /* primaryShadow */
+}
+.mic-btn:not(:disabled):hover { background-color: var(--ant-primary-hover); }
+.mic-btn:not(:disabled):active { background-color: var(--ant-primary-active); }
+/* recording: primary + danger */
+.mic-btn.rec, .mic-btn.rec:not(:disabled):hover, .mic-btn.rec:not(:disabled):active {
+  color: var(--ant-text-light-solid); background-color: var(--ant-error); border-color: transparent; /* dangerShadow: colorErrorOutline */
+  animation: none;
+}
+@keyframes micRecFade { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.mic-btn.rec svg { animation: micRecFade calc(var(--ant-motion-slow) * 4) var(--ant-ease-in-out) infinite; }
+.speak-btn:disabled, .mic-btn:disabled {
+  cursor: not-allowed; opacity: 1;
+  color: var(--ant-text-quaternary); background-color: var(--ant-fill-tertiary); border-color: var(--ant-border);
+  box-shadow: none;
+}
+/* genFocusOutline: lineWidthFocus 3px, offset 1px, in colorPrimaryBorder
+   (the ink seed has no usable tint, so text-tertiary as in the global ring) */
+.speak-btn:not(:disabled):focus-visible, .mic-btn:not(:disabled):focus-visible, .flip-card:focus-visible {
+  outline: 3px solid var(--ant-text-tertiary); outline-offset: 1px;
+}
+
+/* ---------- antd Tag (components/tag/style/index.ts, statusCmp.ts) ---------- */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.tag, .speak-score {
+  display: inline-block; height: auto; margin: 0;
+  padding: 0 7px; /* tagPaddingHorizontal 8 - lineWidth */
+  font-size: var(--ant-font-size-sm); line-height: 20px; /* lineHeightSM * fontSizeSM */
+  font-weight: 400; letter-spacing: normal; white-space: nowrap; text-align: start;
+  color: var(--ant-text); background: var(--ant-fill-tertiary);
+  border: 1px solid var(--ant-border); border-radius: var(--ant-radius-sm);
+  transition: color var(--ant-motion-mid), background-color var(--ant-motion-mid), border-color var(--ant-motion-mid);
+}
+.speak-score { margin: 0 0 4px; }
+.speak-score b { font-weight: 600; }
+.speak-score.good { color: var(--ant-success); background: var(--ant-success-bg); border-color: var(--ant-success-border); }
+.speak-score.mid { color: var(--ant-text); background: var(--ant-fill-tertiary); border-color: var(--ant-border); }
+.speak-score.bad { color: var(--ant-error); background: var(--ant-error-bg); border-color: var(--ant-error-border); }
+
+/* ---------- antd Input status (components/input/style/variants.ts) ---------- */
+/* padding/height stay with the shared .input-wrap; success mirrors antd's error status */
+.gap .gap-in { max-width: 320px; }
+.gap.correct .gap-in { background: var(--ant-bg-container); border-color: var(--ant-success); box-shadow: none; }
+.gap.wrong .gap-in { background: var(--ant-bg-container); border-color: var(--ant-error); box-shadow: none; }
+.gap.correct .gap-in:focus-within { box-shadow: 0 0 0 2px var(--ant-success-bg); }
+.gap.wrong .gap-in:focus-within { box-shadow: 0 0 0 2px var(--ant-error-bg); } /* errorActiveShadow */
+.gap.correct .gap-hint { color: var(--ant-success); }
+.gap.wrong .gap-hint { color: var(--ant-error); } /* affixColor */
+
+/* ---------- antd Tooltip (components/tooltip/style/index.ts) ---------- */
+/* input suffix icon: a 16px ring drawn inside a 40px touch target that takes no extra room */
+.gap-hint {
+  position: relative; flex: none; display: grid; place-items: center;
+  width: 40px; height: 40px; margin: -12px; padding: 0;
+  border: 12px solid transparent; border-radius: 50%;
+  background: none; background-clip: padding-box;
+  box-shadow: inset 0 0 0 1px currentColor;
+  color: var(--ant-text-tertiary); /* colorIcon */
+  font-family: inherit; font-size: var(--ant-font-size-sm); font-weight: 400; line-height: 1;
+  cursor: help; appearance: none; -webkit-appearance: none;
+  transition: color var(--ant-motion-slow);
+}
+.gap-hint:hover { color: var(--ant-text); } /* colorIconHover */
+.gap-hint:focus-visible { outline: 3px solid var(--ant-text-tertiary); outline-offset: -11px; }
+/* zoom-big-fast: scale .8 -> 1 with opacity over motionDurationFast, easeOutCirc */
+.gap-hint[data-tip]::before, .gap-hint[data-tip]::after {
+  position: absolute; left: 50%;
+  z-index: 1070; /* zIndexPopupBase + 70 */
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transform: translateX(-50%) scale(0.8); transform-origin: 50% 100%;
+  transition: opacity var(--ant-motion-fast) var(--ant-ease-out-circ),
+              transform var(--ant-motion-fast) var(--ant-ease-out-circ),
+              visibility 0s linear var(--ant-motion-fast);
+}
+/* arrow: sizePopupArrow 16 wide, 8 tall */
+.gap-hint[data-tip]::before {
+  content: ""; bottom: calc(100% + 4px); width: 0; height: 0;
+  border: 8px solid transparent; border-bottom: 0; border-top-color: var(--ant-primary);
+}
+/* colorBgSpotlight has no token here; the ink / light-solid pair is the nearest and flips with the theme */
+.gap-hint[data-tip]::after {
+  content: attr(data-tip); bottom: calc(100% + 12px);
+  width: max-content; min-width: 28px; max-width: 250px; /* centerAlignMinWidth = radius * 2 + arrow */
+  min-height: 32px; /* controlHeight */
+  padding: 6px 8px; /* paddingSM / 2, paddingXS */
+  border-radius: var(--ant-radius);
+  background: var(--ant-primary); color: var(--ant-text-light-solid);
+  box-shadow: var(--ant-shadow);
+  font-size: var(--ant-font-size); font-weight: 400; line-height: var(--ant-line-height);
+  text-align: start; white-space: normal; overflow-wrap: break-word;
+}
+.gap-hint[data-tip]:hover::before, .gap-hint[data-tip]:hover::after,
+.gap-hint[data-tip]:focus::before, .gap-hint[data-tip]:focus::after {
+  opacity: 1; visibility: visible; transform: translateX(-50%) scale(1); transition-delay: 0s;
+}
+
+/* ---------- antd Card, hoverable - flip faces; 3D mechanics stay in styles.css (components/card/style/index.ts) ---------- */
+.flip-card { border-radius: var(--ant-radius-lg); }
+.flip-inner { transition: transform var(--ant-motion-slow) var(--ant-ease-in-out); }
+.flip-face {
+  padding: 24px; gap: 8px;
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border-secondary); border-radius: var(--ant-radius-lg);
+  box-shadow: none;
+  color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  transition: border-color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.flip-front { position: relative; }
+.flip-back { background: var(--ant-bg-container); }
+/* hoverable: the border darkens. No shadow, no lift. */
+.flip-card:hover .flip-face { border-color: var(--ant-primary); }
+.flip-term {
+  margin: 0; color: var(--ant-text);
+  font-size: var(--ant-h2); line-height: 1.2667; /* Title level 2: 38 / 30 */
+  font-weight: 600; letter-spacing: normal; word-break: break-word;
+}
+.flip-term.sm { font-size: var(--ant-h4); line-height: 1.4; } /* Title level 4: 28 / 20 */
+.flip-face .tr, .flip-face .ex-tr { margin: 0; color: var(--ant-text-secondary); font-size: var(--ant-font-size); line-height: var(--ant-line-height); }
+.flip-face .ex { margin: 0; color: var(--ant-text); font-size: var(--ant-font-size); line-height: var(--ant-line-height); }
+
+/* ---------- antd Steps, vertical + dot + small (components/steps/style/*.ts) ---------- */
+.loader-steps {
+  display: flex; flex-direction: column; align-items: stretch; gap: 0;
+  margin: 0; padding: 0; list-style: none;
+  font-size: var(--ant-font-size); line-height: var(--ant-line-height); text-align: start;
+}
+.loader-steps li {
+  position: relative; display: flex; align-items: flex-start;
+  column-gap: 16px; /* vertical wrapper columnGap: margin */
+  min-height: 48px; padding: 0 0 12px; /* controlHeight * 1.5, paddingSM */
+  list-style: none; color: var(--ant-text-secondary);
+  transition: color var(--ant-motion-slow);
+}
+.loader-steps li:last-child { padding-bottom: 0; }
+.loader-steps li.on, .loader-steps li.done { color: var(--ant-text); }
+/* dot: dotSize = controlHeight / 4, centred on the 22px title line; dotCurrentSize = controlHeightLG / 4 */
+.loader-steps li::before {
+  content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%;
+  margin: 7px 0 0; margin-inline-start: 1px;
+  background: var(--ant-text-quaternary); animation: none;
+  transition: background-color var(--ant-motion-slow);
+}
+.loader-steps li.on::before { width: 10px; height: 10px; margin: 6px 0 0; background: var(--ant-primary); animation: none; }
+.loader-steps li.done::before { background: var(--ant-primary); }
+/* rail: lineWidthBold, starts marginXXS * 1.5 below the dot and stops the same distance above the next */
+.loader-steps li::after {
+  content: ""; position: absolute;
+  top: 21px; bottom: -1px; /* 8 + 7 + 6; 6 - 7 */
+  inset-inline-start: 5px; margin-inline-start: -1px;
+  border-inline-start: 2px solid var(--ant-text-quaternary);
+  transition: border-color var(--ant-motion-slow);
+}
+.loader-steps li.on::after { top: 22px; bottom: 0; } /* 10 + 6 + 6; 6 - 6 */
+.loader-steps li.done::after { border-inline-start-color: var(--ant-primary); }
+.loader-steps li:last-child::after { content: none; }
+
+/* ---------- antd Spin, LoadingOutlined indicator (components/spin/style/index.ts) ---------- */
+.loader {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; /* section gap: paddingSM */
+  padding: 48px 16px;
+  color: var(--ant-primary); font-size: var(--ant-font-size); line-height: var(--ant-line-height);
+  text-align: center;
+}
+@keyframes loadingCircle { 100% { transform: rotate(360deg); } }
+/* dotSizeLG = controlHeight; rail in colorFillSecondary like the circle indicator */
+.spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid var(--ant-fill-secondary); border-top-color: currentColor;
+  animation: loadingCircle calc(var(--ant-motion-fast) * 10) linear infinite; /* 1s, antd icon spin */
+}
+
+/* ---------- antd Statistic (components/statistic/style) ---------- */
+.score { padding: 24px; text-align: center; animation: antFadeIn var(--ant-motion-mid) linear both; }
+.score .big {
+  color: var(--ant-text); font-size: var(--ant-h3); line-height: 1.3333; /* contentFontSize: fontSizeHeading3 */
+  font-weight: 400; letter-spacing: normal; font-variant-numeric: tabular-nums;
+}
+
+/* =================== app shell: header + footer (hand-written) =================== */
+/* antd Layout.Header / Layout.Footer. Both bars run edge to edge, but their
+   contents sit on the same 1040px column as the page card, so the logo lines up
+   with the card's left edge and the avatar with its right edge. */
+
+.topbar {
+  position: fixed; inset-block-start: 0; inset-inline: 0; z-index: 5;
+  display: block; height: 56px; padding: 0 16px;
+  background: var(--ant-bg-container);
+  border-bottom: 1px solid transparent;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  transition: border-color var(--ant-motion-mid) var(--ant-ease-in-out),
+              box-shadow var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+/* The edge only appears once content slides under the bar. */
+.topbar.is-scrolled { border-bottom-color: var(--ant-split); box-shadow: var(--ant-shadow-tertiary); }
+
+.topbar-inner {
+  max-width: 1040px; height: 100%; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.topbar .brand { min-height: 0; gap: 8px; font-size: var(--ant-font-size-lg); font-weight: 600; }
+.brand-mark { width: 26px; height: 26px; border-radius: var(--ant-radius); }
+.brand-mark .logo-mark { width: 62%; height: 62%; }
+
+.topbar-right { display: flex; align-items: center; gap: 2px; }
+
+/* antd text button, icon-only: 36px square inside a 56px bar. */
+.topbar .btn-ghost.icon-btn {
+  width: 36px; height: 36px; padding: 0;
+  display: inline-grid; place-items: center;
+  border: 0; border-radius: var(--ant-radius); background: transparent;
+  color: var(--ant-text-secondary); box-shadow: none;
+  transition: color var(--ant-motion-mid) var(--ant-ease-in-out),
+              background-color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.topbar .btn-ghost.icon-btn:hover { color: var(--ant-text); background: var(--ant-fill-tertiary); }
+.topbar .btn-ghost.icon-btn:active { background: var(--ant-fill-secondary); transform: none; }
+/* The page you are on, marked the way antd marks a selected Segmented item. */
+.topbar .btn-ghost.icon-btn.is-active { color: var(--ant-text); background: var(--ant-fill-secondary); }
+
+
+/* The account sits in one pill: avatar, name, chevron. antd Dropdown. */
+.user-menu { position: relative; margin-inline-start: 8px; }
+.user-trigger {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 8px 0 4px; max-width: 220px;
+  background: transparent; border: 1px solid transparent; border-radius: 999px;
+  color: var(--ant-text); font: inherit; font-size: var(--ant-font-size); cursor: pointer;
+  transition: background-color var(--ant-motion-mid) var(--ant-ease-in-out),
+              border-color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.user-trigger:hover { background: var(--ant-fill-tertiary); }
+.user-trigger[aria-expanded="true"] { background: var(--ant-fill-secondary); border-color: var(--ant-border); }
+.user-trigger .chev {
+  flex: none; color: var(--ant-text-tertiary);
+  transition: transform var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+
+.topbar .avatar {
+  width: 28px; height: 28px; margin: 0; border: 0; border-radius: 50%;
+  background: var(--ant-fill-secondary); color: var(--ant-text);
+  display: grid; place-items: center; overflow: hidden; flex: none;
+  font-size: var(--ant-font-size-sm); font-weight: 600; line-height: 1;
+}
+.topbar .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.topbar-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--ant-text); font-size: var(--ant-font-size);
+}
+
+/* antd Dropdown panel: elevated surface, paddingXXS, shadowSecondary. */
+.user-drop {
+  position: absolute; inset-block-start: calc(100% + 4px); inset-inline-end: 0; z-index: 10;
+  min-width: 180px; max-width: 240px; padding: 4px;
+  background: var(--ant-bg-elevated); border-radius: var(--ant-radius-lg);
+  /* antd draws the panel on shadow alone. This app is set without them, so the
+     hairline does the whole job of lifting it off the page. */
+  border: 1px solid var(--ant-border-secondary);
+}
+.user-drop[hidden] { display: none; }
+.user-drop-head {
+  display: block; padding: 5px 12px 7px;
+  color: var(--ant-text-tertiary); font-size: var(--ant-font-size-sm);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border-bottom: 1px solid var(--ant-split); margin-bottom: 4px;
+}
+.user-drop-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 5px 12px; border: 0; border-radius: var(--ant-radius-sm);
+  background: transparent; color: var(--ant-text);
+  font: inherit; font-size: var(--ant-font-size); text-align: start; cursor: pointer;
+  transition: background-color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.user-drop-item:hover { background: var(--ant-fill-tertiary); }
+.user-drop-item svg { flex: none; }
+[dir="rtl"] .user-drop-item svg { transform: scaleX(-1); }
+
+/* ---------- Footer ---------- */
+/* One small line. It closes the page without asking for attention. */
+.site-footer {
+  width: 100%; margin-top: auto; padding: 0 16px;
+  background: transparent; border-top: 0;
+  color: var(--ant-text-tertiary);
+}
+.footer-inner {
+  max-width: 1040px; margin: 0 auto;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap;
+  border-top: 1px solid var(--ant-split);
+  font-size: var(--ant-font-size-sm); line-height: var(--ant-line-height-sm);
+  color: var(--ant-text-tertiary);
+}
+.footer-brand {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--ant-font-size-sm); font-weight: 600; color: var(--ant-text-secondary);
+}
+.footer-brand .logo-mark { width: 14px; height: 14px; }
+.footer-nav { display: flex; gap: 16px; flex-wrap: wrap; margin-inline-start: auto; }
+.footer-nav a {
+  color: var(--ant-text-tertiary); text-decoration: none;
+  transition: color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.footer-nav a:hover { color: var(--ant-text); }
+.footer-year { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 575px) {
+  .topbar { padding: 0 12px; }
+  .topbar-name { display: none; }
+  .site-footer { padding-inline: 12px; }
+  .footer-inner { gap: 16px; }
+  .footer-year { flex-basis: 100%; }
+}
+
+/* Space between the page and the footer. It has to be a margin: padding
+   would only make the card itself taller. */
+body.has-footer > main { margin-bottom: 48px; }
+
+/* The language you are studying: one control at the right of the header,
+   with the rest behind it. A card each stopped fitting past a handful. */
+.dash-head .lang-switch { flex: 0 0 auto; position: relative; z-index: 20; }
+.lang-trigger {
+  display: inline-flex; align-items: center; gap: 12px;
+  min-width: 190px; max-width: 280px; padding: 8px 12px;
+  background: var(--ant-bg-container); color: var(--ant-text);
+  border: 1px solid var(--ant-border); border-radius: var(--ant-radius-lg);
+  font: inherit; text-align: start; cursor: pointer;
+  transition: border-color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.lang-trigger:hover { border-color: var(--ant-primary); }
+.lang-trigger[aria-expanded="true"] { border-color: var(--ant-primary); }
+/* The chevron only. A descendant selector would also catch the field icon
+   nested in .dom-trigger-icon, greying it out and shoving it off centre. */
+.lang-trigger > svg { flex: none; margin-inline-start: auto; color: var(--ant-text-tertiary); transition: transform var(--ant-motion-mid) var(--ant-ease-in-out); }
+.lang-trigger-text { display: grid; gap: 2px; min-width: 0; }
+.lang-trigger-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lang-trigger-meta { color: var(--ant-text-tertiary); font-size: var(--ant-font-size-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* antd Dropdown motion: slide-up (style/motion/slide.ts). The panel unrolls from
+   its top edge rather than fading, so the eye is told where it came from. Shared
+   by every dropdown in the app; ui.js keeps the panel mounted until the closing
+   animation ends. */
+@keyframes antSlideUpIn {
+  0% { transform: scaleY(0.8); opacity: 0; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+@keyframes antSlideUpOut {
+  0% { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(0.8); opacity: 0; }
+}
+.lang-drop, .user-drop {
+  transform-origin: 0 0;
+  animation: antSlideUpIn var(--ant-motion-mid) var(--ant-ease-out-quint) both;
+}
+/* While closing the panel is still on screen, so it must not swallow clicks. */
+.lang-drop.is-closing, .user-drop.is-closing {
+  animation-name: antSlideUpOut;
+  animation-timing-function: var(--ant-ease-in-quint);
+  pointer-events: none;
+}
+
+/* antd Dropdown panel, scrolling once the list is long. */
+.lang-drop {
+  position: absolute; inset-block-start: calc(100% + 4px); inset-inline-end: 0; z-index: 10;
+  min-width: 100%; max-height: 320px; overflow-y: auto; padding: 4px;
+  background: var(--ant-bg-elevated); border: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg);
+}
+.lang-drop[hidden] { display: none; }
+.lang-item {
+  display: grid; gap: 1px; width: 100%; padding: 6px 12px;
+  border: 0; border-radius: var(--ant-radius-sm); background: transparent;
+  color: var(--ant-text); font: inherit; text-align: start; cursor: pointer;
+  transition: background-color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.lang-item:hover { background: var(--ant-fill-tertiary); }
+.lang-item.is-on { background: var(--ant-fill-secondary); }
+.lang-item-name { font-weight: 600; }
+.lang-item-meta { color: var(--ant-text-tertiary); font-size: var(--ant-font-size-sm); }
+
+/* ---------- Lesson intro: what this lesson is, before it starts ---------- */
+.li-head { display: grid; gap: 8px; margin: 0 0 24px; }
+.li-crumb {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  color: var(--ant-text-secondary); font-size: var(--ant-font-size);
+}
+.li-crumb-icon {
+  display: inline-grid; place-items: center; flex: none;
+  width: 28px; height: 28px; border-radius: var(--ant-radius);
+  background: var(--tone-1, var(--ant-fill-tertiary)); color: var(--tone-fg, var(--ant-text));
+}
+.li-crumb-sep { color: var(--ant-text-quaternary); }
+#exercise .li-head h1 { margin: 4px 0; }
+.li-intro {
+  max-width: 64ch; margin: 0;
+  color: var(--ant-text-secondary); line-height: 1.7;
+  text-wrap: pretty;
+}
+
+/* antd Descriptions, one row of four: label above value, hairlines between. */
+.li-facts {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 0 16px; padding: 0;
+  border: 1px solid var(--ant-border-secondary); border-radius: var(--ant-radius-lg);
+}
+.li-facts > div { display: grid; gap: 2px; min-width: 0; padding: 12px 20px; }
+.li-facts > div + div { border-inline-start: 1px solid var(--ant-border-secondary); }
+.li-facts dt { color: var(--ant-text-secondary); font-size: var(--ant-font-size-sm); line-height: var(--ant-line-height-sm); }
+.li-facts dd {
+  margin: 0; color: var(--ant-text);
+  font-size: var(--ant-font-size-lg); font-weight: 600; line-height: var(--ant-line-height-lg);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: break-word;
+}
+
+/* Goals, then contents, each across the full width. Side by side the three
+   goals left half a column empty beside nine sections. */
+.li-grid { display: grid; gap: 16px; }
+.li-panel {
+  min-width: 0; padding: 16px 20px 20px;
+  border: 1px solid var(--ant-border-secondary); border-radius: var(--ant-radius-lg);
+}
+.li-panel h2 { margin: 0 0 16px; font-size: var(--ant-font-size-lg); line-height: var(--ant-line-height-lg); }
+
+.li-goals { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.li-goals li { display: flex; align-items: flex-start; gap: 12px; margin: 0; color: var(--ant-text); line-height: var(--ant-line-height); }
+.li-n {
+  display: inline-grid; place-items: center; flex: none;
+  width: var(--ant-control-height-sm); height: var(--ant-control-height-sm); border-radius: var(--ant-radius-sm);
+  background: var(--tone-1, var(--ant-fill-secondary)); color: var(--tone-fg, var(--ant-text));
+  font-size: var(--ant-font-size-sm); font-weight: 600; font-variant-numeric: tabular-nums;
+}
+
+/* The contents as a three-column table: icon tile, section, what it holds. */
+.li-plan {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 24px; margin: 0; padding: 0; list-style: none;
+}
+.li-plan li { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0; }
+.li-plan-icon {
+  display: inline-grid; place-items: center; flex: none;
+  width: 32px; height: 32px; border-radius: var(--ant-radius);
+  background: var(--tone-1, var(--ant-fill-tertiary)); color: var(--tone-fg, var(--ant-text));
+}
+.li-plan-text { display: grid; min-width: 0; }
+.li-plan-name { color: var(--ant-text); font-weight: 600; overflow-wrap: break-word; hyphens: auto; }
+.li-plan-count {
+  color: var(--ant-text-secondary); font-size: var(--ant-font-size-sm); line-height: var(--ant-line-height-sm);
+  font-variant-numeric: tabular-nums; overflow-wrap: break-word;
+}
+
+/* The footer's start side: a secondary action, pushed away from the primary one. */
+.flow-extra { display: inline-flex; flex: 0 1 auto; min-width: 0; margin-inline-end: auto; }
+/* A text button's label lines up with the column edge; its hover fill may use the card padding. */
+.flow-extra .btn-ghost {
+  margin-inline-start: -16px;
+  height: auto; min-height: var(--ant-control-height-lg); padding-block: 7px;
+  white-space: normal; text-align: start;
+}
+#flow-btn { flex: none; }
+.flow-extra:empty { display: none; }
+
+@media (max-width: 720px) {
+  .li-plan { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .li-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .li-facts > div:nth-child(3) { border-inline-start: 0; }
+  .li-facts > div:nth-child(n+3) { border-block-start: 1px solid var(--ant-border-secondary); }
+}
+@media (max-width: 480px) {
+  /* Phone footer: the primary action across the width, the secondary one
+     under it, instead of both squeezed onto one row. */
+  #flow-btn { flex: 1 1 100%; }
+  .flow-extra { order: 1; flex: 1 1 100%; margin-inline-end: 0; }
+  .flow-extra .btn-ghost { width: 100%; margin-inline-start: 0; justify-content: center; text-align: center; }
+}
+@media (max-width: 400px) {
+  .li-panel { padding-inline: 16px; }
+  .li-facts > div { padding-inline: 14px; }
+  .li-plan { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- Standing pages: FAQ, terms, privacy ---------- */
+.doc-body { display: grid; gap: 24px; max-width: 70ch; }
+.doc-item { display: grid; gap: 4px; }
+.doc-item h2 { margin: 0; font-size: var(--ant-h5); line-height: 1.5; }
+.doc-item p { margin: 0; color: var(--ant-text-secondary); }
+
+/* ---------- Field icons ---------- */
+/* The badge is an antd Avatar in square form; the glyph inside is a line icon
+   rather than the initials that stood in for the database's emoji. */
+.dom-icon { width: 20px; height: 20px; display: block; }
+.unit-icon .dom-icon { width: 20px; height: 20px; }
+.option .icon .dom-icon { width: 18px; height: 18px; }
+.option .icon { display: inline-flex; align-items: center; justify-content: center; }
+
+/* ---------- Field picker on the learning path ---------- */
+.dom-switch { position: relative; z-index: 20; margin-bottom: 16px; }
+.dom-trigger { width: 100%; max-width: 340px; }
+.dom-trigger-icon,
+.dom-item-icon {
+  display: grid; place-items: center; flex: none;
+  width: 32px; height: 32px; border-radius: var(--ant-radius);
+  background: var(--tone-1, var(--ant-fill-quaternary)); color: var(--tone-fg, var(--ant-text));
+}
+.dom-item-icon { width: 28px; height: 28px; }
+.dom-drop { inset-inline: 0 auto; min-width: 280px; max-width: 340px; }
+.dom-item { display: flex; align-items: center; gap: 12px; }
+.dom-item > span:last-child { display: grid; gap: 1px; min-width: 0; }
+/* With the picker above it, the unit needs no header of its own. */
+.unit-bar { padding: 12px 12px 0; }
+
+/* =================== review session (hand-written) =================== */
+
+.rev-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.rev-head .progress { flex: 1; }
+.rev-count {
+  flex: 0 0 auto;
+  color: var(--ant-text-tertiary);
+  font-size: var(--ant-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The card is the whole point of the page, so it gets the height: a fixed
+   minimum keeps the grade buttons in one place instead of jumping up and down
+   as words of different lengths come round. */
+.rev-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 220px;
+  padding: 32px 24px;
+  text-align: center;
+  background: var(--ant-fill-quaternary);
+  border: 1px solid var(--ant-border-secondary);
+  border-radius: var(--ant-radius-lg);
+}
+.rev-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+}
+.rev-topic {
+  color: var(--ant-text-tertiary);
+  font-size: var(--ant-font-size-sm);
+}
+.rev-term {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: var(--ant-h2);
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.rev-prompt {
+  margin: 0;
+  color: var(--ant-text-tertiary);
+  font-size: var(--ant-font-size-sm);
+}
+.rev-answer {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding-top: 12px;
+  border-top: 1px solid var(--ant-border-secondary);
+  animation: antFadeIn var(--ant-motion-mid) linear both;
+}
+.rev-translation {
+  font-size: var(--ant-h5);
+  color: var(--ant-text);
+}
+.rev-example {
+  margin: 0;
+  color: var(--ant-text-secondary);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  text-wrap: pretty;
+}
+
+.rev-grades {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+.rev-grade {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  padding: 10px 8px;
+  font-family: inherit;
+  color: var(--ant-text);
+  background: var(--ant-bg-container);
+  border: 1px solid var(--ant-border);
+  border-radius: var(--ant-radius);
+  cursor: pointer;
+  transition: border-color var(--ant-motion-mid) var(--ant-ease-in-out),
+              color var(--ant-motion-mid) var(--ant-ease-in-out);
+}
+.rev-grade:hover { border-color: var(--ant-primary-hover); }
+.rev-grade-name { font-size: var(--ant-font-size); }
+.rev-grade-when {
+  color: var(--ant-text-tertiary);
+  font-size: var(--ant-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+/* "Again" is the one answer that undoes progress, so it reads differently
+   without relying on colour alone -- the label says it too. */
+.rev-grade-again { border-style: dashed; }
+
+.rev-grade kbd,
+#reveal kbd {
+  min-width: 18px;
+  padding: 0 4px;
+  color: var(--ant-text-tertiary);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  background: var(--ant-fill-tertiary);
+  border-radius: 3px;
+}
+#reveal kbd { margin-inline-start: 8px; }
+
+.rev-end {
+  padding: 32px 0 8px;
+  text-align: center;
+}
+.rev-end h1 { margin-bottom: 8px; }
+
+@media (max-width: 560px) {
+  .rev-grades { grid-template-columns: repeat(2, 1fr); }
+  .rev-term { font-size: var(--ant-h3); }
+}
+
+/* Vocabulary due today, in the dashboard rail. */
+.review-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.review-n {
+  font-size: var(--ant-h2);
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.review-of {
+  color: var(--ant-text-tertiary);
+  font-size: var(--ant-font-size-sm);
+}
+.review-figure + .panel-note { margin-bottom: 12px; }
+
+/* Deleting an account is the one irreversible thing in the app, so it is set
+   apart from the rows above it and never sits one careless click from done. */
+.set-row-danger { border-top: 1px solid var(--ant-border-secondary); }
+.btn-secondary.danger { color: var(--ant-error); border-color: var(--ant-error-border); }
+.btn-secondary.danger:hover:not(:disabled) { color: var(--ant-error-text-hover); border-color: var(--ant-error-text-hover); }
+/* The fill flips with the theme, and so does its text, exactly like the
+   primary button: white on dark red in light mode, near-black on light red in
+   dark mode. Every state was checked to clear AA. */
+.btn-primary.danger { color: var(--ant-text-light-solid); background-color: var(--ant-error-solid); box-shadow: none; }
+.btn-primary.danger:hover:not(:disabled) { color: var(--ant-text-light-solid); background-color: var(--ant-error-solid-hover); }
+.btn-primary.danger:active:not(:disabled) { color: var(--ant-text-light-solid); background-color: var(--ant-error-solid-active); }
+
+.set-danger {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--ant-error-bg);
+  border: 1px solid var(--ant-error-border);
+  border-radius: var(--ant-radius);
+  animation: antFadeIn var(--ant-motion-mid) linear both;
+}
+.set-danger-body {
+  margin: 0;
+  color: var(--ant-text);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  text-wrap: pretty;
+}
+.set-danger-label {
+  color: var(--ant-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+.set-danger .actions { margin-top: 4px; }

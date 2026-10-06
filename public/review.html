@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-i18n="rev.pageTitle">Recapitulare · LD Platform</title>
+<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/antd.css">
+<script>
+  // Apply the saved theme and text direction before the first paint.
+  try {
+    var p = JSON.parse(localStorage.getItem('prefs') || '{}');
+    if (p.theme && p.theme !== 'system') document.documentElement.dataset.theme = p.theme;
+    if (p.bgWords === false) document.documentElement.classList.add('no-bg-words');
+    var l = localStorage.getItem('uiLang');
+    if (l) {
+      document.documentElement.lang = l;
+      if (l === 'ar' || l === 'he') document.documentElement.dir = 'rtl';
+    }
+  } catch (e) {}
+</script>
+</head>
+<body class="page-top">
+  <div class="page-loader" id="pageLoader"><div class="mark" id="loaderMark"></div></div>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="card wide">
+    <a class="back-link" href="/dashboard">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <span data-i18n="rev.back">Înapoi</span>
+    </a>
+    <div id="stage"></div>
+  </main>
+
+<script type="module">
+  import { getSupabase, requireSession, getProfile, renderTopbar } from '/js/supabase.js';
+  import { hidePageLoader, toast } from '/js/ui.js';
+  import { initI18n, t, tp, applyI18n, onLangChange } from '/js/i18n.js';
+  import { LOGO_SVG, renderFooter } from '/js/brand.js';
+  import { applyPrefs, speechRate } from '/js/prefs.js';
+  import { speak, stopSpeaking, toLocale, ttsSupported } from '/js/speech.js';
+  import { loadCards, gradeCard } from '/js/vocab.js';
+  import { session, schedule, GRADES, AGAIN, HARD, GOOD, EASY } from '/js/srs.js';
+
+  applyPrefs();
+  document.getElementById('loaderMark').innerHTML = LOGO_SVG;
+  await initI18n();
+
+  const sb = await getSupabase();
+  const { user } = await requireSession(sb);
+  renderTopbar({ profile: await getProfile(sb, user.id), user });
+  renderFooter();
+
+  const stage = document.getElementById('stage');
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  const ICON_SPEAKER = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>';
+
+  // Which language is being reviewed: the one the dashboard is showing.
+  const { data: userLangs } = await sb.from('user_languages')
+    .select('language_code, level').eq('user_id', user.id);
+  if (!userLangs?.length) location.replace('/onboarding');
+
+  let language = localStorage.getItem('activeLanguage');
+  if (!userLangs.some(l => l.language_code === language)) language = userLangs[0].language_code;
+  const locale = toLocale(language);
+
+  const { cards: all, ready } = await loadCards(sb, { userId: user.id, language });
+
+  let queue = [];
+  let done = 0;
+  let leftOver = 0;
+  let current = null;
+  let revealed = false;
+
+  function startSitting() {
+    const s = session(all);
+    queue = s.cards.slice();
+    leftOver = s.remaining;
+    done = 0;
+    next();
+  }
+
+  function next() {
+    stopSpeaking();
+    current = queue.shift() || null;
+    revealed = false;
+    render();
+  }
+
+  /** What each button would schedule, so the learner can see the cost up front. */
+  function previewDays(quality) {
+    return schedule(current, quality).interval_days;
+  }
+
+  const GRADE_KEYS = { [AGAIN]: 'again', [HARD]: 'hard', [GOOD]: 'good', [EASY]: 'easy' };
+
+  function render() {
+    if (!ready) {
+      stage.innerHTML = `<div class="panel"><p class="panel-note">${esc(t('rev.needsSetup'))}</p>
+        <a class="btn-secondary auto" href="/dashboard">${esc(t('rev.back'))}</a></div>`;
+      return;
+    }
+    if (!current) return renderEnd();
+
+    const total = done + queue.length + 1;
+    const pct = Math.round(done / total * 100);
+    stage.innerHTML = `
+      <div class="rev-head">
+        <div class="progress mini wide"><span style="width:${pct}%"></span></div>
+        <span class="rev-count">${esc(t('rev.progress', { done: done + 1, total }))}</span>
+      </div>
+
+      <div class="rev-card">
+        <div class="rev-meta">
+          <span class="tag">${esc(t('rev.kind.' + (current.kind || 'word')))}</span>
+          ${current.topic ? `<span class="rev-topic">${esc(current.topic)}</span>` : ''}
+        </div>
+
+        <div class="rev-term" lang="${esc(language)}" dir="auto">
+          <span>${esc(current.term)}</span>
+          ${ttsSupported ? `<button class="speak-btn" id="say" title="${esc(t('rev.listen'))}" aria-label="${esc(t('rev.listen'))}">${ICON_SPEAKER}</button>` : ''}
+        </div>
+
+        ${revealed ? `
+          <div class="rev-answer">
+            <div class="rev-translation" dir="auto">${esc(current.translation)}</div>
+            ${current.example ? `<p class="rev-example" lang="${esc(language)}" dir="auto">${esc(current.example)}</p>` : ''}
+          </div>` : `
+          <p class="rev-prompt">${esc(t('rev.recall'))}</p>`}
+      </div>
+
+      ${revealed ? `
+        <div class="rev-grades" role="group" aria-label="${esc(t('rev.gradeLabel'))}">
+          ${GRADES.map((q, i) => `
+            <button type="button" class="rev-grade rev-grade-${GRADE_KEYS[q]}" data-q="${q}">
+              <span class="rev-grade-name">${esc(t('rev.grade.' + GRADE_KEYS[q]))}</span>
+              <span class="rev-grade-when">${esc(tp('rev.days', previewDays(q), { n: previewDays(q) }))}</span>
+              <kbd>${i + 1}</kbd>
+            </button>`).join('')}
+        </div>` : `
+        <button type="button" class="btn-primary" id="reveal">${esc(t('rev.reveal'))} <kbd>␣</kbd></button>`}
+    `;
+    wire();
+  }
+
+  function renderEnd() {
+    const more = leftOver > 0;
+    stage.innerHTML = `
+      <div class="rev-end">
+        <h1>${esc(done ? t('rev.done.title') : t('rev.empty.title'))}</h1>
+        <p class="subtitle">${esc(done
+          ? tp('rev.done.body', done, { n: done })
+          : all.length ? t('rev.empty.body') : t('rev.empty.none'))}</p>
+        <div class="actions" style="justify-content:center">
+          ${more ? `<button type="button" class="btn-primary auto" id="more">${esc(tp('rev.done.more', leftOver, { n: leftOver }))}</button>` : ''}
+          <a class="${more ? 'btn-secondary' : 'btn-primary'} auto" href="/dashboard">${esc(t('rev.toDashboard'))}</a>
+        </div>
+      </div>`;
+    document.getElementById('more')?.addEventListener('click', startSitting);
+  }
+
+  function wire() {
+    document.getElementById('say')?.addEventListener('click', () => speak(current.term, locale, { rate: speechRate() }));
+    document.getElementById('reveal')?.addEventListener('click', reveal);
+    stage.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => grade(+b.dataset.q)));
+  }
+
+  function reveal() {
+    revealed = true;
+    render();
+  }
+
+  async function grade(quality) {
+    const card = current;
+    // Move on straight away: the learner should never wait on a round trip
+    // between two cards. A write that fails is reported and the card simply
+    // comes back next time, which is the safe direction for a scheduler.
+    done++;
+    next();
+    try {
+      const patch = await gradeCard(sb, { userId: user.id, language, card, quality });
+      Object.assign(card, patch);
+    } catch (err) {
+      console.warn('Grade not saved:', err.message);
+      toast(t('rev.saveFailed'), 'error');
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input, textarea')) return;
+    if (!current) return;
+    if (!revealed && (e.code === 'Space' || e.key === 'Enter')) { e.preventDefault(); reveal(); return; }
+    if (revealed && ['1', '2', '3', '4'].includes(e.key)) {
+      e.preventDefault();
+      grade(GRADES[+e.key - 1]);
+    }
+  });
+
+  startSitting();
+  applyI18n();
+  onLangChange(() => { applyI18n(); render(); });
+  hidePageLoader();
+</script>
+</body>
+</html>

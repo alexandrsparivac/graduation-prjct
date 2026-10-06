@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-i18n="faq.pageTitle">Întrebări frecvente · LD Platform</title>
+<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/antd.css">
+<script>
+  // Apply the saved theme and text direction before the first paint.
+  try {
+    var p = JSON.parse(localStorage.getItem('prefs') || '{}');
+    if (p.theme && p.theme !== 'system') document.documentElement.dataset.theme = p.theme;
+    if (p.bgWords === false) document.documentElement.classList.add('no-bg-words');
+    var l = localStorage.getItem('uiLang');
+    if (l) {
+      document.documentElement.lang = l;
+      if (l === 'ar' || l === 'he') document.documentElement.dir = 'rtl';
+    }
+  } catch (e) {}
+</script>
+</head>
+<body class="page-top">
+  <div class="page-loader" id="pageLoader"><div class="mark" id="loaderMark"></div></div>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="card xwide">
+    <a class="back-link" id="backLink" href="/dashboard">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <span data-i18n="set.back">Înapoi</span>
+    </a>
+
+    <h1 id="doc-title"></h1>
+    <p class="subtitle" id="doc-sub"></p>
+    <div class="doc-body" id="doc-body"></div>
+  </main>
+
+<script type="module">
+  import { mountDocPage } from '/js/docpage.js';
+  await mountDocPage({ titleKey: 'faq.title', subKey: 'faq.sub', prefix: 'faq', count: 5, shape: 'qa' });
+</script>
+</body>
+</html>

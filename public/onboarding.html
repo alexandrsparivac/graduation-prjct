@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-i18n="ob.pageTitle">Configurare · LD Platform</title>
+<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/antd.css">
+<script>
+  // Apply the saved theme and text direction before the first paint.
+  try {
+    var p = JSON.parse(localStorage.getItem('prefs') || '{}');
+    if (p.theme && p.theme !== 'system') document.documentElement.dataset.theme = p.theme;
+    if (p.bgWords === false) document.documentElement.classList.add('no-bg-words');
+    var l = localStorage.getItem('uiLang');
+    if (l) {
+      document.documentElement.lang = l;
+      if (l === 'ar' || l === 'he') document.documentElement.dir = 'rtl';
+    }
+  } catch (e) {}
+</script>
+</head>
+<body class="page-top">
+  <div class="page-loader" id="pageLoader"><div class="mark" id="loaderMark"></div></div>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="card xwide" id="card">
+    <div class="steps" id="steps">
+      <div class="step-dot done"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div>
+    </div>
+
+    <div class="msg" id="msg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span></span></div>
+
+    <section class="view active" id="step-1">
+      <div class="step-label" data-i18n="ob.step1">Pasul 1 din 4</div>
+      <h1 data-i18n="ob.s1.h1">Ce limbă vrei să înveți?</h1>
+      <p class="subtitle" data-i18n="ob.s1.sub">Una pentru început. Mai poți adăuga oricând.</p>
+      <div class="option-grid" id="lang-grid"></div>
+      <div class="actions">
+        <span class="counter" id="count-1"></span>
+        <button class="btn-primary auto" id="next-1" disabled data-i18n="common.continue">Continuă →</button>
+      </div>
+    </section>
+
+    <section class="view" id="step-2">
+      <div class="step-label" data-i18n="ob.step2">Pasul 2 din 4</div>
+      <h1 data-i18n="ob.s2.h1">Cam pe unde ești acum?</h1>
+      <p class="subtitle" data-i18n="ob.s2.sub">Nu-i nicio problemă dacă nu știi exact — alege ce ți se pare cel mai apropiat. Lecțiile se potrivesc după asta.</p>
+      <div class="option-grid" id="level-grid"></div>
+      <div class="actions">
+        <button class="btn-secondary auto" data-back="1" data-i18n="common.back">← Înapoi</button>
+        <button class="btn-primary auto" id="next-2" disabled data-i18n="common.continue">Continuă →</button>
+      </div>
+    </section>
+
+    <section class="view" id="step-3">
+      <div class="step-label" data-i18n="ob.step3">Pasul 3 din 4</div>
+      <h1 data-i18n="ob.s3.h1">Unde o să folosești limba?</h1>
+      <p class="subtitle" data-i18n="ob.s3.sub">Alege domeniile tale. Cuvintele și situațiile din lecții vin de acolo, nu din manual.</p>
+      <div class="option-grid" id="domain-grid"></div>
+      <div class="actions">
+        <button class="btn-secondary auto" data-back="2" data-i18n="common.back">← Înapoi</button>
+        <span class="counter" id="count-3"></span>
+        <button class="btn-primary auto" id="next-3" disabled data-i18n="common.continue">Continuă →</button>
+      </div>
+    </section>
+
+    <section class="view" id="step-4">
+      <div class="step-label" data-i18n="ob.step4">Pasul 4 din 4</div>
+      <h1 data-i18n="ob.s4.h1">Ce te interesează concret?</h1>
+      <p class="subtitle" data-i18n="ob.s4.sub">Bifează subiectele care îți sunt utile. Fiecare devine o lecție.</p>
+      <div id="topics-wrap"></div>
+      <div class="actions">
+        <button class="btn-secondary auto" data-back="3" data-i18n="common.back">← Înapoi</button>
+        <span class="counter" id="count-4"></span>
+        <button class="btn-primary auto" id="finish" data-i18n="ob.finish">Gata, hai să învățăm</button>
+      </div>
+    </section>
+  </main>
+
+<script type="module">
+  import { getSupabase, requireSession, getProfile, renderTopbar, showMsg, hideMsg } from '/js/supabase.js';
+  import { setLoading, skeletonCards, stagger, hidePageLoader, toast } from '/js/ui.js';
+  import { domainIcon } from '/js/domain-icons.js';
+  import { initI18n, t, tp, onLangChange } from '/js/i18n.js';
+  import { LOGO_SVG, renderFooter } from '/js/brand.js';
+  import { applyPrefs } from '/js/prefs.js';
+
+  applyPrefs();
+  document.getElementById('loaderMark').innerHTML = LOGO_SVG;
+  await initI18n();
+
+  const byId = id => document.getElementById(id);
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  byId('lang-grid').innerHTML = skeletonCards(12);
+  byId('domain-grid').innerHTML = skeletonCards(12);
+
+  const session = await requireSession();
+  if (!session) throw new Error('redirect');
+  const sb = await getSupabase();
+  const user = session.user;
+  const profile = await getProfile(sb, user.id);
+  renderTopbar({ profile, user });
+  hidePageLoader();
+
+  const msg = byId('msg');
+  const isEdit = new URLSearchParams(location.search).get('edit') === '1';
+
+  const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+  const state = { language: null, level: null, domains: new Set(), topics: {} };
+
+  const [{ data: languages }, { data: domains }] = await Promise.all([
+    sb.from('languages').select('*').order('name'),
+    sb.from('domains').select('*').order('name')
+  ]);
+  if (!languages?.length || !domains?.length) {
+    showMsg(msg, t('ob.emptyDb'));
+  }
+
+  if (isEdit) {
+    const { data: ul } = await sb.from('user_languages').select('*').eq('user_id', user.id).limit(1);
+    if (ul?.[0]) {
+      state.language = ul[0].language_code;
+      state.level = ul[0].level;
+      const { data: ud } = await sb.from('user_domains').select('*').eq('user_id', user.id).eq('language_code', state.language);
+      (ud || []).forEach(d => { state.domains.add(d.domain_slug); state.topics[d.domain_slug] = new Set(d.topics); });
+    }
+  }
+
+  const show = n => {
+    document.querySelectorAll('.view').forEach((v, i) => v.classList.toggle('active', i === n - 1));
+    document.querySelectorAll('.step-dot').forEach((d, i) => d.classList.toggle('done', i < n));
+    hideMsg(msg);
+    window.scrollTo({ top: 0 });
+  };
+  document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => show(+b.dataset.back)));
+
+  const updateCounts = () => {
+    byId('count-1').textContent = '';
+    byId('count-3').textContent = state.domains.size ? tp('ob.countDomains', state.domains.size) : '';
+    const n = [...state.domains].reduce((s, d) => s + (state.topics[d]?.size || 0), 0);
+    byId('count-4').textContent = n ? tp('ob.countLessons', n) : '';
+  };
+
+  // Step 1
+  byId('lang-grid').innerHTML = (languages || []).map(l => `
+    <button class="option ${state.language === l.code ? 'active' : ''}" data-code="${l.code}">
+      <span class="name">${l.name}</span>
+      <span class="desc">${l.native_name}</span>
+    </button>`).join('');
+  stagger(byId('lang-grid'));
+  byId('next-1').disabled = !state.language;
+  byId('lang-grid').addEventListener('click', e => {
+    const opt = e.target.closest('.option'); if (!opt) return;
+    state.language = opt.dataset.code;
+    byId('lang-grid').querySelectorAll('.option').forEach(o => o.classList.toggle('active', o === opt));
+    byId('next-1').disabled = false;
+    updateCounts();
+  });
+  byId('next-1').addEventListener('click', () => show(2));
+
+  // Step 2
+  function renderLevels() {
+    byId('level-grid').innerHTML = LEVELS.map(c => `
+      <button class="option ${state.level === c ? 'active' : ''}" data-level="${c}">
+        <span class="icon">${c}</span>
+        <span class="name">${t(`lvl.${c}.name`)}</span>
+        <span class="desc">${t(`lvl.${c}.desc`)}</span>
+      </button>`).join('');
+  }
+  renderLevels();
+  stagger(byId('level-grid'));
+  byId('next-2').disabled = !state.level;
+  byId('level-grid').addEventListener('click', e => {
+    const opt = e.target.closest('.option'); if (!opt) return;
+    state.level = opt.dataset.level;
+    byId('level-grid').querySelectorAll('.option').forEach(o => o.classList.toggle('active', o === opt));
+    byId('next-2').disabled = false;
+  });
+  byId('next-2').addEventListener('click', () => show(3));
+
+  // Step 3
+  byId('domain-grid').innerHTML = (domains || []).map(d => `
+    <button class="option ${state.domains.has(d.slug) ? 'active' : ''}" data-slug="${d.slug}">
+      <span class="icon">${domainIcon(d.slug)}</span>
+      <span class="name">${esc(d.name)}</span>
+      <span class="desc">${esc(d.description || '')}</span>
+    </button>`).join('');
+  stagger(byId('domain-grid'));
+  byId('next-3').disabled = state.domains.size === 0;
+  byId('domain-grid').addEventListener('click', e => {
+    const opt = e.target.closest('.option'); if (!opt) return;
+    const slug = opt.dataset.slug;
+    if (state.domains.has(slug)) { state.domains.delete(slug); opt.classList.remove('active'); }
+    else { state.domains.add(slug); opt.classList.add('active'); }
+    byId('next-3').disabled = state.domains.size === 0;
+    updateCounts();
+  });
+  byId('next-3').addEventListener('click', () => { renderTopics(); show(4); });
+
+  // Step 4
+  function renderTopics() {
+    const wrap = byId('topics-wrap');
+    wrap.innerHTML = [...state.domains].map(slug => {
+      const d = domains.find(x => x.slug === slug);
+      if (!state.topics[slug]) state.topics[slug] = new Set(d.topics.slice(0, 3));
+      const allOn = state.topics[slug].size === d.topics.length;
+      return `
+        <div class="section">
+          <div class="section-head">
+            <h2>${d.name}</h2>
+            <button class="btn-ghost" data-all="${slug}">${t(allOn ? 'ob.deselectAll' : 'ob.selectAll')}</button>
+          </div>
+          <div class="option-grid topic-options" data-domain="${slug}">
+            ${d.topics.map(topic => `<button type="button" class="option ${state.topics[slug].has(topic) ? 'active' : ''}" data-topic="${esc(topic)}" aria-pressed="${state.topics[slug].has(topic)}"><span class="name">${esc(topic)}</span></button>`).join('')}
+          </div>
+        </div>`;
+    }).join('');
+    stagger(wrap);
+    updateCounts();
+  }
+  byId('topics-wrap').addEventListener('click', e => {
+    const all = e.target.closest('[data-all]');
+    if (all) {
+      const slug = all.dataset.all;
+      const d = domains.find(x => x.slug === slug);
+      const allOn = state.topics[slug].size === d.topics.length;
+      state.topics[slug] = new Set(allOn ? [] : d.topics);
+      byId('topics-wrap').querySelectorAll(`[data-domain="${slug}"] .option`).forEach(c => { c.classList.toggle('active', !allOn); c.setAttribute('aria-pressed', !allOn); });
+      all.textContent = t(allOn ? 'ob.selectAll' : 'ob.deselectAll');
+      updateCounts();
+      return;
+    }
+    const chip = e.target.closest('[data-topic]'); if (!chip) return;
+    const slug = chip.closest('[data-domain]').dataset.domain;
+    const topic = chip.dataset.topic;
+    const on = !state.topics[slug].has(topic);
+    if (on) state.topics[slug].add(topic); else state.topics[slug].delete(topic);
+    chip.classList.toggle('active', on);
+    chip.setAttribute('aria-pressed', on);
+    updateCounts();
+  });
+
+  byId('finish').addEventListener('click', async () => {
+    const chosen = [...state.domains].filter(s => state.topics[s]?.size > 0);
+    if (!chosen.length) return showMsg(msg, t('ob.noTopics'));
+    const btn = byId('finish');
+    setLoading(btn, true, t('common.moment'));
+
+    const { error: e1 } = await sb.from('user_languages').upsert({ user_id: user.id, language_code: state.language, level: state.level });
+    if (e1) { setLoading(btn, false); return showMsg(msg, e1.message); }
+
+    await sb.from('user_domains').delete().eq('user_id', user.id).eq('language_code', state.language);
+    const rows = chosen.map(slug => ({ user_id: user.id, language_code: state.language, domain_slug: slug, topics: [...state.topics[slug]] }));
+    const { error: e2 } = await sb.from('user_domains').insert(rows);
+    if (e2) { setLoading(btn, false); return showMsg(msg, e2.message); }
+
+    await sb.from('profiles').update({ onboarding_done: true }).eq('id', user.id);
+    localStorage.setItem('activeLanguage', state.language);
+    toast(t('common.saved'), 'success');
+    setTimeout(() => window.location.replace('/dashboard'), 400);
+  });
+
+  updateCounts();
+  if (isEdit && state.language) show(1);
+  renderFooter();
+
+  // Level cards, the select-all buttons and the counters are built in JS.
+  onLangChange(() => {
+    renderLevels();
+    if (state.domains.size) renderTopics();
+    updateCounts();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title data-i18n="set.pageTitle">Setări · LD Platform</title>
+<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/antd.css">
+<script>
+  // Apply the saved theme and text direction before the first paint.
+  try {
+    var p = JSON.parse(localStorage.getItem('prefs') || '{}');
+    if (p.theme && p.theme !== 'system') document.documentElement.dataset.theme = p.theme;
+    if (p.bgWords === false) document.documentElement.classList.add('no-bg-words');
+    var l = localStorage.getItem('uiLang');
+    if (l) {
+      document.documentElement.lang = l;
+      if (l === 'ar' || l === 'he') document.documentElement.dir = 'rtl';
+    }
+  } catch (e) {}
+</script>
+</head>
+<body class="page-top">
+  <div class="page-loader" id="pageLoader"><div class="mark" id="loaderMark"></div></div>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="card xwide">
+    <a class="back-link" id="backLink" href="/dashboard">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <span data-i18n="set.back">Înapoi</span>
+    </a>
+
+    <h1 data-i18n="set.title">Setări</h1>
+    <p class="subtitle" data-i18n="set.sub">Se aplică imediat și rămân așa data viitoare.</p>
+
+    <div id="panel"></div>
+  </main>
+
+<script type="module">
+  import { getSupabase, getProfile, renderTopbar } from '/js/supabase.js';
+  import { hidePageLoader } from '/js/ui.js';
+  import { initI18n, applyI18n, onLangChange } from '/js/i18n.js';
+  import { LOGO_SVG, renderFooter, logoLockup } from '/js/brand.js';
+  import { applyPrefs } from '/js/prefs.js';
+  import { renderSettingsPanel } from '/js/settings.js';
+
+  applyPrefs();
+  document.getElementById('loaderMark').innerHTML = LOGO_SVG;
+  await initI18n();
+
+  // Settings work signed out too — theme and language are useful on the login
+  // screen. Only the lesson section needs an account.
+  let session = null;
+  try {
+    const sb = await getSupabase();
+    ({ data: { session } } = await sb.auth.getSession());
+    if (session) {
+      const profile = await getProfile(sb, session.user.id);
+      renderTopbar({ profile, user: session.user });
+    }
+  } catch (err) {
+    console.warn('Settings opened without Supabase:', err.message);
+  }
+
+  if (!session) {
+    // No account yet: a plain brand bar, and back goes to the login screen.
+    document.getElementById('topbar').innerHTML = logoLockup({ href: '/login' });
+    document.getElementById('backLink').href = '/login';
+  }
+
+  renderSettingsPanel(document.getElementById('panel'), {
+    showLessonPrefs: !!session,
+    // Export and deletion need an account to act on; signed out there is none.
+    account: session ? { sb: await getSupabase(), user: session.user } : null,
+  });
+  applyI18n();
+  onLangChange(() => applyI18n());
+  renderFooter();
+  hidePageLoader();
+</script>
+</body>
+</html>
