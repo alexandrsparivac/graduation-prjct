@@ -159,46 +159,43 @@ test('recently completed is newest first and capped', () => {
   assert.equal(recent[1].completed_at, done(2).completed_at);
 });
 
-test('promotion state mirrors the SQL rule, including the pass mark', () => {
-  // Twenty finished lessons at the level, not merely every topic you picked.
-  const allDoneGoodScore = promotionState({ level: 'A1', doneCount: 20, totalTopics: 20, accuracy: 0.8, weakCount: 0 });
-  assert.equal(allDoneGoodScore.ready, true);
-  assert.equal(allDoneGoodScore.next, 'A2');
-  assert.equal(allDoneGoodScore.percent, 100);
+test('promotion state requires ten recent tests above the strict pass mark', () => {
+  const attempts = (count, score = 19, total = 20, sequence = 1, language = 'en', level = 'A1') =>
+    Array.from({ length: count }, (_, i) => ({
+      sequence: sequence + i, language_code: language, level, score, total
+    }));
 
-  // Everything finished but sitting under 70% is NOT a promotion.
-  const allDoneLowScore = promotionState({ level: 'A1', doneCount: 20, totalTopics: 20, accuracy: 0.5, weakCount: 2 });
-  assert.equal(allDoneLowScore.ready, false);
-  assert.equal(allDoneLowScore.accuracyOk, false);
+  const nineTests = promotionState({ level: 'A1', language: 'en', attempts: attempts(9) });
+  assert.equal(nineTests.ready, false);
+  assert.equal(nineTests.testsLeft, 1);
+  assert.equal(nineTests.percent, 90);
 
-  // Three topics used to clear a level. Now it cannot, however good the scores,
-  // and the learner is told the real blocker: too few topics.
-  const tooFewTopics = promotionState({ level: 'A1', doneCount: 3, totalTopics: 3, accuracy: 1, weakCount: 0 });
-  assert.equal(tooFewTopics.ready, false);
-  assert.equal(tooFewTopics.required, 20);
-  assert.equal(tooFewTopics.needMoreTopics, true);
-  assert.equal(tooFewTopics.topicsShort, 17);
-  assert.equal(tooFewTopics.lessonsLeft, 17);
+  // The older failing attempt falls outside the latest-ten window.
+  const ready = promotionState({
+    level: 'A1', language: 'en',
+    attempts: [...attempts(1, 0, 20, 0), ...attempts(10)]
+  });
+  assert.equal(ready.ready, true);
+  assert.equal(ready.next, 'A2');
+  assert.equal(ready.percent, 100);
 
-  // Past the minimum, the bar is the learner's own topic count again.
-  const manyTopics = promotionState({ level: 'B1', doneCount: 20, totalTopics: 30, accuracy: 0.9, weakCount: 0 });
-  assert.equal(manyTopics.required, 30);
-  assert.equal(manyTopics.ready, false);
-  assert.equal(manyTopics.lessonsLeft, 10);
-  assert.equal(manyTopics.needMoreTopics, false);
+  const atThreshold = promotionState({
+    level: 'A1', language: 'en', attempts: attempts(10, 18, 20)
+  });
+  assert.equal(atThreshold.ready, false);
+  assert.equal(atThreshold.accuracyOk, false);
 
-  const partway = promotionState({ level: 'B1', doneCount: 5, totalTopics: 20, accuracy: 0.9, weakCount: 0 });
-  assert.equal(partway.ready, false);
-  assert.equal(partway.lessonsLeft, 15);
-  assert.equal(partway.percent, 25);
+  const wrongLanguage = promotionState({
+    level: 'A1', language: 'en', attempts: attempts(10, 20, 20, 1, 'ro')
+  });
+  assert.equal(wrongLanguage.testCount, 0);
+  assert.equal(wrongLanguage.ready, false);
 
-  // C2 is the ceiling: there is nothing to be promoted to.
-  const top = promotionState({ level: 'C2', doneCount: 20, totalTopics: 20, accuracy: 1, weakCount: 0 });
+  const top = promotionState({ level: 'C2', language: 'en', attempts: attempts(10, 20, 20, 1, 'en', 'C2') });
   assert.equal(top.next, null);
   assert.equal(top.ready, false);
 
-  // A fresh account has no topics at all and must not read as ready.
-  const empty = promotionState({ level: 'A1', doneCount: 0, totalTopics: 0, accuracy: null, weakCount: 0 });
+  const empty = promotionState({ level: 'A1', language: 'en' });
   assert.equal(empty.ready, false);
   assert.equal(empty.percent, 0);
 });

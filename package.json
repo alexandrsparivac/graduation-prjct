@@ -4,15 +4,23 @@
   "description": "Domain-based language learning platform with AI-generated lessons",
   "type": "module",
   "scripts": {
+    "build": "node tools/check-build.js && node tools/check-schema.js",
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "check:schema": "node tools/check-schema.js",
+    "evaluate:lessons": "node tools/evaluate-lessons.js"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "msedge-tts": "2.0.9"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@supabase/supabase-js": "2.57.4"
   }
 }

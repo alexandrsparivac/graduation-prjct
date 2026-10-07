@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildFlow, lessonPlan, estimateMinutes, sectionProgress, currentSection, cleanTitle, SECTIONS } from '../public/js/lesson-plan.js';
+import { buildFlow, lessonPlan, estimateMinutes, sectionProgress, currentSection, cleanTitle, lessonCompletion, SECTIONS } from '../public/js/lesson-plan.js';
 
 // A lesson in the exact shape the generator is held to (isCompleteLesson).
 const words = n => Array.from({ length: n }, (_, i) => `w${i}`).join(' ');
@@ -60,6 +60,18 @@ test('progress is empty on the intro and full on the results screen', () => {
   const f = buildFlow(LESSON);
   assert.ok(sectionProgress(f, 0).every(s => s.done === 0));
   assert.ok(sectionProgress(f, f.length - 1).every(s => s.done === s.steps));
+});
+
+test('completion counts each vocabulary card and checked exercises, without counting intro or results', () => {
+  const f = buildFlow(LESSON);
+  const state = { deck: { i: 0 }, mcq: {}, gap: {} };
+  assert.deepEqual(lessonCompletion(f, 0, state, 15), { completed: 0, total: 46 });
+  assert.deepEqual(lessonCompletion(f, 1, { ...state, deck: { i: 7 } }, 15), { completed: 7, total: 46 });
+  assert.deepEqual(lessonCompletion(f, 2, state, 15), { completed: 15, total: 46 });
+  const gap = f.findIndex(step => step.kind === 'gap');
+  const before = lessonCompletion(f, gap, state, 15);
+  assert.equal(lessonCompletion(f, gap, { ...state, gap: { g0: { checked: true } } }, 15).completed, before.completed + 1);
+  assert.deepEqual(lessonCompletion(f, f.length - 1, state, 15), { completed: 46, total: 46 });
 });
 
 test('segments are sized by screens and fill as the learner moves through one', () => {

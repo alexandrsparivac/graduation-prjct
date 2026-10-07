@@ -11,10 +11,9 @@
 
 export const PASS = 0.7;
 
-// A level has to be worked for. Finishing the handful of topics you happened to
-// pick is not enough, so promotion also needs this many finished lessons; if
-// you have fewer topics than that, the dashboard asks you to add some.
-export const LESSONS_PER_LEVEL = 20;
+// Keep these in sync with migrations/009_test_based_promotion.sql.
+export const PROMOTION_TESTS = 10;
+export const PROMOTION_THRESHOLD = 0.9;
 export const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
 // A completed lesson always carries exactly this much material — the generator
@@ -219,27 +218,24 @@ export function recentlyCompleted(progress, limit = 5) {
  * Mirrors the rule in the try_promote SQL function so the page never promises
  * a promotion the database would refuse.
  */
-export function promotionState({ level, doneCount, totalTopics, accuracy, weakCount }) {
+export function promotionState({ level, language, attempts = [] }) {
   const idx = LEVELS.indexOf(level);
-  const next = LEVELS[idx + 1] || null;
-  const required = Math.max(LESSONS_PER_LEVEL, totalTopics);
-  const lessonsLeft = Math.max(0, required - doneCount);
-  const accuracyOk = accuracy !== null && accuracy >= PASS;
-  // You cannot finish more lessons than you have topics, so too few topics is
-  // its own blocker rather than a target that never comes closer.
-  const needMoreTopics = totalTopics < LESSONS_PER_LEVEL;
-  const ready = !!next && totalTopics > 0 && lessonsLeft === 0 && accuracyOk;
+  const next = idx >= 0 ? LEVELS[idx + 1] || null : null;
+  const recent = attempts.filter(a => a.language_code === language && a.level === level)
+    .sort((a, b) => Number(b.sequence) - Number(a.sequence)).slice(0, PROMOTION_TESTS);
+  const valid = recent.every(a => Number.isInteger(a.score) && Number.isInteger(a.total)
+    && a.total > 0 && a.score >= 0 && a.score <= a.total);
+  const accuracy = recent.length && valid
+    ? recent.reduce((sum, a) => sum + a.score / a.total, 0) / recent.length : null;
+  // Floating-point addition must not turn ten exact 90% scores into >90%.
+  const accuracyOk = accuracy !== null && accuracy > PROMOTION_THRESHOLD + 1e-12;
+  const ready = !!next && recent.length === PROMOTION_TESTS && accuracyOk;
   return {
-    next,
-    ready,
-    required,
-    lessonsLeft,
-    accuracyOk,
-    needMoreTopics,
-    topicsShort: Math.max(0, LESSONS_PER_LEVEL - totalTopics),
-    weakCount,
-    // Progress toward promotion, not merely toward finishing: a learner who has
-    // done everything but sits under the pass mark is not at 100%.
-    percent: required ? Math.round((doneCount / required) * 100) : 0,
+    next, ready, accuracy, accuracyOk,
+    required: PROMOTION_TESTS,
+    testCount: recent.length,
+    testsLeft: PROMOTION_TESTS - recent.length,
+    // The bar counts tests in the window; its average is shown separately.
+    percent: Math.round(recent.length / PROMOTION_TESTS * 100),
   };
 }

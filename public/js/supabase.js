@@ -1,43 +1,19 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { wireDropdown } from './ui.js';
-import { t, applyI18n, onLangChange, loadCatalogTranslations } from './i18n.js';
+import { wireHeaderActions } from './ui.js';
+import { applyI18n, onLangChange, loadCatalogTranslations } from './i18n.js';
 import { restoreProfileLanguage } from './profile-language.js';
 import { logoLockup } from './brand.js';
 import { ICON_GEAR } from './settings.js';
+import { safeAvatarUrl } from './profile-avatar.js';
+import { getSupabase, requireSession, signOut } from './supabase-client.js';
 
-let client;
-
-export async function getSupabase() {
-  if (client) return client;
-  const cfg = await fetch('/api/config').then(r => r.json());
-  if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) {
-    throw new Error(t('err.supabase'));
-  }
-  client = createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
-  return client;
-}
-
-export async function requireSession() {
-  const sb = await getSupabase();
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) {
-    window.location.replace('/login');
-    return null;
-  }
-  return session;
-}
+export { getSupabase, requireSession, signOut };
 
 export async function getProfile(sb, userId) {
-  const { data } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
+  const { data, error } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
+  if (error) throw Object.assign(new Error(error.message), { code: error.code });
   await restoreProfileLanguage(sb, userId, data);
   await loadCatalogTranslations(sb);
   return data;
-}
-
-export async function signOut() {
-  const sb = await getSupabase();
-  await sb.auth.signOut();
-  window.location.replace('/login');
 }
 
 // antd Alert icons, one per type: info circle, check circle, close circle.
@@ -64,16 +40,14 @@ export function initials(name = '') {
 
 // Top-bar icons share the gear's geometry: 16px, outline, 2px stroke.
 const ICON_BOOK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>';
-const ICON_CHEVRON = '<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+const ICON_CHEVRON = '<svg class="header-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 const ICON_LOGOUT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>';
 
 export function renderTopbar({ profile, user }) {
   const bar = document.getElementById('topbar');
   if (!bar) return;
   const name = profile?.full_name || user?.email || '';
-  const avatar = profile?.avatar_url
-    ? `<img src="${profile.avatar_url}" alt="" referrerpolicy="no-referrer">`
-    : initials(name);
+  const avatarUrl = safeAvatarUrl(profile?.avatar_url);
   // The icon for the page you are on is marked, so the bar also says where you are.
   const here = location.pathname.replace(/\/$/, '');
   const current = path => (here === path ? ' is-active" aria-current="page' : '');
@@ -82,21 +56,31 @@ export function renderTopbar({ profile, user }) {
     <div class="topbar-inner">
       ${logoLockup({ href: '/dashboard' })}
       <nav class="topbar-right">
-        <a class="btn-ghost icon-btn${current('/onboarding')}" href="/onboarding?edit=1" data-i18n-attr="aria-label:nav.learning;title:nav.learning">${ICON_BOOK}</a>
-        <a class="btn-ghost icon-btn${current('/settings')}" id="settingsBtn" href="/settings" data-i18n-attr="aria-label:nav.settings;title:nav.settings">${ICON_GEAR}</a>
-        <div class="user-menu">
-          <button type="button" class="user-trigger" id="userBtn" aria-haspopup="menu" aria-expanded="false">
-            <span class="avatar" aria-hidden="true">${avatar}</span>
-            <span class="topbar-name">${safeName}</span>
-            ${ICON_CHEVRON}
-          </button>
-          <div class="user-drop" id="userDrop" role="menu" hidden>
-            <span class="user-drop-head">${safeName}</span>
-            <button type="button" class="user-drop-item" id="logoutBtn" role="menuitem">${ICON_LOGOUT}<span data-i18n="nav.logout"></span></button>
+        <div class="header-actions" id="headerActions" aria-hidden="true" inert>
+          <div class="header-action-items">
+            <a class="btn-ghost icon-btn${current('/onboarding')}" href="/onboarding?edit=1" data-i18n-attr="aria-label:nav.learning;title:nav.learning">${ICON_BOOK}</a>
+            <a class="btn-ghost icon-btn${current('/settings')}" id="settingsBtn" href="/settings" data-i18n-attr="aria-label:nav.settings;title:nav.settings">${ICON_GEAR}</a>
+            <button type="button" class="btn-ghost icon-btn logout-btn" id="logoutBtn" data-i18n-attr="aria-label:nav.logout;title:nav.logout">${ICON_LOGOUT}</button>
           </div>
         </div>
+        <button type="button" class="header-toggle user-trigger" id="userBtn" aria-label="${safeName}" aria-expanded="false" aria-controls="headerActions" data-i18n-attr="title:nav.menu">
+          ${ICON_CHEVRON}
+          <span class="avatar" aria-hidden="true"></span>
+          <span class="topbar-name">${safeName}</span>
+        </button>
       </nav>
     </div>`;
+  const avatar = bar.querySelector('.avatar');
+  if (avatarUrl) {
+    const image = document.createElement('img');
+    image.src = avatarUrl;
+    image.alt = '';
+    image.referrerPolicy = 'no-referrer';
+    image.addEventListener('error', () => { avatar.textContent = initials(name); }, { once: true });
+    avatar.append(image);
+  } else {
+    avatar.textContent = initials(name);
+  }
   applyI18n(bar);
   onLangChange(() => applyI18n(bar));
 
@@ -106,11 +90,10 @@ export function renderTopbar({ profile, user }) {
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
 
-  // Signing out is the one destructive thing in the bar, so it lives inside the
-  // account menu rather than sitting as a bare icon beside the navigation.
+  // The profile toggle reveals the three commands inline in the header.
   const trigger = document.getElementById('userBtn');
-  const drop = document.getElementById('userDrop');
-  wireDropdown(trigger, drop);
+  const actions = document.getElementById('headerActions');
+  wireHeaderActions(trigger, actions);
 
   document.getElementById('logoutBtn').addEventListener('click', signOut);
 }

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title data-i18n="dash.pageTitle">Panou · LD Platform</title>
-<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/img/favicon.svg?v=5" type="image/svg+xml">
 <link rel="stylesheet" href="/css/styles.css">
 <link rel="stylesheet" href="/css/antd.css">
 <script>
@@ -21,58 +21,84 @@
   } catch (e) {}
 </script>
 </head>
-<body class="page-top">
-  <div class="page-loader" id="pageLoader"><div class="mark" id="loaderMark"></div></div>
+<body class="page-top dashboard-page">
+  <div class="page-loader" id="pageLoader" role="status" aria-live="polite" aria-atomic="true">
+    <div class="page-loader-scene">
+      <div class="page-loader-cards" aria-hidden="true">
+        <span class="page-loader-card"></span>
+        <span class="page-loader-card"></span>
+        <span class="page-loader-card"></span>
+      </div>
+      <span class="page-loader-caption" data-i18n="common.moment"></span>
+    </div>
+  </div>
   <header class="topbar" id="topbar"></header>
 
   <main class="card full">
-    <div class="dash-head">
-      <div>
-        <h1 id="greeting">Salut</h1>
-        <p class="subtitle" id="sub"></p>
-      </div>
-      <div class="lang-switch" id="lang-switch"></div>
-    </div>
-
     <div class="msg" id="msg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span></span></div>
 
     <div id="resume"></div>
-    <div class="kpi-strip" id="kpis" style="margin-top:16px"></div>
+    <div class="kpi-strip" id="kpis"></div>
 
-    <div class="dash-grid">
-      <div class="dash-main">
-        <h2 class="panel-title" data-i18n="dash.path.title">Traseul tău</h2>
-        <div id="path" style="display:grid;gap:16px"></div>
-        <div class="actions" style="margin-top:0">
+    <section class="dash-workspace" aria-labelledby="path-title">
+      <div class="dash-section-head">
+        <h2 class="panel-title" id="path-title" data-i18n="dash.path.title">Traseul tău</h2>
+        <div class="dash-path-actions">
+          <button type="button" class="btn-secondary auto" id="manageWidgets" aria-haspopup="dialog" aria-controls="widgetDialog">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M17.5 14v7M14 17.5h7"/></svg>
+            <span data-i18n="dash.widgets.manage">Widgeturi</span>
+          </button>
           <a class="btn-secondary auto" href="/onboarding?edit=1" data-i18n="dash.editDomains">Schimbă domeniile sau subiectele</a>
           <a class="btn-secondary auto" href="/onboarding" data-i18n="dash.addLanguage">Mai învață o limbă</a>
         </div>
       </div>
-      <aside class="dash-rail" id="rail"></aside>
-    </div>
+      <div class="dash-content">
+        <div class="dash-main" id="path"></div>
+        <div class="dash-insights" id="rail"></div>
+      </div>
+    </section>
   </main>
 
+  <dialog class="dash-widget-dialog" id="widgetDialog" aria-labelledby="widget-title" aria-describedby="widget-hint">
+    <div class="dash-widget-dialog-head">
+      <h2 id="widget-title" data-i18n="dash.widgets.manage">Widgeturi</h2>
+      <button type="button" class="btn-ghost icon-btn" id="closeWidgets" data-i18n-attr="aria-label:common.close;title:common.close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </div>
+    <p class="panel-note" id="widget-hint" data-i18n="dash.widgets.hint">Alege ce apare pe panou. Widgeturile ascunse pot fi readăugate oricând.</p>
+    <div class="dash-widget-options" id="widgetOptions"></div>
+    <div class="dash-widget-dialog-foot">
+      <button type="button" class="btn-secondary auto" id="resetWidgets" data-i18n="dash.widgets.reset">Afișează toate</button>
+      <span class="dash-widget-status" id="widgetStatus" role="status" aria-live="polite"></span>
+      <button type="button" class="btn-ghost" id="retryWidgets" data-i18n="dash.widgets.retry" hidden>Reîncearcă</button>
+    </div>
+  </dialog>
+
 <script type="module">
-  import { getSupabase, requireSession, getProfile, renderTopbar, showMsg } from '/js/supabase.js';
-  import { stagger, hidePageLoader, toast, wireDropdown } from '/js/ui.js';
+  import { getSupabase, requireSession } from '/js/supabase-client.js';
+  import { getProfile, renderTopbar, showMsg, hideMsg } from '/js/supabase.js';
+  import { stagger, hidePageLoader, toast, wireHeaderActions } from '/js/ui.js';
   import { domainIcon, domainTone } from '/js/domain-icons.js';
   import { initI18n, t, tp, onLangChange, getLang, applyI18n, languageName, domainName as localizedDomainName, topicName } from '/js/i18n.js';
-  import { LOGO_SVG, renderFooter } from '/js/brand.js';
+  import { renderFooter } from '/js/brand.js';
   import { applyPrefs } from '/js/prefs.js';
   import {
-    PASS, currentStreak, longestStreak, daysSinceLast, activityGrid, meanAccuracy,
+    PASS, PROMOTION_THRESHOLD, currentStreak, longestStreak, daysSinceLast, activityGrid,
     pacePerWeek, materialMet, favouriteSlot, domainRollup, recentlyCompleted, promotionState
   } from '/js/dash-stats.js';
   import { loadCards } from '/js/vocab.js';
+  import { fetchAllRows } from '/js/paginated-query.js';
   import { vocabStats } from '/js/srs.js';
+  import { latestLessonDrafts, draftCompletion } from '/js/lesson-resume.js';
+  import { DASHBOARD_WIDGETS, createDashboardWidgets } from '/js/dashboard-widgets.js';
 
   applyPrefs();
-  document.getElementById('loaderMark').innerHTML = LOGO_SVG;
   await initI18n();
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const PASS_PCT = Math.round(PASS * 100);
+  const PROMOTION_PCT = Math.round(PROMOTION_THRESHOLD * 100);
+  const fmtPct = value => new Intl.NumberFormat(getLang(), { maximumFractionDigits: 2 }).format(value * 100);
   const HEAT_WEEKS = 16;
 
 
@@ -95,81 +121,130 @@
   // Skeletons follow the real shapes, so nothing jumps when the data lands.
   const skLine = (w, h = 12) => `<span class="sk sk-line" style="width:${w};height:${h}px"></span>`;
   function showSkeleton() {
+    $('resume').innerHTML = '';
     $('kpis').innerHTML = Array.from({ length: 4 }, () => `<div class="sk-kpi" aria-hidden="true">${skLine('45%', 26)}${skLine('70%', 10)}</div>`).join('');
     $('path').innerHTML = Array.from({ length: 2 }, () => `<div class="sk-panel" aria-hidden="true">${skLine('40%', 16)}${skLine('100%', 60)}${skLine('100%', 60)}</div>`).join('');
     $('rail').innerHTML = Array.from({ length: 3 }, () => `<div class="sk-panel" aria-hidden="true">${skLine('50%', 14)}${skLine('100%', 90)}</div>`).join('');
   }
   showSkeleton();
+  function failRead(error) {
+    showMsg($('msg'), error?.message || t('dash.widgets.saveFailed'));
+    $('resume').innerHTML = '';
+    $('kpis').innerHTML = '';
+    $('path').innerHTML = '';
+    $('rail').innerHTML = '';
+    hidePageLoader();
+    throw new Error('page-data-unavailable');
+  }
 
   const session = await requireSession();
   if (!session) throw new Error('redirect');
   const sb = await getSupabase();
   const user = session.user;
-  const profile = await getProfile(sb, user.id);
-  renderTopbar({ profile, user });
-  if (!profile?.onboarding_done) location.replace('/onboarding');
-
-  const firstName = (profile?.full_name || '').split(' ')[0];
-  function renderGreeting() {
-    const hour = new Date().getHours();
-    const slot = hour < 6 ? 'night' : hour < 12 ? 'morning' : hour < 18 ? 'day' : 'evening';
-    const hello = t('dash.hello.' + slot);
-    $('greeting').textContent = firstName ? t('dash.helloNamed', { hello, name: firstName }) : hello;
+  let profile;
+  try {
+    profile = await getProfile(sb, user.id);
+  } catch (error) {
+    failRead(error);
   }
-  renderGreeting();
+  renderTopbar({ profile, user });
+  const topbarInner = document.querySelector('.topbar-inner');
+  const brandLink = topbarInner.querySelector('.brand');
+  const brand = document.createElement('button');
+  brand.type = 'button';
+  brand.className = 'brand header-toggle dashboard-brand-trigger';
+  brand.setAttribute('aria-haspopup', 'menu');
+  brand.setAttribute('aria-expanded', 'false');
+  brand.setAttribute('aria-controls', 'langDrop');
+  brand.innerHTML = `${brandLink.innerHTML}<svg class="header-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+  brandLink.replaceWith(brand);
+  const brandContext = document.createElement('div');
+  brandContext.className = 'topbar-brand-context';
+  topbarInner.insertBefore(brandContext, brand);
+  brandContext.appendChild(brand);
+  const studySwitch = document.createElement('div');
+  studySwitch.className = 'lang-switch dashboard-study-switch';
+  studySwitch.id = 'lang-switch';
+  brandContext.appendChild(studySwitch);
+  if (!profile?.onboarding_done) {
+    location.replace('/onboarding');
+    throw new Error('redirect');
+  }
 
-  const [{ data: userLangs }, { data: languages }, { data: domains }] = await Promise.all([
+  const [userLangsResult, languagesResult, domainsResult] = await Promise.all([
     sb.from('user_languages').select('*').eq('user_id', user.id).order('created_at'),
     sb.from('languages').select('code, name, native_name'),
     sb.from('domains').select('slug, name')
   ]);
-  if (!userLangs?.length) location.replace('/onboarding');
+  const catalogError = userLangsResult.error || languagesResult.error || domainsResult.error;
+  if (catalogError) failRead(catalogError);
+  const { data: userLangs } = userLangsResult;
+  const { data: languages } = languagesResult;
+  const { data: domains } = domainsResult;
+  if (!userLangs?.length) {
+    location.replace('/onboarding');
+    throw new Error('redirect');
+  }
 
   const langByCode = Object.fromEntries((languages || []).map(l => [l.code, l]));
   const domainBySlug = Object.fromEntries((domains || []).map(d => [d.slug, d]));
   const domainName = slug => localizedDomainName(domainBySlug[slug] || slug);
 
-  let active = localStorage.getItem('activeLanguage');
+  const requestedLanguage = new URLSearchParams(location.search).get('lang');
+  let active = userLangs.some(l => l.language_code === requestedLanguage)
+    ? requestedLanguage : localStorage.getItem('activeLanguage');
   if (!userLangs.some(l => l.language_code === active)) active = userLangs[0].language_code;
+  localStorage.setItem('activeLanguage', active);
 
   let langDd = null;
   function renderSwitch() {
     const sw = $('lang-switch');
     sw.setAttribute('aria-label', t('dash.langs'));
-    // One language needs no switcher; the subtitle already names it.
-    if (userLangs.length < 2) { sw.innerHTML = ''; return; }
-    const L = langByCode[active];
+    brand.setAttribute('aria-label', t('dash.langs'));
     const item = l => {
-      const M = langByCode[l.language_code];
       const on = l.language_code === active;
       return `<button type="button" class="lang-item${on ? ' is-on' : ''}" role="menuitemradio" aria-checked="${on}" data-code="${esc(l.language_code)}">
-        <span class="lang-item-name">${esc(languageName(l.language_code))}</span>
-        <span class="lang-item-meta">${esc(M?.native_name || '')} · ${esc(l.level)}</span>
+        <span class="lang-item-name">${esc(languageName(l.language_code))} · ${esc(l.level)}</span>
       </button>`;
     };
-    // A card per language stopped fitting once there were more than a few, so
-    // the active one is shown and the rest live behind it.
-    sw.innerHTML = `
-      <button type="button" class="lang-trigger" id="langBtn" aria-haspopup="menu" aria-expanded="false">
-        <span class="lang-trigger-text">
-          <span class="lang-trigger-name">${esc(languageName(active))}</span>
-          <span class="lang-trigger-meta">${esc(L?.native_name || '')} · ${esc(userLangs.find(l => l.language_code === active)?.level || '')}</span>
-        </span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-      </button>
-      <div class="lang-drop" id="langDrop" role="menu" hidden>${userLangs.map(item).join('')}</div>`;
-
-    const trigger = $('langBtn');
-    const drop = $('langDrop');
-    langDd = wireDropdown(trigger, drop);
+    let drop = $('langDrop');
+    if (!drop) {
+      sw.innerHTML = '<div class="lang-drop" id="langDrop" role="menu" aria-label=""></div>';
+      drop = $('langDrop');
+      langDd = wireHeaderActions(brand, drop, { panel: sw });
+      brand.addEventListener('keydown', e => {
+        if (!['ArrowDown', 'ArrowUp'].includes(e.key)) return;
+        e.preventDefault();
+        langDd.open();
+        const items = drop.querySelectorAll('[data-code]');
+        (e.key === 'ArrowDown' ? items[0] : items[items.length - 1])?.focus();
+      });
+      drop.addEventListener('keydown', e => {
+        if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+        e.preventDefault();
+        const items = [...drop.querySelectorAll('[data-code]')];
+        const index = items.indexOf(document.activeElement);
+        const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1
+          : (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+        items[next]?.focus();
+      });
+    }
+    drop.innerHTML = userLangs.map(item).join('');
+    drop.setAttribute('aria-label', t('dash.langs'));
   }
   renderSwitch();
   $('lang-switch').addEventListener('click', e => {
     const c = e.target.closest('[data-code]'); if (!c) return;
     if (c.dataset.code === active) { langDd?.close(); return; }
+    langDd?.close();
     active = c.dataset.code;
     localStorage.setItem('activeLanguage', active);
+    data = null;
     renderSwitch();
+    brand.focus();
+    const url = new URL(location.href);
+    url.searchParams.set('lang', active);
+    history.replaceState(null, '', url);
     showSkeleton();
     load();
   });
@@ -180,32 +255,150 @@
   // re-render without going back to the network.
   let data = null;
   let firstPaint = true;
+  const widgets = createDashboardWidgets({
+    sb, user,
+    onChange: applyWidgetPrefs,
+    onStatus: status => {
+      renderWidgetStatus(status);
+      if (status === 'error') toast(t('dash.widgets.saveFailed'), 'error');
+    },
+  });
+
+  const widgetLabel = id => t(DASHBOARD_WIDGETS.find(widget => widget.id === id).label, {
+    level: userLangs.find(language => language.language_code === active)?.level || '',
+  });
+
+  function renderWidgetStatus(status = widgets.getStatus()) {
+    $('widgetStatus').textContent = status === 'saving' ? t('common.moment')
+      : status === 'saved' ? t('common.saved') : status === 'error' ? t('dash.widgets.saveFailed') : '';
+    $('widgetStatus').classList.toggle('is-error', status === 'error');
+    $('retryWidgets').hidden = status !== 'error';
+  }
+
+  function renderWidgetOptions() {
+    const available = new Set([...document.querySelectorAll('[data-dashboard-widget]')].map(card => card.dataset.dashboardWidget));
+    const focused = document.activeElement?.dataset.widgetToggle;
+    $('widgetOptions').innerHTML = DASHBOARD_WIDGETS.map((widget, index) => `
+      <label class="dash-widget-option${widgets.isVisible(widget.id) ? ' is-visible' : ''}${available.has(widget.id) ? '' : ' is-unavailable'}">
+        <span class="dash-widget-option-mark" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span>
+        <span class="dash-widget-option-copy"><span class="dash-widget-option-name">${esc(widgetLabel(widget.id))}</span>
+        ${available.has(widget.id) ? '' : `<span class="dash-widget-option-note">${esc(t('dash.widgets.unavailable'))}</span>`}</span>
+        <input type="checkbox" class="switch" data-widget-toggle="${widget.id}" ${widgets.isVisible(widget.id) ? 'checked' : ''}>
+      </label>`).join('');
+    if (focused) $('widgetOptions').querySelector(`[data-widget-toggle="${focused}"]`)?.focus();
+    renderWidgetStatus();
+  }
+
+  function applyWidgetPrefs() {
+    const cards = document.querySelectorAll('[data-dashboard-widget]');
+    cards.forEach(card => { card.hidden = !widgets.isVisible(card.dataset.dashboardWidget); });
+    const kpis = [...$('kpis').querySelectorAll('[data-dashboard-widget]')];
+    if (kpis.length) $('kpis').hidden = kpis.every(card => card.hidden);
+    $('widgetOptions').querySelectorAll('[data-widget-toggle]').forEach(input => {
+      input.checked = widgets.isVisible(input.dataset.widgetToggle);
+      input.closest('.dash-widget-option')?.classList.toggle('is-visible', input.checked);
+    });
+  }
+
+  function decorateWidgets() {
+    const kpiIds = ['streak', 'completed', 'average', 'words'];
+    const panelIds = { 'p-level': 'level', 'p-review': 'review', 'p-act': 'activity', 'p-rev': 'weak', 'p-dom': 'domains', 'p-rec': 'recent' };
+    const decorate = (card, id) => {
+      card.dataset.dashboardWidget = id;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'dash-widget-hide';
+      button.dataset.widgetHide = id;
+      button.title = t('dash.widgets.hide', { name: widgetLabel(id) });
+      button.setAttribute('aria-label', button.title);
+      button.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+      card.appendChild(button);
+    };
+    [...$('kpis').children].forEach((card, i) => decorate(card, kpiIds[i]));
+    [...$('rail').children].forEach(card => decorate(card, panelIds[card.getAttribute('aria-labelledby')]));
+    applyWidgetPrefs();
+    if ($('widgetDialog').open) renderWidgetOptions();
+  }
+
+  $('manageWidgets').addEventListener('click', () => { renderWidgetOptions(); $('widgetDialog').showModal(); });
+  $('closeWidgets').addEventListener('click', () => $('widgetDialog').close());
+  $('widgetDialog').addEventListener('click', e => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (e.target === e.currentTarget && (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom)) e.currentTarget.close();
+  });
+  $('widgetDialog').addEventListener('close', () => $('manageWidgets').focus());
+  $('widgetOptions').addEventListener('change', e => {
+    if (e.target.matches('[data-widget-toggle]')) widgets.setVisible(e.target.dataset.widgetToggle, e.target.checked);
+  });
+  $('resetWidgets').addEventListener('click', () => widgets.reset());
+  $('retryWidgets').addEventListener('click', () => widgets.retry());
+  document.querySelector('main').addEventListener('click', e => {
+    const button = e.target.closest('[data-widget-hide]');
+    if (!button) return;
+    widgets.setVisible(button.dataset.widgetHide, false);
+    $('manageWidgets').focus();
+  });
+  void widgets.init();
+  let loadVersion = 0;
 
   async function load() {
-    const [{ data: ud }, { data: lessons }, { data: progress }] = await Promise.all([
-      sb.from('user_domains').select('domain_slug, topics').eq('user_id', user.id).eq('language_code', active).order('created_at'),
-      sb.from('lessons').select('id, domain_slug, topic, level').eq('language_code', active).eq('level', userLangs.find(l => l.language_code === active).level),
-      // One query brings each finished lesson's language and topic along with
-      // the score, so history and streaks need no second round-trip. The
-      // lesson body itself is never fetched here.
-      sb.from('user_progress').select('lesson_id, completed, score, total, completed_at, lessons(language_code, domain_slug, topic, level)').eq('user_id', user.id)
-    ]);
+    const request = ++loadVersion;
+    const language = active;
+    const languageProgress = userLangs.find(l => l.language_code === language);
+    const level = languageProgress.level;
+    const earnedLevel = languageProgress.earned_level || 'A1';
+    let ud;
+    let lessons;
+    let progress;
+    let attemptsResult;
+    try {
+      [ud, lessons, progress, attemptsResult] = await Promise.all([
+        fetchAllRows(sb.from('user_domains').select('domain_slug, topics', { count: 'exact' })
+          .eq('user_id', user.id).eq('language_code', language).order('domain_slug', { ascending: true })),
+        fetchAllRows(sb.from('lessons').select('id, domain_slug, topic, level', { count: 'exact' })
+          .eq('language_code', language).eq('level', level)
+          .order('domain_slug', { ascending: true }).order('topic', { ascending: true })),
+        // One query brings each finished lesson's language and topic along with
+        // the score, so history and streaks need no second round-trip. The
+        // lesson body itself is never fetched here.
+        fetchAllRows(sb.from('user_progress').select('lesson_id, completed, score, total, completed_at, resume_state, resume_updated_at, lessons(language_code, domain_slug, topic, level)', { count: 'exact' })
+          .eq('user_id', user.id).order('lesson_id', { ascending: true })),
+        sb.from('lesson_attempts').select('sequence, language_code, level, score, total')
+          .eq('user_id', user.id).eq('language_code', language).eq('level', earnedLevel).order('sequence', { ascending: false }).limit(10)
+      ]);
+    } catch (error) {
+      if (request !== loadVersion) return;
+      failRead(error);
+    }
+    if (request !== loadVersion) return;
+    const { data: attempts, error: attemptsError } = attemptsResult;
     // The vocabulary deck. Until migration 005 has been run the table is not
     // there and `ready` comes back false -- the page then falls back to the old
     // estimate rather than showing nothing.
-    const { cards, ready: deckReady } = await loadCards(sb, { userId: user.id, language: active });
+    let cards = [];
+    let deckReady = false;
+    let deckError = null;
+    try {
+      ({ cards, ready: deckReady } = await loadCards(sb, { userId: user.id, language }));
+    } catch (error) {
+      deckError = error;
+    }
+    if (request !== loadVersion) return;
+    if (attemptsError) console.warn('Test history was not loaded:', attemptsError.message);
 
     data = {
-      ud: ud || [], lessons: lessons || [], progress: progress || [],
+      ud, lessons, progress,
+      attempts: attempts || [], historyReady: !attemptsError,
       deck: deckReady ? vocabStats(cards) : null,
     };
     render();
+    if (deckError) showMsg($('msg'), deckError.message || t('dash.widgets.saveFailed'));
+    else hideMsg($('msg'));
   }
 
   function render() {
-    const { ud, lessons, progress, deck } = data;
+    const { ud, lessons, progress, deck, attempts, historyReady } = data;
     const ul = userLangs.find(l => l.language_code === active);
-    $('sub').textContent = t('dash.sub', { lang: languageName(active), level: ul.level });
 
     const key = (d, topic) => `${d}|${topic}`;
     const lessonMap = Object.fromEntries(lessons.map(l => [key(l.domain_slug, l.topic), l]));
@@ -220,19 +413,27 @@
     const allTopics = ud.flatMap(d => (d.topics || []).map(topic => ({ domain: d.domain_slug, topic })));
     const totalTopics = allTopics.length;
     const doneList = allTopics.filter(x => isDone(x.domain, x.topic));
-    const levelRows = doneList.map(x => progOf(x.domain, x.topic));
-    const accuracy = meanAccuracy(levelRows);
     const weak = doneList.filter(x => { const p = progOf(x.domain, x.topic); return p.total && p.score / p.total < PASS; })
       .sort((a, b) => { const pa = progOf(a.domain, a.topic), pb = progOf(b.domain, b.topic); return pa.score / pa.total - pb.score / pb.total; });
 
-    const next = allTopics.find(x => !isDone(x.domain, x.topic)) || weak[0] || null;
+    const drafts = latestLessonDrafts(user.id, progress).filter(draft =>
+      draft.nativeLanguage === getLang() && draft.params?.lang === active && draft.params.level === ul.level
+      && allTopics.some(x => x.domain === draft.params.domain && x.topic === draft.params.topic)
+      && lessons.some(l => l.id === draft.lessonId));
+    const resume = drafts[0] || null;
+    const next = resume ? { domain: resume.params.domain, topic: resume.params.topic }
+      : allTopics.find(x => !isDone(x.domain, x.topic)) || weak[0] || null;
     const nextKey = next ? key(next.domain, next.topic) : null;
-    const promo = promotionState({ level: ul.level, doneCount: doneList.length, totalTopics, accuracy, weakCount: weak.length });
+    const earnedLevel = ul.earned_level || 'A1';
+    const promo = promotionState({ level: earnedLevel, language: active, attempts });
 
-    renderResume({ ud, next, weak, lessonMap, doneCount: doneList.length, level: ul.level });
-    renderKpis({ progress, doneCount: doneList.length, totalTopics, accuracy, level: ul.level, wordsFrom: doneInLang.length, pct: promo.percent, deck });
-    renderPath({ ud, progMap, lessonMap, nextKey, level: ul.level, key });
-    renderRail({ progress, doneInLang, promo, ud, progOf, weak, accuracy, level: ul.level, next, deck });
+    renderResume({ ud, next, resume, level: ul.level });
+    renderKpis({ progress, doneCount: doneList.length, totalTopics, promo, historyReady, level: ul.level,
+      wordsFrom: doneInLang.length, pct: totalTopics ? Math.round(doneList.length / totalTopics * 100) : 0, deck });
+    renderPath({ ud, progMap, lessonMap, nextKey, level: ul.level, key, draftIds: drafts.map(d => d.lessonId) });
+    renderRail({ progress, doneInLang, promo, historyReady, ud, progOf, weak,
+      level: ul.level, earnedLevel, next, deck });
+    decorateWidgets();
 
     if (firstPaint) {
       // Entrances play once, on arrival. A language switch redraws instantly.
@@ -245,8 +446,24 @@
   }
 
   // ---- The one action: whatever should be opened next ----
-  function renderResume({ ud, next, weak, lessonMap, doneCount, level }) {
+  function renderResume({ ud, next, resume, level }) {
     const box = $('resume');
+    if (resume) {
+      const completion = draftCompletion(resume);
+      const percent = new Intl.NumberFormat(getLang(), { style: 'percent', maximumFractionDigits: 0 }).format(completion.percent / 100);
+      box.innerHTML = `<a class="resume" href="${lessonUrl(resume.params.domain, resume.params.topic, level)}">
+        <div class="resume-body">
+          <div class="resume-eyebrow">${esc(t('dash.resume'))}</div>
+          <div class="resume-title">${esc(topicName(resume.params.domain, resume.params.topic))}</div>
+          <div class="resume-meta">${esc(t('les.stepOf', { n: resume.stepIdx + 1, total: resume.totalSteps }))}</div>
+          <div class="resume-progress">
+            <div class="resume-progress-track" role="progressbar" aria-label="${esc(t('les.progressLabel'))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${completion.percent}">
+              <span style="width:${completion.percent}%"></span>
+            </div><span class="resume-percent">${esc(percent)}</span>
+          </div>
+        </div><span class="resume-go">${esc(t('les.continue'))} ${ICON_ARROW}</span></a>`;
+      return;
+    }
     if (!ud.length) {
       box.innerHTML = `<div class="panel"><p class="panel-note">${esc(t('dash.empty'))}</p><a class="btn-primary auto" href="/onboarding?edit=1">${esc(t('dash.emptyLink'))}</a></div>`;
       return;
@@ -261,7 +478,8 @@
   }
 
   // ---- Four figures, each with the comparison that gives it meaning ----
-  function renderKpis({ progress, doneCount, totalTopics, accuracy, level, wordsFrom, pct, deck }) {
+  function renderKpis({ progress, doneCount, totalTopics, promo, historyReady, level, wordsFrom, pct, deck }) {
+    const accuracy = promo.accuracy;
     const streak = currentStreak(progress);
     const best = longestStreak(progress);
     // With a deck this is a count of words actually held, and the line below it
@@ -278,99 +496,61 @@
     $('kpis').innerHTML = [
       kpi(fmtNum(streak), t('dash.streak'), best > streak ? tp('dash.kpi.record', best) : t('dash.kpi.streakHint'), 'volcano', 'streak'),
       kpi(`${fmtNum(doneCount)}<span class="unit">/${fmtNum(totalTopics)}</span>`, t('dash.stat.done', { level }), t('dash.kpi.ofLevel', { pct }), 'geekblue', 'done'),
-      kpi(accuracy === null ? '–' : `${Math.round(accuracy * 100)}<span class="unit">%</span>`, t('dash.stat.avg'), accuracy === null ? t('dash.kpi.noScore') : t('dash.kpi.pass', { pass: PASS_PCT }), 'green', 'score'),
+      kpi(accuracy === null ? '–' : `${fmtPct(accuracy)}<span class="unit">%</span>`, t('dash.stat.avg'),
+        historyReady ? t('dash.lvl.series', { done: promo.testCount, total: promo.required }) : t('dash.lvl.historyError'), 'green', 'score'),
       kpi(fmtNum(wordCount), t('dash.kpi.words'), wordSub, 'blue', 'words'),
     ].join('');
   }
 
   // ---- The learning path ----
-  // With several fields the page turned into a very long list, so one field is
-  // open at a time and the rest sit behind a picker.
-  let openDomain = localStorage.getItem('openDomain') || null;
-
-  function renderPath({ ud, progMap, lessonMap, nextKey, level, key }) {
+  // Each selected field keeps its title, progress and topics together.
+  function renderPath({ ud, progMap, lessonMap, nextKey, level, key, draftIds }) {
     const wrap = $('path');
-    if (!ud.length) { wrap.innerHTML = ''; return; }
-    if (!ud.some(d => d.domain_slug === openDomain)) {
-      // Default to whichever field holds the lesson you are about to do.
-      const withNext = ud.find(d => (d.topics || []).some(tp2 => key(d.domain_slug, tp2) === nextKey));
-      openDomain = (withNext || ud[0]).domain_slug;
-    }
-    const doneIn = d => (d.topics || []).filter(topic => progMap[lessonMap[key(d.domain_slug, topic)]?.id]?.completed).length;
-    const d = ud.find(x => x.domain_slug === openDomain);
-    const topics = d.topics || [];
-    const done = doneIn(d);
-    const cards = topics.map((topic, i) => {
-      const pr = progMap[lessonMap[key(d.domain_slug, topic)]?.id];
-      const finished = !!pr?.completed;
-      const low = finished && pr.total && pr.score / pr.total < PASS;
-      const isNext = key(d.domain_slug, topic) === nextKey;
-      const cls = finished ? (low ? 'done weak' : 'done') : isNext ? 'current' : 'todo';
-      const side = isNext
-        ? `<span class="start-pill">${esc(t('dash.go'))}</span>`
-        : finished && pr.total ? `<span class="badge ${low ? 'low' : 'done'}">${pr.score}/${pr.total}</span>` : '';
-      // Finished topics carry a check AND their score, so the state never
-      // rests on the colour alone.
-      return `<a class="tcard ${cls}" href="${lessonUrl(d.domain_slug, topic, level)}">
-        <span class="tcard-top"><span class="tcard-n" aria-hidden="true">${finished ? '✓' : (i + 1)}</span>${side}</span>
-        <span class="tcard-title">${esc(topicName(d.domain_slug, topic))}</span>
-      </a>`;
-    }).join('');
-
-    const picker = ud.length < 2 ? '' : `
-      <div class="dom-switch">
-        <button type="button" class="lang-trigger dom-trigger${toneOf(d.domain_slug)}" id="domBtn" aria-haspopup="menu" aria-expanded="false">
-          <span class="dom-trigger-icon" aria-hidden="true">${domainIcon(d.domain_slug)}</span>
-          <span class="lang-trigger-text">
-            <span class="lang-trigger-name">${esc(domainName(d.domain_slug))}</span>
-            <span class="lang-trigger-meta">${esc(t('dash.unitDone', { done, total: topics.length }))}</span>
-          </span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <div class="lang-drop dom-drop" id="domDrop" role="menu" hidden>${ud.map(o => {
-          const on = o.domain_slug === openDomain;
-          return `<button type="button" class="lang-item dom-item${on ? ' is-on' : ''}${toneOf(o.domain_slug)}" role="menuitemradio" aria-checked="${on}" data-domain="${esc(o.domain_slug)}">
-            <span class="dom-item-icon" aria-hidden="true">${domainIcon(o.domain_slug)}</span>
-            <span>
-              <span class="lang-item-name">${esc(domainName(o.domain_slug))}</span>
-              <span class="lang-item-meta">${esc(t('dash.unitDone', { done: doneIn(o), total: (o.topics || []).length }))}</span>
-            </span>
-          </button>`;
-        }).join('')}</div>
-      </div>`;
-
-    const name = domainName(d.domain_slug);
-    wrap.innerHTML = `
-      ${picker}
-      <section class="unit${toneOf(d.domain_slug)}" aria-label="${esc(name)}">
-        ${ud.length < 2 ? `<div class="unit-head">
+    wrap.innerHTML = ud.map((d, domainIndex) => {
+      const topics = d.topics || [];
+      const done = topics.filter(topic => progMap[lessonMap[key(d.domain_slug, topic)]?.id]?.completed).length;
+      const percent = topics.length ? Math.round(done / topics.length * 100) : 0;
+      const name = domainName(d.domain_slug);
+      const headingId = `path-domain-${domainIndex}`;
+      const completion = t('dash.unitDone', { done, total: topics.length });
+      const cards = topics.map((topic, i) => {
+        const pr = progMap[lessonMap[key(d.domain_slug, topic)]?.id];
+        const finished = !!pr?.completed;
+        const low = finished && pr.total && pr.score / pr.total < PASS;
+        const isNext = key(d.domain_slug, topic) === nextKey;
+        const hasResume = draftIds.includes(lessonMap[key(d.domain_slug, topic)]?.id);
+        const cls = finished ? (low ? 'done weak' : 'done') : isNext ? 'current' : 'todo';
+        const side = isNext || hasResume
+          ? `<span class="start-pill">${esc(t(hasResume ? 'les.continue' : 'dash.go'))}</span>`
+          : finished && pr.total ? `<span class="badge ${low ? 'low' : 'done'}">${pr.score}/${pr.total}</span>` : '';
+        return `<a class="tcard ${cls}" href="${lessonUrl(d.domain_slug, topic, level)}">
+          <span class="tcard-top"><span class="tcard-n" aria-hidden="true">${finished ? '✓' : (i + 1)}</span>${side}</span>
+          <span class="tcard-title">${esc(topicName(d.domain_slug, topic))}</span>
+        </a>`;
+      }).join('');
+      return `<section class="unit path-unit${toneOf(d.domain_slug)}" aria-labelledby="${headingId}">
+        <div class="unit-head">
           <div class="unit-icon" aria-hidden="true">${domainIcon(d.domain_slug)}</div>
-          <div class="meta"><div class="t">${esc(name)}</div><div class="s">${esc(t('dash.unitDone', { done, total: topics.length }))}</div></div>
-          <div class="progress mini wide" aria-hidden="true"><span style="width:${topics.length ? Math.round(done / topics.length * 100) : 0}%"></span></div>
-        </div>` : `<div class="unit-bar"><div class="progress mini wide" aria-hidden="true"><span style="width:${topics.length ? Math.round(done / topics.length * 100) : 0}%"></span></div></div>`}
+          <div class="meta"><h3 class="t" id="${headingId}">${esc(name)}</h3><div class="s">${esc(completion)}</div></div>
+          <div class="progress mini wide" role="progressbar" aria-label="${esc(name)}: ${esc(completion)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></div>
+        </div>
         <div class="topic-grid">${cards}</div>
       </section>`;
-
-    if (ud.length < 2) return;
-    const trigger = $('domBtn');
-    const drop = $('domDrop');
-    wireDropdown(trigger, drop);
-    drop.addEventListener('click', e => {
-      const b2 = e.target.closest('[data-domain]'); if (!b2) return;
-      openDomain = b2.dataset.domain;
-      localStorage.setItem('openDomain', openDomain);
-      renderPath({ ud, progMap, lessonMap, nextKey, level, key });
-    });
+    }).join('');
   }
 
-  function renderRail({ progress, doneInLang, promo, ud, progOf, weak, accuracy, level, next, deck }) {
-    const panels = [];
+  function renderRail({ progress, doneInLang, promo, historyReady, ud, progOf, weak, level, earnedLevel, next, deck }) {
+    let levelPanel = '';
+    let vocabularyPanel = '';
+    let activityPanel = '';
+    let reviewPanel = '';
+    let domainPanel = '';
+    let recentPanel = '';
 
-    // Vocabulary due today. Shown above everything else because it is the one
-    // panel that expires: tomorrow's list is a different list.
+    // Vocabulary due today changes with the daily review schedule.
     if (deck && deck.total) {
       const due = deck.due;
-      panels.push(`
+      vocabularyPanel = `
         <section class="panel tone-blue" aria-labelledby="p-review">
           <h2 class="panel-title" id="p-review">${esc(t('dash.review.title'))}</h2>
           <div class="review-figure">
@@ -379,33 +559,33 @@
           </div>
           <p class="panel-note">${esc(due ? tp('dash.review.due', due, { n: fmtNum(due) }) : t('dash.review.clear'))}</p>
           ${due ? `<a class="btn-primary auto" href="/review">${esc(t('dash.review.start'))}</a>` : ''}
-        </section>`);
+        </section>`;
     }
 
     // Level
     const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-    const idx = LEVELS.indexOf(level);
+    const idx = LEVELS.indexOf(earnedLevel);
     const track = `<div class="level-track" aria-hidden="true">${LEVELS.map((l, i) => `<span class="lvl ${i < idx ? 'past' : i === idx ? 'cur' : ''}">${l}</span>`).join('')}</div>`;
     if (promo.next) {
       const req = [];
-      // Too few topics is the real blocker, so it is named instead of a
-      // lesson count the learner could never reach.
-      if (promo.needMoreTopics) req.push(tp('dash.lvl.reqTopics', promo.topicsShort));
-      else if (promo.lessonsLeft) req.push(tp('dash.lvl.reqLeft', promo.lessonsLeft));
-      if (accuracy !== null && !promo.accuracyOk) req.push(t('dash.lvl.reqAvg', { avg: Math.round(accuracy * 100), pass: PASS_PCT }) + (weak.length ? tp('dash.lvl.reqRetry', weak.length) : ''));
-      const text = promo.ready ? t('dash.lvl.ready', { level: promo.next })
+      if (promo.testsLeft) req.push(tp('dash.lvl.reqLeft', promo.testsLeft));
+      if (promo.accuracy !== null && !promo.accuracyOk) req.push(t('dash.lvl.reqAvg', { avg: fmtPct(promo.accuracy), pass: PROMOTION_PCT }));
+      const text = !historyReady ? t('dash.lvl.historyError') : promo.ready ? t('dash.lvl.ready', { level: promo.next })
         : req.length ? t('dash.lvl.need', { level: promo.next, req: req.join('; ') })
-        : t('dash.lvl.plain', { n: promo.required, pass: PASS_PCT });
-      panels.push(`
+        : '';
+      const series = t('dash.lvl.series', { done: promo.testCount, total: promo.required });
+      levelPanel = `
         <section class="panel tone-geekblue" aria-labelledby="p-level">
           <h2 class="panel-title" id="p-level">${esc(t('dash.lvl.toward', { level: promo.next }))}</h2>
           ${track}
-          <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${promo.percent}"><span style="width:${promo.percent}%"></span></div>
+          <p class="panel-note">${esc(t('dash.lvl.plain', { n: promo.required, pass: PROMOTION_PCT }))}</p>
+          ${historyReady ? `<p class="panel-note">${esc(series)}${promo.accuracy === null ? '' : ` · ${esc(t('dash.lvl.seriesAvg', { avg: fmtPct(promo.accuracy) }))}`}</p>
+          <div class="progress" role="progressbar" aria-label="${esc(series)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${promo.percent}"><span style="width:${promo.percent}%"></span></div>` : ''}
           <p class="panel-note">${esc(text)}</p>
           ${promo.ready ? `<button class="btn-primary auto" id="promote">${esc(t('dash.lvl.promote', { level: promo.next }))}</button>` : ''}
-        </section>`);
+        </section>`;
     } else {
-      panels.push(`<section class="panel tone-geekblue" aria-labelledby="p-level"><h2 class="panel-title" id="p-level">${esc(t('dash.lvl.max'))}</h2>${track}<p class="panel-note">${esc(t('dash.lvl.maxDesc'))}</p></section>`);
+      levelPanel = `<section class="panel tone-geekblue" aria-labelledby="p-level"><h2 class="panel-title" id="p-level">${esc(t('dash.lvl.max'))}</h2>${track}<p class="panel-note">${esc(t('dash.lvl.maxDesc'))}</p></section>`;
     }
 
     // Activity — across every language: a streak is about the person, not the course.
@@ -414,11 +594,11 @@
     const inWindow = grid.flat().reduce((s, c) => s + c.count, 0);
     if (!done.length) {
       const href = next ? lessonUrl(next.domain, next.topic, level) : '/onboarding?edit=1';
-      panels.push(`
+      activityPanel = `
         <section class="panel" aria-labelledby="p-act">
           <h2 class="panel-title" id="p-act">${esc(t('dash.act.title'))}</h2>
           <div class="panel-empty"><span>${esc(t('dash.act.empty'))}</span><a class="btn-secondary auto" href="${href}">${esc(t('dash.next.btn.start'))}</a></div>
-        </section>`);
+        </section>`;
     } else {
       const lvlOf = n => (n >= 4 ? 4 : n);
       const cells = grid.map(col => col.map(c =>
@@ -431,19 +611,19 @@
         tp('dash.act.pace', Math.round(pace * 10) / 10, { n: fmtNum(pace) }),
         t('dash.act.last', { when: fmtAgo(since) }),
       ];
-      panels.push(`
+      activityPanel = `
         <section class="panel" aria-labelledby="p-act">
           <h2 class="panel-title" id="p-act">${esc(t('dash.act.title'))}</h2>
           <div class="heat" role="img" aria-label="${esc(tp('dash.act.summary', inWindow))}">${cells}</div>
           <div class="heat-legend" aria-hidden="true"><span>${esc(t('dash.act.less'))}</span>${[0, 1, 2, 3, 4].map(n => `<span class="heat-cell" data-level="${n}"></span>`).join('')}<span>${esc(t('dash.act.more'))}</span></div>
           <div class="panel-foot">${lines.map(esc).join(' · ')}</div>
           ${habit ? `<p class="panel-note">${esc(t('dash.habit.' + habit.slot))}</p>` : ''}
-        </section>`);
+        </section>`;
     }
 
     // Weak spots at the current level — the ones standing between you and the next.
     if (weak.length) {
-      panels.push(`
+      reviewPanel = `
         <section class="panel" aria-labelledby="p-rev">
           <h2 class="panel-title" id="p-rev">${esc(t('dash.rev.title'))}</h2>
           <p class="panel-note">${esc(t('dash.rev.note', { pass: PASS_PCT }))}</p>
@@ -451,7 +631,7 @@
             const p = progOf(w.domain, w.topic);
             return `<a class="rowlink${toneOf(w.domain)}" href="${lessonUrl(w.domain, w.topic, level)}"><span class="row-icon" aria-hidden="true">${domainIcon(w.domain)}</span><span class="t">${esc(topicName(w.domain, w.topic))}</span><span class="s">${p.score}/${p.total}</span></a>`;
           }).join('')}</div>
-        </section>`);
+        </section>`;
     }
 
     // Accuracy per domain, weakest first. Only worth a chart once there is
@@ -459,7 +639,7 @@
     const roll = domainRollup(ud, progOf, domainName);
     if (roll.length > 1 && roll.some(r => r.accuracy !== null)) {
       const scoredCount = roll.filter(r => r.accuracy !== null).length;
-      panels.push(`
+      domainPanel = `
         <section class="panel" aria-labelledby="p-dom">
           <h2 class="panel-title" id="p-dom">${esc(t('dash.dom.title'))}</h2>
           ${scoredCount > 1 ? `<p class="panel-note">${esc(t('dash.dom.note'))}</p>` : ''}
@@ -474,14 +654,14 @@
             </div>`;
           }).join('')}</div>
           <div class="panel-foot">${esc(t('dash.dom.pass', { pass: PASS_PCT }))}</div>
-        </section>`);
+        </section>`;
     }
 
     // What was finished lately in this language, at any level.
     const recent = recentlyCompleted(doneInLang, 5);
     if (recent.length) {
       const today = new Date(); today.setHours(0, 0, 0, 0);
-      panels.push(`
+      recentPanel = `
         <section class="panel" aria-labelledby="p-rec">
           <h2 class="panel-title" id="p-rec">${esc(t('dash.rec.title'))}</h2>
           <div class="rowlist">${recent.map(p => {
@@ -490,10 +670,12 @@
             const Ls = p.lessons;
             return `<a class="rowlink${toneOf(Ls.domain_slug)}" href="${lessonUrl(Ls.domain_slug, Ls.topic, Ls.level)}"><span class="row-icon" aria-hidden="true">${domainIcon(Ls.domain_slug)}</span><span class="t">${esc(topicName(Ls.domain_slug, Ls.topic))}</span><span class="s">${esc(fmtAgo(ago))}</span></a>`;
           }).join('')}</div>
-        </section>`);
+        </section>`;
     }
 
-    $('rail').innerHTML = panels.join('');
+    // The level card follows the path, so it can sit beside a single field.
+    // Only existing cards enter the layout; summaries precede detailed lists.
+    $('rail').innerHTML = [levelPanel, vocabularyPanel, activityPanel, reviewPanel, domainPanel, recentPanel].filter(Boolean).join('');
 
     $('promote')?.addEventListener('click', async e => {
       const b = e.currentTarget;
@@ -503,7 +685,7 @@
         b.disabled = false; b.textContent = t('dash.lvl.promote', { level: promo.next });
         return showMsg($('msg'), error?.message || t('dash.lvl.notYet'));
       }
-      userLangs.find(l => l.language_code === active).level = newLevel;
+      userLangs.find(l => l.language_code === active).earned_level = newLevel;
       toast(t('dash.lvl.promoted', { level: newLevel }), 'success', 4000);
       renderSwitch(); showSkeleton(); load();
     });
@@ -514,7 +696,7 @@
 
   // Every visible string here is built in JS, so an interface-language switch
   // re-renders from the rows already in memory.
-  onLangChange(() => { applyI18n(); renderGreeting(); renderSwitch(); if (data) render(); });
+  onLangChange(() => { applyI18n(); renderSwitch(); if (data) render(); renderWidgetStatus(); });
 </script>
 </body>
 </html>

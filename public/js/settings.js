@@ -3,8 +3,11 @@
 
 import { UI_LANGS, getLang, setLang, t, applyI18n, onLangChange, loadCatalogTranslations } from './i18n.js';
 import { saveProfileLanguage } from './profile-language.js';
-import { getPrefs, setPref, resetPrefs, applyPrefs } from './prefs.js';
+import { getPrefs, setPref, resetPrefs, applyPrefs, SPEECH_VOICES } from './prefs.js';
+import { speak, stopSpeaking, toLocale, ttsSupported } from './speech.js';
 import { toast, setLoading } from './ui.js';
+import { buildAccountExport } from './account-export.js';
+import { signOut } from './supabase-client.js';
 
 export const ICON_GEAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>';
 
@@ -64,6 +67,26 @@ export function renderSettingsPanel(host, { showLessonPrefs = true, account = nu
       ${toggleRow('showTranslations', p.showTranslations)}
       <div class="set-block">
         <span class="set-row-text">
+          <span class="set-row-label" id="set-voice-label" data-i18n="set.speechVoice"></span>
+          <span class="set-row-hint" data-i18n="set.speechVoice.hint"></span>
+        </span>
+        <div class="option-grid option-grid-2" role="radiogroup" aria-labelledby="set-voice-label">
+          ${SPEECH_VOICES.map(x => `
+          <button type="button" class="option ${p.speechVoice === x ? 'active' : ''}" data-voice="${x}" role="radio" aria-checked="${p.speechVoice === x}">
+            <span class="name" data-i18n="set.speechVoice.${x}"></span>
+          </button>`).join('')}
+        </div>
+        <div class="voice-preview-controls">
+          <button type="button" class="btn-secondary auto voice-preview" id="set-voice-preview" aria-pressed="false" ${ttsSupported ? '' : 'disabled'}>
+            <svg class="voice-preview-speaker" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+            <span class="btn-spinner voice-preview-spinner" aria-hidden="true" hidden></span>
+            <span class="voice-preview-label" data-i18n="set.speechVoice.preview"></span>
+          </button>
+          <span class="set-row-hint voice-preview-status" id="set-voice-status" role="status" aria-live="polite" hidden></span>
+        </div>
+      </div>
+      <div class="set-block">
+        <span class="set-row-text">
           <span class="set-row-label" data-i18n="set.speechRate"></span>
           <span class="set-row-hint" data-i18n="set.speechRate.hint"></span>
         </span>
@@ -82,12 +105,43 @@ export function renderSettingsPanel(host, { showLessonPrefs = true, account = nu
       <button type="button" class="btn-ghost" id="set-reset" data-i18n="set.reset"></button>
     </div>`;
 
-  const pick = (selector, prefKey) => host.querySelectorAll(selector).forEach(b => b.addEventListener('click', () => {
-    setPref(prefKey, b.dataset[prefKey === 'theme' ? 'theme' : 'rate']);
+  const pick = (selector, prefKey, dataKey) => host.querySelectorAll(selector).forEach(b => b.addEventListener('click', () => {
+    if (prefKey === 'speechVoice' || prefKey === 'speechRate') stopSpeaking();
+    setPref(prefKey, b.dataset[dataKey]);
     host.querySelectorAll(selector).forEach(x => { x.classList.toggle('active', x === b); x.setAttribute('aria-checked', x === b); });
   }));
-  pick('[data-theme]', 'theme');
-  pick('[data-rate]', 'speechRate');
+  pick('[data-theme]', 'theme', 'theme');
+  pick('[data-rate]', 'speechRate', 'rate');
+  pick('[data-voice]', 'speechVoice', 'voice');
+
+  const preview = host.querySelector('#set-voice-preview');
+  const previewStatus = host.querySelector('#set-voice-status');
+  let previewActive = false;
+  const previewState = (active, loading = false, statusKey = '') => {
+    previewActive = active;
+    if (!preview) return;
+    preview.setAttribute('aria-pressed', String(active));
+    if (loading) preview.setAttribute('aria-busy', 'true');
+    else preview.removeAttribute('aria-busy');
+    preview.querySelector('.voice-preview-label').dataset.i18n = active ? 'set.speechVoice.stop' : 'set.speechVoice.preview';
+    preview.querySelector('.voice-preview-spinner').hidden = !loading;
+    preview.querySelector('.voice-preview-speaker').classList.toggle('is-hidden', loading);
+    previewStatus.hidden = !statusKey;
+    previewStatus.dataset.i18n = statusKey;
+    previewStatus.classList.toggle('is-error', statusKey === 'audio.error');
+    applyI18n(preview);
+    applyI18n(previewStatus);
+  };
+  preview?.addEventListener('click', () => {
+    if (previewActive) { stopSpeaking(); return; }
+    previewState(true, true, 'common.moment');
+    speak(t('set.speechVoice.sample'), toLocale(getLang()), {
+      onstart: () => previewState(true, false, 'set.speechVoice.playing'),
+      onend: () => previewState(false, false, 'set.speechVoice.finished'),
+      oncancel: () => previewState(false),
+      onerror: () => previewState(false, false, 'audio.error')
+    });
+  });
 
   host.querySelectorAll('[data-pref]').forEach(input => input.addEventListener('change', () => {
     setPref(input.dataset.pref, input.checked);
@@ -116,13 +170,14 @@ export function renderSettingsPanel(host, { showLessonPrefs = true, account = nu
   if (account) wireAccount(host, account);
 
   host.querySelector('#set-reset').addEventListener('click', () => {
+    stopSpeaking();
     resetPrefs();
     syncFromPrefs(host);
     toast(t('set.resetDone'), 'success');
   });
 
   applyI18n(host);
-  onLangChange(() => applyI18n(host));
+  onLangChange(() => { stopSpeaking(); applyI18n(host); });
 }
 
 /** Push stored preferences back onto the controls (used after a reset). */
@@ -130,6 +185,7 @@ function syncFromPrefs(host) {
   const p = getPrefs();
   host.querySelectorAll('[data-theme]').forEach(x => { const on = x.dataset.theme === p.theme; x.classList.toggle('active', on); x.setAttribute('aria-checked', on); });
   host.querySelectorAll('[data-rate]').forEach(x => { const on = x.dataset.rate === p.speechRate; x.classList.toggle('active', on); x.setAttribute('aria-checked', on); });
+  host.querySelectorAll('[data-voice]').forEach(x => { const on = x.dataset.voice === p.speechVoice; x.classList.toggle('active', on); x.setAttribute('aria-checked', on); });
   host.querySelectorAll('[data-pref]').forEach(x => { x.checked = !!p[x.dataset.pref]; });
 }
 
@@ -139,31 +195,6 @@ function syncFromPrefs(host) {
 // The privacy page promises a copy on request and deletion on request. These
 // two buttons are that promise, in the product rather than in an email thread.
 // ---------------------------------------------------------------------------
-
-/** Tables that hold something about this account, and how each is keyed. */
-const OWNED = [
-  ['profiles', 'id', 'id, full_name, avatar_url, native_language, onboarding_done, created_at'],
-  ['user_languages', 'user_id', 'language_code, level, created_at'],
-  ['user_domains', 'user_id', 'language_code, domain_slug, topics, created_at'],
-  ['user_progress', 'user_id', 'lesson_id, completed, score, total, completed_at'],
-  ['user_vocabulary', 'user_id', 'language_code, term, translation, kind, example, domain_slug, topic, ease, interval_days, reps, lapses, due_on, last_review_on, created_at'],
-];
-
-/** Everything the account holds, as one JSON file. */
-async function buildExport(sb, user) {
-  const out = {
-    exported_at: new Date().toISOString(),
-    account: { id: user.id, email: user.email, created_at: user.created_at },
-    data: {},
-  };
-  for (const [table, column, columns] of OWNED) {
-    const { data, error } = await sb.from(table).select(columns).eq(column, user.id);
-    // A table that does not exist yet (a migration not run) is reported as such
-    // rather than silently left out of a file the learner may rely on.
-    out.data[table] = error ? { unavailable: error.message } : (data || []);
-  }
-  return out;
-}
 
 function download(name, text) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
@@ -215,7 +246,7 @@ function wireAccount(host, { sb, user }) {
   exportBtn?.addEventListener('click', async () => {
     setLoading(exportBtn, true, t('common.moment'));
     try {
-      const payload = await buildExport(sb, user);
+      const payload = await buildAccountExport(sb, user);
       const stamp = new Date().toISOString().slice(0, 10);
       download(`ld-platform-${stamp}.json`, JSON.stringify(payload, null, 2));
       toast(t('set.data.export.done'), 'success');
@@ -257,8 +288,7 @@ function wireAccount(host, { sb, user }) {
     try {
       const { error } = await sb.rpc('delete_account');
       if (error) throw error;
-      await sb.auth.signOut();
-      location.replace('/login');
+      await signOut();
     } catch (err) {
       console.warn('Account deletion failed:', err.message);
       // PGRST202 is "function not found": migration 004 has not been run.

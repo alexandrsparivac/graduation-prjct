@@ -32,6 +32,7 @@ create table if not exists public.user_languages (
   user_id uuid references public.profiles(id) on delete cascade,
   language_code text references public.languages(code) on delete cascade,
   level text not null default 'A1' check (level in ('A1','A2','B1','B2','C1','C2')),
+  earned_level text not null default 'A1' check (earned_level in ('A1','A2','B1','B2','C1','C2')),
   created_at timestamptz default now(),
   primary key (user_id, language_code)
 );
@@ -89,6 +90,10 @@ create table if not exists public.user_progress (
   score int,
   total int,
   completed_at timestamptz,
+  resume_state jsonb,
+  resume_updated_at timestamptz,
+  lesson_variant jsonb,
+  completion_attempt_id uuid,
   primary key (user_id, lesson_id)
 );
 
@@ -132,12 +137,18 @@ create policy "domains: read" on public.domains for select using (true);
 create policy "user_languages: own" on public.user_languages for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "user_domains: own" on public.user_domains for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "lessons: read" on public.lessons for select using (auth.role() = 'authenticated');
-create policy "lessons: insert" on public.lessons for insert with check (auth.uid() = created_by);
 create policy "user_progress: own" on public.user_progress for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "domain_translations: read" on public.domain_translations for select using (true);
 create policy "lesson_localizations: read" on public.lesson_localizations for select using (auth.role() = 'authenticated');
-create policy "lesson_localizations: insert" on public.lesson_localizations for insert with check (auth.uid() = created_by);
-create policy "lesson_localizations: update own" on public.lesson_localizations for update using (auth.uid() = created_by) with check (auth.uid() = created_by);
+
+revoke insert, update, delete on public.lessons, public.lesson_localizations from anon, authenticated;
+grant select on public.lessons, public.lesson_localizations to authenticated;
+revoke insert, update, delete on public.user_progress, public.user_languages from anon, authenticated;
+grant select on public.user_progress, public.user_languages to authenticated;
+grant insert (user_id, lesson_id, resume_state, resume_updated_at) on public.user_progress to authenticated;
+grant update (user_id, lesson_id, resume_state, resume_updated_at) on public.user_progress to authenticated;
+grant insert (user_id, language_code, level) on public.user_languages to authenticated;
+grant update (user_id, language_code, level) on public.user_languages to authenticated;
 
 -- ============ SEED: LANGUAGES ============
 
@@ -225,5 +236,8 @@ insert into public.domains (slug, name, icon, description, topics) values
 on conflict (slug) do nothing;
 
 -- ============ LEVEL PROGRESSION ============
--- See migrations/002_level_progression.sql (kept separate so it can be re-run independently).
+-- Run migrations/009_test_based_promotion.sql for append-only test history and
+-- promotion based on a >90% average over the latest ten tests at this level.
 -- Run migrations/006_localization.sql as well to seed all 25 translated catalogs.
+-- Run migrations/010_server_managed_lesson_cache.sql to restrict shared cache writes.
+-- Run migrations/011_server_scored_attempts.sql to protect scores and track earned levels separately.

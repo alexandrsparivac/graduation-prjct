@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title data-i18n="rev.pageTitle">Recapitulare · LD Platform</title>
-<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/img/favicon.svg?v=5" type="image/svg+xml">
 <link rel="stylesheet" href="/css/styles.css">
 <link rel="stylesheet" href="/css/antd.css">
 <script>
@@ -22,7 +22,16 @@
 </script>
 </head>
 <body class="page-top">
-  <div class="page-loader" id="pageLoader"><div class="mark" id="loaderMark"></div></div>
+  <div class="page-loader" id="pageLoader" role="status" aria-live="polite" aria-atomic="true">
+    <div class="page-loader-scene">
+      <div class="page-loader-cards" aria-hidden="true">
+        <span class="page-loader-card"></span>
+        <span class="page-loader-card"></span>
+        <span class="page-loader-card"></span>
+      </div>
+      <span class="page-loader-caption" data-i18n="common.moment"></span>
+    </div>
+  </div>
   <header class="topbar" id="topbar"></header>
 
   <main class="card wide">
@@ -34,18 +43,19 @@
   </main>
 
 <script type="module">
-  import { getSupabase, requireSession, getProfile, renderTopbar } from '/js/supabase.js';
+  import { getSupabase, requireSession } from '/js/supabase-client.js';
+  import { getProfile, renderTopbar, showMsg } from '/js/supabase.js';
   import { hidePageLoader, toast } from '/js/ui.js';
   import { initI18n, t, tp, applyI18n, onLangChange, topicName } from '/js/i18n.js';
-  import { LOGO_SVG, renderFooter } from '/js/brand.js';
+  import { renderFooter } from '/js/brand.js';
   import { applyPrefs, speechRate } from '/js/prefs.js';
   import { speak, stopSpeaking, toLocale, ttsSupported } from '/js/speech.js';
   import { loadCards, gradeCard } from '/js/vocab.js';
   import { session, schedule, GRADES, AGAIN, HARD, GOOD, EASY } from '/js/srs.js';
 
   applyPrefs();
-  document.getElementById('loaderMark').innerHTML = LOGO_SVG;
   await initI18n();
+  window.addEventListener('speecherror', () => toast(t('audio.error')));
 
   const sb = await getSupabase();
   const { user } = await requireSession(sb);
@@ -58,15 +68,33 @@
   const ICON_SPEAKER = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>';
 
   // Which language is being reviewed: the one the dashboard is showing.
-  const { data: userLangs } = await sb.from('user_languages')
+  const { data: userLangs, error: userLangsError } = await sb.from('user_languages')
     .select('language_code, level').eq('user_id', user.id);
-  if (!userLangs?.length) location.replace('/onboarding');
+  if (userLangsError) {
+    stage.innerHTML = '<div class="msg" id="read-error" role="alert"><span></span></div>';
+    showMsg(document.getElementById('read-error'), userLangsError.message);
+    hidePageLoader();
+    throw new Error('page-data-unavailable');
+  }
+  if (!userLangs?.length) {
+    location.replace('/onboarding');
+    throw new Error('redirect');
+  }
 
   let language = localStorage.getItem('activeLanguage');
   if (!userLangs.some(l => l.language_code === language)) language = userLangs[0].language_code;
   const locale = toLocale(language);
 
-  const { cards: all, ready } = await loadCards(sb, { userId: user.id, language });
+  let all;
+  let ready;
+  try {
+    ({ cards: all, ready } = await loadCards(sb, { userId: user.id, language }));
+  } catch (error) {
+    stage.innerHTML = '<div class="msg" id="read-error" role="alert"><span></span></div>';
+    showMsg(document.getElementById('read-error'), error?.message || t('dash.widgets.saveFailed'));
+    hidePageLoader();
+    throw new Error('page-data-unavailable');
+  }
 
   let queue = [];
   let done = 0;

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title data-i18n="login.pageTitle">Bun venit, din nou · LD Platform</title>
-<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/img/favicon.svg?v=5" type="image/svg+xml">
 <link rel="stylesheet" href="/css/styles.css">
 <link rel="stylesheet" href="/css/antd.css">
 <script>
@@ -22,8 +22,17 @@
   } catch (e) {}
 </script>
 </head>
-<body>
-  <div class="page-loader" id="pageLoader"><div class="mark" id="loaderMark"></div></div>
+<body class="login-page">
+  <div class="page-loader" id="pageLoader" role="status" aria-live="polite" aria-atomic="true">
+    <div class="page-loader-scene">
+      <div class="page-loader-cards" aria-hidden="true">
+        <span class="page-loader-card"></span>
+        <span class="page-loader-card"></span>
+        <span class="page-loader-card"></span>
+      </div>
+      <span class="page-loader-caption" data-i18n="common.moment"></span>
+    </div>
+  </div>
 
   <div class="word-field" id="wordField" aria-hidden="true"></div>
 
@@ -211,14 +220,14 @@
   </main>
 
 <script type="module">
-  import { getSupabase, getProfile, showMsg, hideMsg } from '/js/supabase.js';
+  import { getSupabase } from '/js/supabase-client.js';
+  import { getProfile, showMsg, hideMsg } from '/js/supabase.js';
   import { setLoading, hidePageLoader } from '/js/ui.js';
   import { initI18n, t, getLang } from '/js/i18n.js';
-  import { LOGO_SVG, LOGO_TILE, BRAND_NAME } from '/js/brand.js';
+  import { LOGO_TILE, BRAND_NAME } from '/js/brand.js';
   import { applyPrefs } from '/js/prefs.js';
 
   applyPrefs();
-  document.getElementById('loaderMark').innerHTML = LOGO_SVG;
   document.getElementById('loginBrand').innerHTML =
     `${LOGO_TILE}<span class="brand-name">${BRAND_NAME}</span>`;
 
@@ -247,6 +256,13 @@
   }
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
 
+  // Capture the callback before the auth client consumes and clears its hash.
+  const authCallback = new URL(window.location.href);
+  const callbackHash = new URLSearchParams(authCallback.hash.slice(1));
+  const savedRecovery = sessionStorage.getItem('pw-recovery');
+  const recoveryRequested = callbackHash.get('type') === 'recovery' || !!savedRecovery;
+  const callbackError = callbackHash.get('error') || authCallback.searchParams.get('error');
+  const expiredLink = (callbackHash.get('error_code') || authCallback.searchParams.get('error_code')) === 'otp_expired';
 
   const sb = await getSupabase().catch(err => {
     hidePageLoader();
@@ -255,32 +271,71 @@
   });
   if (!sb) throw new Error('no supabase');
 
+  function requestedReturnTo() {
+    const value = new URLSearchParams(window.location.search).get('returnTo');
+    return value && value.startsWith('/') && !value.startsWith('//') && !value.includes('\\')
+      ? value : null;
+  }
+
   async function redirectAfterLogin(user) {
     const profile = await getProfile(sb, user.id);
-    window.location.replace(profile?.onboarding_done ? '/dashboard' : '/onboarding');
+    const destination = profile?.onboarding_done ? requestedReturnTo() || '/dashboard' : '/onboarding';
+    window.location.replace(destination);
   }
 
-  // Sesiune existentă (inclusiv revenirea din OAuth Google sau din link de resetare)
-  const { data: { session } } = await sb.auth.getSession();
-  const hash = new URLSearchParams(window.location.hash.slice(1));
-  if (hash.get('type') === 'recovery' || sessionStorage.getItem('pw-recovery') === '1') {
-    sessionStorage.setItem('pw-recovery', '1');
+  // Recovery is tied to the authenticated user, never just a browser flag.
+  let recoveryUserId = null;
+  function clearRecovery() {
+    recoveryUserId = null;
+    sessionStorage.removeItem('pw-recovery');
+    document.getElementById('reset-form').reset();
+  }
+  function showExpiredRecovery() {
+    clearRecovery();
     showView('forgot');
+    showMsg(document.getElementById('forgot-msg'), t('reset.expired'));
+  }
+  function showRecovery(session) {
+    if (!session?.user) return showExpiredRecovery();
+    recoveryUserId = session.user.id;
+    sessionStorage.setItem('pw-recovery', recoveryUserId);
+    showView('forgot');
+    hideMsg(document.getElementById('reset-msg'));
     document.getElementById('forgot-step-request').style.display = 'none';
     document.getElementById('forgot-step-reset').style.display = '';
-  } else if (session) {
-    await redirectAfterLogin(session.user);
   }
-  hidePageLoader();
+  const missingSession = error => error?.name === 'AuthSessionMissingError'
+    || ['session_not_found', 'refresh_token_not_found', 'refresh_token_already_used'].includes(error?.code)
+    || error?.message === 'Auth session missing!';
 
+  // Subscribe before awaiting initialization; keep the callback synchronous.
   sb.auth.onAuthStateChange((event, s) => {
-    if (event === 'PASSWORD_RECOVERY') {
-      sessionStorage.setItem('pw-recovery', '1');
-      showView('forgot');
-      document.getElementById('forgot-step-request').style.display = 'none';
-      document.getElementById('forgot-step-reset').style.display = '';
-    }
+    if (event === 'PASSWORD_RECOVERY') showRecovery(s);
+    else if (recoveryUserId && s?.user?.id !== recoveryUserId) showExpiredRecovery();
   });
+
+  try {
+    const { data: { session }, error } = await sb.auth.getSession();
+    if (recoveryRequested || recoveryUserId || expiredLink) {
+      const sameUser = callbackHash.get('type') === 'recovery' || !savedRecovery
+        || savedRecovery === '1' || savedRecovery === session?.user.id;
+      if (error || callbackError || !session || !sameUser) showExpiredRecovery();
+      else showRecovery(session);
+    } else if (error) {
+      showMsg(document.getElementById('login-msg'), error.message);
+    } else if (session) {
+      await redirectAfterLogin(session.user);
+    }
+  } catch (err) {
+    if (recoveryRequested) showExpiredRecovery();
+    else showMsg(document.getElementById('login-msg'), err?.message || t('les.failed'));
+  } finally {
+    hidePageLoader();
+  }
+
+  document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
+    if (recoveryUserId) clearRecovery();
+  }));
 
   // --- Login e-mail + parolă ---
   document.getElementById('login-form').addEventListener('submit', async e => {
@@ -317,9 +372,12 @@
   // --- Google ---
   document.querySelectorAll('.google-btn').forEach(b => b.addEventListener('click', async () => {
     setLoading(b, true, t('login.googleRedirect'));
+    const returnTo = requestedReturnTo();
+    const redirectTo = new URL('/login', window.location.origin);
+    if (returnTo) redirectTo.searchParams.set('returnTo', returnTo);
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/login' }
+      options: { redirectTo: redirectTo.toString() }
     });
     if (error) { setLoading(b, false); showMsg(document.getElementById('login-msg'), error.message); }
   }));
@@ -329,12 +387,17 @@
     e.preventDefault();
     const msg = document.getElementById('forgot-msg'); hideMsg(msg);
     const btn = document.getElementById('forgot-submit'); setLoading(btn, true);
-    const { error } = await sb.auth.resetPasswordForEmail(document.getElementById('forgot-email').value.trim(), {
-      redirectTo: window.location.origin + '/login'
-    });
-    setLoading(btn, false);
-    if (error) return showMsg(msg, error.message);
-    showMsg(msg, t('forgot.sent'), 'success');
+    try {
+      const email = document.getElementById('forgot-email').value.trim();
+      const redirectTo = new URL('/login', window.location.origin).toString();
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) return showMsg(msg, error.message);
+      showMsg(msg, t('forgot.sent'), 'success');
+    } catch (err) {
+      showMsg(msg, err?.message || t('les.failed'));
+    } finally {
+      setLoading(btn, false);
+    }
   });
 
   // --- Resetare parolă: pas 2 ---
@@ -344,12 +407,26 @@
     const pw = document.getElementById('reset-new-password').value;
     if (pw !== document.getElementById('reset-new-password-confirm').value) return showMsg(msg, t('reg.mismatch'));
     const btn = document.getElementById('reset-submit'); setLoading(btn, true);
-    const { error } = await sb.auth.updateUser({ password: pw });
-    setLoading(btn, false);
-    if (error) return showMsg(msg, error.message);
-    sessionStorage.removeItem('pw-recovery');
-    showMsg(msg, t('reset.done'), 'success');
-    setTimeout(() => window.location.replace('/dashboard'), 1200);
+    try {
+      // getSession refreshes an expired token. A stale form or a session for a
+      // different account must never submit a password change.
+      const { data: { session }, error: sessionError } = await sb.auth.getSession();
+      if (sessionError && !missingSession(sessionError)) throw sessionError;
+      if (!session || !recoveryUserId || session.user.id !== recoveryUserId || sessionError) {
+        return showExpiredRecovery();
+      }
+      const { error } = await sb.auth.updateUser({ password: pw });
+      if (missingSession(error)) return showExpiredRecovery();
+      if (error) return showMsg(msg, error.message);
+      clearRecovery();
+      showMsg(msg, t('reset.done'), 'success');
+      setTimeout(() => window.location.replace('/dashboard'), 1200);
+    } catch (err) {
+      if (missingSession(err)) return showExpiredRecovery();
+      showMsg(msg, err?.message || t('les.failed'));
+    } finally {
+      setLoading(btn, false);
+    }
   });
 </script>
 </body>

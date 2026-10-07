@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title data-i18n="ob.pageTitle">Configurare · LD Platform</title>
-<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/img/favicon.svg?v=5" type="image/svg+xml">
 <link rel="stylesheet" href="/css/styles.css">
 <link rel="stylesheet" href="/css/antd.css">
 <script>
@@ -21,8 +21,17 @@
   } catch (e) {}
 </script>
 </head>
-<body class="page-top">
-  <div class="page-loader" id="pageLoader"><div class="mark" id="loaderMark"></div></div>
+<body class="page-top onboarding-page">
+  <div class="page-loader" id="pageLoader" role="status" aria-live="polite" aria-atomic="true">
+    <div class="page-loader-scene">
+      <div class="page-loader-cards" aria-hidden="true">
+        <span class="page-loader-card"></span>
+        <span class="page-loader-card"></span>
+        <span class="page-loader-card"></span>
+      </div>
+      <span class="page-loader-caption" data-i18n="common.moment"></span>
+    </div>
+  </div>
   <header class="topbar" id="topbar"></header>
 
   <main class="card xwide" id="card">
@@ -80,15 +89,15 @@
   </main>
 
 <script type="module">
-  import { getSupabase, requireSession, getProfile, renderTopbar, showMsg, hideMsg } from '/js/supabase.js';
+  import { getSupabase, requireSession } from '/js/supabase-client.js';
+  import { getProfile, renderTopbar, showMsg, hideMsg } from '/js/supabase.js';
   import { setLoading, skeletonCards, stagger, hidePageLoader, toast } from '/js/ui.js';
   import { domainIcon } from '/js/domain-icons.js';
   import { initI18n, t, tp, onLangChange, languageName, domainName, domainDescription, topicName } from '/js/i18n.js';
-  import { LOGO_SVG, renderFooter } from '/js/brand.js';
+  import { renderFooter } from '/js/brand.js';
   import { applyPrefs } from '/js/prefs.js';
 
   applyPrefs();
-  document.getElementById('loaderMark').innerHTML = LOGO_SVG;
   await initI18n();
 
   const byId = id => document.getElementById(id);
@@ -112,22 +121,37 @@
 
   const state = { language: null, level: null, domains: new Set(), topics: {} };
 
-  const [{ data: languages }, { data: domains }] = await Promise.all([
+  const [languagesResult, domainsResult] = await Promise.all([
     sb.from('languages').select('*').order('name'),
     sb.from('domains').select('*').order('name')
   ]);
+  const catalogError = languagesResult.error || domainsResult.error;
+  if (catalogError) {
+    showMsg(msg, catalogError.message);
+    throw new Error('page-data-unavailable');
+  }
+  const { data: languages } = languagesResult;
+  const { data: domains } = domainsResult;
   if (!languages?.length || !domains?.length) {
     showMsg(msg, t('ob.emptyDb'));
   }
 
+  let selectionLoadError = null;
   if (isEdit) {
-    const { data: ul } = await sb.from('user_languages').select('*').eq('user_id', user.id).limit(1);
-    if (ul?.[0]) {
+    const { data: ul, error: languagesError } = await sb.from('user_languages').select('*').eq('user_id', user.id).limit(1);
+    if (languagesError) {
+      selectionLoadError = languagesError;
+    } else if (ul?.[0]) {
       state.language = ul[0].language_code;
       state.level = ul[0].level;
-      const { data: ud } = await sb.from('user_domains').select('*').eq('user_id', user.id).eq('language_code', state.language);
-      (ud || []).forEach(d => { state.domains.add(d.domain_slug); state.topics[d.domain_slug] = new Set(d.topics); });
+      const { data: ud, error: domainsError } = await sb.from('user_domains').select('*').eq('user_id', user.id).eq('language_code', state.language);
+      if (domainsError) {
+        selectionLoadError = domainsError;
+      } else {
+        (ud || []).forEach(d => { state.domains.add(d.domain_slug); state.topics[d.domain_slug] = new Set(d.topics); });
+      }
     }
+    if (selectionLoadError) showMsg(msg, selectionLoadError.message);
   }
 
   const show = n => {
@@ -251,27 +275,31 @@
   });
 
   byId('finish').addEventListener('click', async () => {
+    if (selectionLoadError) return showMsg(msg, selectionLoadError.message);
     const chosen = [...state.domains].filter(s => state.topics[s]?.size > 0);
     if (!chosen.length) return showMsg(msg, t('ob.noTopics'));
     const btn = byId('finish');
     setLoading(btn, true, t('common.moment'));
-
-    const { error: e1 } = await sb.from('user_languages').upsert({ user_id: user.id, language_code: state.language, level: state.level });
-    if (e1) { setLoading(btn, false); return showMsg(msg, e1.message); }
-
-    await sb.from('user_domains').delete().eq('user_id', user.id).eq('language_code', state.language);
-    const rows = chosen.map(slug => ({ user_id: user.id, language_code: state.language, domain_slug: slug, topics: [...state.topics[slug]] }));
-    const { error: e2 } = await sb.from('user_domains').insert(rows);
-    if (e2) { setLoading(btn, false); return showMsg(msg, e2.message); }
-
-    await sb.from('profiles').update({ onboarding_done: true }).eq('id', user.id);
-    localStorage.setItem('activeLanguage', state.language);
-    toast(t('common.saved'), 'success');
-    setTimeout(() => window.location.replace('/dashboard'), 400);
+    try {
+      const domains = chosen.map(domain_slug => ({ domain_slug, topics: [...state.topics[domain_slug]] }));
+      const { error } = await sb.rpc('save_onboarding', {
+        p_language: state.language, p_level: state.level, p_domains: domains,
+      });
+      if (error) {
+        setLoading(btn, false);
+        return showMsg(msg, error.message);
+      }
+      localStorage.setItem('activeLanguage', state.language);
+      toast(t('common.saved'), 'success');
+      setTimeout(() => window.location.replace('/dashboard'), 400);
+    } catch (error) {
+      setLoading(btn, false);
+      showMsg(msg, error?.message || t('dash.widgets.saveFailed'));
+    }
   });
 
   updateCounts();
-  if (isEdit && state.language) show(1);
+  if (isEdit && state.language && !selectionLoadError) show(1);
   renderFooter();
 
   // Level cards, the select-all buttons and the counters are built in JS.

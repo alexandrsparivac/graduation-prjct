@@ -11,6 +11,7 @@
  */
 
 import { newCard, schedule } from './srs.js';
+import { fetchAllRows } from './paginated-query.js';
 
 /** Postgres error for "relation does not exist" -- migration 005 not run yet. */
 const MISSING_TABLE = '42P01';
@@ -53,16 +54,17 @@ export async function saveLessonVocabulary(sb, { userId, language, domain, topic
 
 /** Every card the learner holds in one language. */
 export async function loadCards(sb, { userId, language }) {
-  const { data, error } = await sb.from('user_vocabulary')
-    .select('term, translation, kind, example, domain_slug, topic, ease, interval_days, reps, lapses, due_on, last_review_on')
+  const query = sb.from('user_vocabulary')
+    .select('term, translation, kind, example, domain_slug, topic, ease, interval_days, reps, lapses, due_on, last_review_on', { count: 'exact' })
     .eq('user_id', userId)
-    .eq('language_code', language);
-
-  if (error) {
+    .eq('language_code', language)
+    .order('term', { ascending: true });
+  try {
+    return { cards: await fetchAllRows(query), ready: true };
+  } catch (error) {
     if (isMissingTable(error)) return { cards: [], ready: false };
     throw error;
   }
-  return { cards: data || [], ready: true };
 }
 
 /** Apply one grade and write the new schedule back. Returns what was stored. */

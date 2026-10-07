@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title data-i18n="set.pageTitle">Setări · LD Platform</title>
-<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/img/favicon.svg?v=5" type="image/svg+xml">
 <link rel="stylesheet" href="/css/styles.css">
 <link rel="stylesheet" href="/css/antd.css">
 <script>
@@ -21,8 +21,17 @@
   } catch (e) {}
 </script>
 </head>
-<body class="page-top">
-  <div class="page-loader" id="pageLoader"><div class="mark" id="loaderMark"></div></div>
+<body class="page-top settings-page">
+  <div class="page-loader" id="pageLoader" role="status" aria-live="polite" aria-atomic="true">
+    <div class="page-loader-scene">
+      <div class="page-loader-cards" aria-hidden="true">
+        <span class="page-loader-card"></span>
+        <span class="page-loader-card"></span>
+        <span class="page-loader-card"></span>
+      </div>
+      <span class="page-loader-caption" data-i18n="common.moment"></span>
+    </div>
+  </div>
   <header class="topbar" id="topbar"></header>
 
   <main class="card xwide">
@@ -38,15 +47,15 @@
   </main>
 
 <script type="module">
-  import { getSupabase, getProfile, renderTopbar } from '/js/supabase.js';
+  import { getSupabase } from '/js/supabase-client.js';
+  import { getProfile, renderTopbar } from '/js/supabase.js';
   import { hidePageLoader } from '/js/ui.js';
   import { initI18n, applyI18n, onLangChange } from '/js/i18n.js';
-  import { LOGO_SVG, renderFooter, logoLockup } from '/js/brand.js';
+  import { renderFooter, logoLockup } from '/js/brand.js';
   import { applyPrefs } from '/js/prefs.js';
   import { renderSettingsPanel } from '/js/settings.js';
 
   applyPrefs();
-  document.getElementById('loaderMark').innerHTML = LOGO_SVG;
   await initI18n();
 
   // Settings work signed out too — theme and language are useful on the login

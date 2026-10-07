@@ -2,10 +2,11 @@
 // different text, so they share one renderer. Everything is keyed through i18n,
 // and none of them needs an account: they are reachable from the login screen.
 
-import { getSupabase, getProfile, renderTopbar } from '/js/supabase.js';
+import { getSupabase } from '/js/supabase-client.js';
+import { getProfile, renderTopbar } from '/js/supabase.js';
 import { hidePageLoader } from '/js/ui.js';
 import { initI18n, applyI18n, onLangChange } from '/js/i18n.js';
-import { LOGO_SVG, renderFooter, logoLockup } from '/js/brand.js';
+import { renderFooter, logoLockup } from '/js/brand.js';
 import { applyPrefs } from '/js/prefs.js';
 
 /**
@@ -18,7 +19,6 @@ import { applyPrefs } from '/js/prefs.js';
  */
 export async function mountDocPage({ titleKey, subKey, prefix, count, shape }) {
   applyPrefs();
-  document.getElementById('loaderMark').innerHTML = LOGO_SVG;
   await initI18n();
 
   const [hk, bk] = shape === 'qa' ? ['q', 'a'] : ['h', 'p'];
@@ -26,6 +26,7 @@ export async function mountDocPage({ titleKey, subKey, prefix, count, shape }) {
     <section class="doc-item">
       <h2 data-i18n="${prefix}.${hk}${n + 1}"></h2>
       <p data-i18n="${prefix}.${bk}${n + 1}"></p>
+      ${prefix === 'priv' && n === 2 ? '<p data-i18n="priv.audio"></p><p data-i18n="priv.recognition"></p>' : ''}
     </section>`).join('');
   document.getElementById('doc-title').setAttribute('data-i18n', titleKey);
   document.getElementById('doc-sub').setAttribute('data-i18n', subKey);

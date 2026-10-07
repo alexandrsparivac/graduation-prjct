@@ -1,5 +1,5 @@
-// User preferences that are not part of the learning data: theme, background
-// animation, lesson translation visibility, speech rate.
+// User preferences that are not part of the learning data: theme, ambient
+// background animation, lesson translation visibility, speech rate and voice.
 //
 // They live in localStorage so they apply before the first paint and work even
 // when signed out. The matching snippet in each page's <head> reads the same
@@ -9,12 +9,14 @@ const KEY = 'prefs';
 
 export const DEFAULTS = {
   theme: 'system',          // 'system' | 'light' | 'dark'
-  bgWords: true,            // animated words behind the login card
+  bgWords: true,            // ambient background effects
   showTranslations: true,   // reveal the reading translation without asking
-  speechRate: 'normal'      // 'slow' | 'normal' | 'fast'
+  speechRate: 'normal',     // 'slow' | 'normal' | 'fast'
+  speechVoice: 'male'       // 'male' | 'female'
 };
 
 export const SPEECH_RATES = { slow: 0.72, normal: 0.95, fast: 1.15 };
+export const SPEECH_VOICES = ['male', 'female'];
 
 let cache = null;
 
@@ -30,13 +32,15 @@ export function getPrefs() {
   let saved = {};
   try { saved = JSON.parse(store.get(KEY) || '{}'); } catch { /* corrupt value, ignore */ }
   cache = { ...DEFAULTS, ...saved };
+  if (!SPEECH_VOICES.includes(cache.speechVoice)) cache.speechVoice = DEFAULTS.speechVoice;
   return cache;
 }
 
 export const getPref = key => getPrefs()[key];
 
-/** Numeric rate for speechSynthesis, from the stored label. */
+/** Numeric synthesis rate for the neural voice, from the stored label. */
 export const speechRate = () => SPEECH_RATES[getPref('speechRate')] ?? SPEECH_RATES.normal;
+export const speechVoice = () => SPEECH_VOICES.includes(getPref('speechVoice')) ? getPref('speechVoice') : DEFAULTS.speechVoice;
 
 const listeners = new Set();
 
@@ -74,9 +78,8 @@ export function applyPrefs() {
 }
 
 /**
- * The animated words sit behind every page, not only login. The field is built
- * the first time the words are switched on, so leaving them off costs nothing
- * and switching them back on never needs a reload. CSS hides it when off.
+ * The ambient background sits behind every page. The field is built the first
+ * time the effect is switched on, so leaving it off costs nothing.
  */
 let wordsMounted = false;
 function ensureBackgroundWords() {

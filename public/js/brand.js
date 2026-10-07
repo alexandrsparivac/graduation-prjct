@@ -1,5 +1,5 @@
 // Brand assets in one place: the LD mark, the lockup, and the page footer.
-// The mark is drawn with currentColor so it inverts with the theme.
+// Variant 3 keeps its original light tile and dark negative-space LD mark.
 
 import { applyI18n, onLangChange } from './i18n.js';
 
@@ -7,10 +7,12 @@ import { applyI18n, onLangChange } from './i18n.js';
 export const BRAND_NAME = 'Platform';
 export const BRAND_FULL = 'LD Platform';
 
-/** The bare LD ligature. Sized by CSS, coloured by currentColor. */
-export const LOGO_SVG = `<svg class="logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 5V19h4"/><path d="M11 19V5h2.5C17.1 5 19.5 8.1 19.5 12s-2.4 7-6 7H11Z"/></svg>`;
+export const LOGO_SVG = '<img class="logo-mark logo-mark-inverted" src="/img/logo-inverted.svg" alt=""><img class="logo-mark logo-mark-original" src="/img/logo.svg" alt="">';
 
-/** Mark inside the dark rounded tile, as used in the top bar and the loader. */
+// Generic AI symbol, styled like the other outline icons.
+const AI_MARK = `<svg class="ai-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><path d="m12 4 2.4 6.6L21 13l-6.6 2.4L12 22l-2.4-6.6L3 13l6.6-2.4L12 4Z"/><path d="M20 2v4m-2-2h4M4 2v4M2 4h4"/></svg>`;
+
+/** The complete logo tile, as used in the top bar and login. */
 export const LOGO_TILE = `<span class="brand-mark">${LOGO_SVG}</span>`;
 
 /** Tile + wordmark, linking home unless `as` says otherwise. */
@@ -34,7 +36,7 @@ export function renderFooter() {
   // with the page above it.
   el.innerHTML = `
     <div class="footer-inner">
-      <span class="footer-brand">${LOGO_SVG}<span>${BRAND_NAME}</span></span>
+      <span class="footer-brand footer-powered"><span data-i18n="foot.generated"></span>${AI_MARK}</span>
       <nav class="footer-nav">
         <a href="/faq" data-i18n="foot.faq"></a>
         <a href="/terms" data-i18n="foot.terms"></a>

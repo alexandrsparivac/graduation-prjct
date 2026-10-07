@@ -30,7 +30,11 @@ test('every selectable language covers every seeded domain and topic, plus UI er
       assert.ok(catalog[slug].name.trim() && catalog[slug].description.trim());
       assert.ok(catalog[slug].topics.every(topic => typeof topic === 'string' && topic.trim()));
     }
-    for (const key of ['set.language.hint', 'set.language.saveFailed', 'les.language.needsSetup', 'les.quota']) {
+    for (const key of ['reset.expired', 'foot.generated', 'set.language.hint', 'set.language.saveFailed', 'les.language.needsSetup', 'les.quota', 'audio.error', 'priv.audio',
+      'set.speechVoice', 'set.speechVoice.hint', 'set.speechVoice.male', 'set.speechVoice.female',
+      'set.speechVoice.preview', 'set.speechVoice.stop', 'set.speechVoice.sample', 'set.speechVoice.playing', 'set.speechVoice.finished',
+      'dash.widgets.manage', 'dash.widgets.hint', 'dash.widgets.hide', 'dash.widgets.reset', 'dash.widgets.unavailable',
+      'dash.widgets.saveFailed', 'dash.widgets.retry', 'dash.widgets.level']) {
       assert.ok(strings[key]?.trim(), `${code}/${key}`);
     }
   }
@@ -174,25 +178,75 @@ test('a missing localized version does not display the Romanian cached content',
 });
 
 test('saving a language variant writes to its own cache and leaves the base lesson untouched', async () => {
-  const sb = cacheClient([{ error: null }]);
+  const writes = [];
+  const sb = { ...cacheClient([]), auth: { getSession: async () => ({ data: { session: { access_token: 'test' } }, error: null }) } };
+  const fetchImpl = async (url, options) => {
+    writes.push({ url, body: JSON.parse(options.body), authorization: options.headers.Authorization });
+    return Response.json({ created: true }, { status: 201 });
+  };
   const row = await saveLocalizedLesson(sb, { params, nativeLanguage: 'en', content: { title: 'English' },
-    model: 'new', userId: 'user-1', baseRow: original });
+    model: 'new', userId: 'user-1', baseRow: original, cacheProof: 'proof', cacheIssuedAt: 1, fetchImpl });
   assert.equal(row.id, original.id);
-  assert.equal(sb.calls.length, 1);
-  assert.equal(sb.calls[0].table, 'lesson_localizations');
-  assert.equal(sb.calls[0].row.native_language, 'en');
-  assert.equal(sb.calls[0].row.lesson_id, original.id);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].url, '/api/lesson-cache');
+  assert.equal(writes[0].body.kind, 'localization');
+  assert.equal(writes[0].body.nativeLanguageCode, 'en');
+  assert.equal(writes[0].body.lessonId, original.id);
+  assert.equal(writes[0].authorization, 'Bearer test');
   assert.equal(original.content.title, 'Română');
 });
 
+test('regenerated lessons persist privately and reload with the same lesson id', async () => {
+  const content = { title: 'A completely new lesson' };
+  const writes = [];
+  const sb = { ...cacheClient([]), auth: { getSession: async () => ({
+    data: { session: { access_token: 'test' } }, error: null,
+  }) } };
+  const saved = await saveLocalizedLesson(sb, { params, nativeLanguage: 'ro', content,
+    model: 'new', userId: 'user-1', baseRow: original, personal: true,
+    cacheProof: 'proof', cacheIssuedAt: 1,
+    fetchImpl: async (url, options) => {
+      writes.push({ url, body: JSON.parse(options.body) });
+      return Response.json({ saved: true }, { status: 201 });
+    } });
+  assert.equal(saved.personal, true);
+  assert.equal(saved.id, original.id);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].url, '/api/lesson-cache');
+  assert.equal(writes[0].body.kind, 'personal');
+  assert.equal(writes[0].body.lessonId, original.id);
+  assert.deepEqual(writes[0].body.content, content);
+  assert.equal(sb.calls.length, 0, 'personal variants must not be written directly by the browser');
+  const reload = cacheClient([{ data: original }, { data: { lesson_variant: {
+    native_language: 'ro', content, model: 'new',
+  } } }]);
+  assert.deepEqual((await loadLocalizedLesson(reload, params, 'ro', 'user-1')).content, content);
+  assert.deepEqual(reload.calls[1].filters, [['user_id', 'user-1'], ['lesson_id', original.id]]);
+  assert.equal(original.content.title, 'Română');
+});
+
+test('a private variant in another base language does not replace the selected language content', async () => {
+  const sb = cacheClient([{ data: original }, { data: { lesson_variant: { native_language: 'en', content: { title: 'English' } } } }]);
+  assert.equal((await loadLocalizedLesson(sb, params, 'ro', 'user-1')).content.title, 'Română');
+});
+
 test('a new base lesson records the language and a concurrent insert shares the existing id', async () => {
-  const sb = cacheClient([{ data: { ...original, native_language: 'en' } }]);
-  await saveLocalizedLesson(sb, { params, nativeLanguage: 'en', content: {}, model: 'new', userId: 'user-1' });
-  assert.equal(sb.calls[0].row.native_language, 'en');
-  const concurrent = cacheClient([
-    { error: { code: '23505', message: 'Duplicate' } }, { data: original }, { data: null }, { error: null },
-  ]);
-  const row = await saveLocalizedLesson(concurrent, { params, nativeLanguage: 'en', content: { title: 'English' }, model: 'new', userId: 'user-1' });
+  const sb = { ...cacheClient([]), auth: { getSession: async () => ({ data: { session: { access_token: 'test' } }, error: null }) } };
+  const saved = { ...original, native_language: 'en' };
+  await saveLocalizedLesson(sb, { params, nativeLanguage: 'en', content: {}, model: 'new', userId: 'user-1',
+    cacheProof: 'proof', cacheIssuedAt: 1, fetchImpl: async () => Response.json({ row: saved, created: true }, { status: 201 }) });
+  const concurrent = { ...cacheClient([]), auth: { getSession: async () => ({ data: { session: { access_token: 'test' } }, error: null }) } };
+  const requests = [];
+  const fetchImpl = async (_url, options) => {
+    const payload = JSON.parse(options.body);
+    requests.push(payload);
+    return payload.kind === 'lesson'
+      ? Response.json({ row: original, created: false })
+      : Response.json({ created: true }, { status: 201 });
+  };
+  const row = await saveLocalizedLesson(concurrent, { params, nativeLanguage: 'en', content: { title: 'English' },
+    model: 'new', userId: 'user-1', cacheProof: 'proof', cacheIssuedAt: 1, fetchImpl });
+  assert.equal(requests.at(-1).kind, 'localization');
   assert.equal(row.id, original.id);
-  assert.equal(concurrent.calls.at(-1).table, 'lesson_localizations');
+  assert.equal(concurrent.calls.length, 0);
 });

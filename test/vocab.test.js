@@ -7,10 +7,18 @@ const TODAY = new Date(2026, 8, 10, 12, 0, 0);
 
 /** A Supabase stand-in that records what it was asked to do. */
 function stubClient({ upsertError = null, selectError = null, rows = [], updateError = null } = {}) {
-  const calls = { upsert: null, update: null, filters: [] };
+  const calls = { upsert: null, update: null, filters: [], ranges: [], orders: [] };
   const api = {
     upsert(payload, options) { calls.upsert = { payload, options }; return Promise.resolve({ error: upsertError }); },
-    select() { return { eq(col, val) { calls.filters.push([col, val]); return this; }, then(res) { return Promise.resolve({ data: rows, error: selectError }).then(res); } }; },
+    select() {
+      let from = 0, to = Infinity;
+      return {
+        eq(col, val) { calls.filters.push([col, val]); return this; },
+        order(col, options) { calls.orders.push([col, options]); return this; },
+        range(start, end) { from = start; to = end; calls.ranges.push([start, end]); return this; },
+        then(res) { return Promise.resolve({ data: rows?.slice(from, to + 1) ?? null, error: selectError, count: rows?.length ?? 0 }).then(res); },
+      };
+    },
     update(patch) { calls.update = patch; return { eq(col, val) { calls.filters.push([col, val]); return this; }, then(res) { return Promise.resolve({ error: updateError }).then(res); } }; },
   };
   return { from: () => api, calls };

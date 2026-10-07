@@ -49,7 +49,7 @@ export function hidePageLoader() {
 }
 
 // These are thrown on purpose to stop a page that is already redirecting.
-const EXPECTED_ABORTS = new Set(['redirect', 'no supabase']);
+const EXPECTED_ABORTS = new Set(['redirect', 'no supabase', 'page-data-unavailable']);
 
 /**
  * A page that throws while booting used to sit on the loading animation for
@@ -78,12 +78,12 @@ export function toast(text, kind = 'info', ms = 2600) {
 }
 
 /**
- * A trigger button and the panel it opens, with antd's slide-up motion.
+ * A trigger button and its panel, with a short reversible fade/slide.
  *
  * Closing has to outlive the click that caused it: the panel stays in the page
- * until the outgoing animation ends, otherwise it would just blink out. Nothing
- * guarantees `animationend` arrives — reduced motion cuts the animation to
- * almost nothing, and a panel removed mid-flight never fires it — so a timer
+ * until the outgoing transition ends, otherwise it would just blink out. Nothing
+ * guarantees `transitionend` arrives — reduced motion disables the transition,
+ * and a panel removed mid-flight never fires it — so a timer
  * finishes the job either way and the panel can never be left stuck open.
  *
  * @returns {{open: () => void, close: () => void, isOpen: () => boolean}}
@@ -95,26 +95,37 @@ export function wireDropdown(trigger, drop) {
 
   const settle = () => {
     clearTimeout(timer);
-    if (onEnd) { drop.removeEventListener('animationend', onEnd); onEnd = null; }
+    if (onEnd) { drop.removeEventListener('transitionend', onEnd); onEnd = null; }
   };
 
   const open = () => {
     settle();
+    const wasHidden = drop.hidden;
     drop.classList.remove('is-closing');
     drop.hidden = false;
+    drop.inert = false;
+    drop.removeAttribute('aria-hidden');
+    // Establish the initial style only on a fresh opening. Reopening during
+    // closing preserves the in-flight position so CSS can reverse smoothly.
+    if (wasHidden) void drop.offsetHeight;
+    drop.classList.add('is-open');
     trigger.setAttribute('aria-expanded', 'true');
   };
 
   const close = () => {
     if (!isOpen()) return;
+    if (drop.contains(document.activeElement)) trigger.focus();
     trigger.setAttribute('aria-expanded', 'false');
+    drop.inert = true;
+    drop.setAttribute('aria-hidden', 'true');
+    drop.classList.remove('is-open');
     drop.classList.add('is-closing');
     const finish = () => { settle(); drop.hidden = true; drop.classList.remove('is-closing'); };
-    // Children do not animate, but guard anyway so a stray bubbled event
-    // cannot cut the panel short.
-    onEnd = e => { if (e.target === drop) finish(); };
-    drop.addEventListener('animationend', onEnd);
-    timer = setTimeout(finish, 400);
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
+    // Ignore descendant hover transitions and the separate transform event.
+    onEnd = e => { if (e.target === drop && e.propertyName === 'opacity') finish(); };
+    drop.addEventListener('transitionend', onEnd);
+    timer = setTimeout(finish, 250);
   };
 
   trigger.addEventListener('click', e => { e.stopPropagation(); if (isOpen()) close(); else open(); });
@@ -133,5 +144,35 @@ export function wireDropdown(trigger, drop) {
   document.addEventListener('click', onDocClick);
   document.addEventListener('keydown', onKey);
 
+  return { open, close, isOpen };
+}
+
+/** Inline header commands stay visible until the profile toggle or Escape
+ * closes them. CSS reverses the width/fade transition on repeated clicks.
+ */
+export function wireHeaderActions(trigger, actions, { panel = actions } = {}) {
+  const host = actions.parentElement;
+  const isOpen = () => trigger.getAttribute('aria-expanded') === 'true';
+  const setOpen = on => {
+    // Animate to the real content width on both sides. An oversized max-width
+    // would make a short language list finish earlier than the profile menu.
+    if (on && panel !== actions) {
+      panel.style.setProperty('--header-content-width', `${actions.scrollWidth}px`);
+    }
+    if (!on && actions.contains(document.activeElement)) trigger.focus();
+    trigger.setAttribute('aria-expanded', String(on));
+    actions.inert = !on;
+    actions.setAttribute('aria-hidden', String(!on));
+    host.classList.toggle('is-menu-open', on);
+  };
+  const open = () => setOpen(true);
+  const close = () => setOpen(false);
+  setOpen(false);
+  trigger.addEventListener('click', () => setOpen(!isOpen()));
+  const onKey = e => {
+    if (!actions.isConnected) return document.removeEventListener('keydown', onKey);
+    if (e.key === 'Escape' && isOpen()) { close(); trigger.focus(); }
+  };
+  document.addEventListener('keydown', onKey);
   return { open, close, isOpen };
 }

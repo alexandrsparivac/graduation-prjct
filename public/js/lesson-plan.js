@@ -1,6 +1,7 @@
 // The shape of a lesson, worked out from its content alone: the screen-by-screen
 // flow, the sections the learner moves through, how far along they are, and
 // roughly how long it will take. No DOM and no clock, so it runs under Node.
+import { countWords } from './text-segmentation.js';
 
 /**
  * Sections in the order they are taught. `key` doubles as the i18n key of the
@@ -20,6 +21,8 @@ export const SECTIONS = [
   { key: 'tips',      tab: 'tab.tips',      unit: 'les.cnt.tips',      seconds: 8, tone: 'gold' },
 ];
 
+export const VOCAB_CARDS_PER_PAGE = 3;
+
 // Reading a passage and a grammar explanation take time of their own, before
 // any of their questions. A learner reads a foreign text at roughly 100 words
 // a minute; the explanation is budgeted as a flat minute.
@@ -27,8 +30,6 @@ const READING_WPM = 100;
 const GRAMMAR_INTRO_SECONDS = 60;
 
 const len = a => (Array.isArray(a) ? a.length : 0);
-const wordCount = s => (typeof s === 'string' ? s.trim().split(/\s+/).filter(Boolean).length : 0);
-
 /**
  * One screen per exercise: intro, the study decks, every question, results.
  * Each step names its section, so the progress bar can group them; intro and
@@ -67,9 +68,9 @@ function itemCount(key, c) {
   }
 }
 
-function sectionSeconds(s, c) {
+function sectionSeconds(s, c, languageCode) {
   let secs = itemCount(s.key, c) * s.seconds;
-  if (s.key === 'reading') secs += wordCount(c.reading?.passage) / READING_WPM * 60;
+  if (s.key === 'reading') secs += countWords(c.reading?.passage, languageCode) / READING_WPM * 60;
   if (s.key === 'grammar' && c.grammar) secs += GRAMMAR_INTRO_SECONDS;
   return secs;
 }
@@ -78,7 +79,7 @@ function sectionSeconds(s, c) {
  * The table of contents shown before the lesson starts. A section the lesson
  * does not have is left out rather than listed as zero.
  */
-export function lessonPlan(c) {
+export function lessonPlan(c, languageCode = c.language_code || 'en') {
   return SECTIONS
     .map(s => ({ key: s.key, tab: s.tab, unit: s.unit, tone: s.tone, count: itemCount(s.key, c) }))
     .filter(s => s.count > 0);
@@ -88,8 +89,8 @@ export function lessonPlan(c) {
  * Minutes the lesson should take, rounded to the nearest five: an estimate
  * that claims to know "27 minutes" is pretending. Never less than five.
  */
-export function estimateMinutes(c) {
-  const secs = SECTIONS.reduce((sum, s) => sum + sectionSeconds(s, c), 0);
+export function estimateMinutes(c, languageCode = c.language_code || 'en') {
+  const secs = SECTIONS.reduce((sum, s) => sum + sectionSeconds(s, c, languageCode), 0);
   return Math.max(5, Math.round(secs / 60 / 5) * 5);
 }
 
@@ -117,18 +118,32 @@ export function currentSection(flow, stepIdx) {
   return flow[stepIdx]?.section ?? null;
 }
 
+/** Count exercises completed, including individual cards inside the vocabulary deck. */
+export function lessonCompletion(flow, stepIdx, state, vocabularyCount) {
+  const weight = step => ['intro', 'results'].includes(step.kind) ? 0
+    : step.kind === 'deck' ? vocabularyCount : 1;
+  const total = flow.reduce((sum, step) => sum + weight(step), 0);
+  let completed = flow.slice(0, stepIdx).reduce((sum, step) => sum + weight(step), 0);
+  const step = flow[stepIdx];
+  if (step?.kind === 'deck') completed += Math.max(0, Math.min(vocabularyCount, state.deck?.i || 0));
+  const prefix = { rmcq: 'r', listen: 'l', quiz: 'q' }[step?.kind];
+  if ((prefix && state.mcq?.[prefix + step.index]?.checked)
+    || (step?.kind === 'gap' && state.gap?.['g' + step.index]?.checked)) completed++;
+  return { completed: Math.min(total, completed), total };
+}
+
 /**
  * The generator likes to append the level to the title — "Personal training –
  * B2 lesson", "Contracts (B2)" — which the intro already shows on its own.
  * Drop a short trailing part that names the level; keep anything longer, and
  * keep the title whole if nothing would be left of it.
  */
-export function cleanTitle(title, level) {
+export function cleanTitle(title, level, languageCode = 'en') {
   const s = String(title ?? '').trim();
   if (!level) return s;
   const lv = String(level).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const named = part => new RegExp(`(^|[^\\p{L}\\p{N}])${lv}($|[^\\p{L}\\p{N}])`, 'iu').test(part);
-  const short = part => part.trim().split(/\s+/).filter(Boolean).length <= 4;
+  const short = part => countWords(part, languageCode) <= 4;
 
   // "(B2)" or "[B2 lesson]" at the end.
   let m = s.match(/^(.*?)\s*[([]([^()[\]]*)[)\]]\s*$/u);

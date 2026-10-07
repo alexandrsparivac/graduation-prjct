@@ -231,32 +231,68 @@ a { color: var(--navy); }
 /* ---------- Page loader ---------- */
 .page-loader {
   position: fixed; inset: 0; z-index: 50; background: var(--bg); display: grid; place-items: center;
-  transition: opacity 0.3s var(--ease), visibility 0.3s;
+  transition: opacity 0.24s var(--ease), visibility 0s linear 0.24s;
 }
-.page-loader.hide { opacity: 0; visibility: hidden; }
-.page-loader .mark { width: 44px; height: 44px; border-radius: var(--r-md); background: var(--btn-bg); color: var(--btn-fg); display: grid; place-items: center; }
-.page-loader .mark .logo-mark { width: 62%; height: 62%; }
-/* The LD strokes write themselves in, then run off the same way — a loop that
-   reads as progress without a spinner. */
-.page-loader .mark .logo-mark path { stroke-dasharray: 64; stroke-dashoffset: 64; animation: logoDraw 1.8s var(--ease) infinite; }
-.page-loader .mark .logo-mark path:nth-child(2) { animation-delay: 0.16s; }
-@keyframes logoDraw { 0% { stroke-dashoffset: 64; } 40% { stroke-dashoffset: 0; } 68% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -64; } }
+.page-loader.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+.page-loader-scene {
+  display: grid; justify-items: center; gap: 16px;
+  transition: transform 0.24s var(--ease);
+}
+.page-loader.hide .page-loader-scene { transform: translateY(-6px); }
+.page-loader-cards { position: relative; width: 112px; height: 80px; }
+.page-loader-card {
+  position: absolute; top: 14px; left: 35px; width: 42px; height: 54px;
+  border: 1px solid var(--border-strong); border-radius: 9px;
+  background: var(--card-bg); color: var(--text-muted); box-shadow: var(--shadow);
+  transform-origin: 50% 85%; transform: translate(-26px, 5px) rotate(-14deg) scale(0.9);
+  animation: pageCardShuffle 2.8s var(--ease) infinite;
+}
+.page-loader-card::before, .page-loader-card::after {
+  content: ""; position: absolute; left: 10px; height: 3px; border-radius: 2px;
+  background: currentColor; opacity: 0.35;
+}
+.page-loader-card::before { top: 17px; width: 20px; }
+.page-loader-card::after { top: 26px; width: 13px; }
+.page-loader-card:nth-child(2) {
+  transform: translate(0, -6px); z-index: 3; animation-delay: -0.933333s;
+}
+.page-loader-card:nth-child(3) {
+  transform: translate(26px, 5px) rotate(14deg) scale(0.9); animation-delay: -1.866667s;
+}
+.page-loader-caption { min-height: 20px; font-size: var(--fs-xs); line-height: 20px; color: var(--text-muted); }
+@keyframes pageCardShuffle {
+  0%, 100% { transform: translate(-26px, 5px) rotate(-14deg) scale(0.9); opacity: 0.65; z-index: 1; }
+  33.333% { transform: translate(0, -6px) rotate(0deg) scale(1); opacity: 1; z-index: 3; }
+  66.667% { transform: translate(26px, 5px) rotate(14deg) scale(0.9); opacity: 0.65; z-index: 1; }
+}
 @keyframes markPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.92); opacity: 0.7; } }
 
-/* ---------- Background words ---------- */
-.word-field { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; perspective: 600px; }
-.bg-word-pos { position: absolute; transform: translate(-50%, -50%); }
-.bg-word { display: inline-block; font-weight: 800; color: var(--word-color); white-space: nowrap; user-select: none; letter-spacing: -0.02em; will-change: transform, opacity; transform-origin: center; }
-.anim-drift { animation-name: driftA, breatheA; animation-timing-function: ease-in-out, ease-in-out; animation-iteration-count: infinite, infinite; animation-direction: alternate, alternate; }
-@keyframes driftA { from { transform: translate(0,0) rotate(var(--rot,0deg)) scale(var(--s,1)); } to { transform: translate(var(--dx,14px), var(--dy,-10px)) rotate(var(--rot2,0deg)) scale(var(--s,1)); } }
-@keyframes breatheA { 0% { opacity: var(--op-a,0.4); } 50% { opacity: var(--op-b,0.9); } 100% { opacity: var(--op-a,0.4); } }
-.anim-bob { animation-name: bobB, breatheB; animation-timing-function: ease-in-out, ease-in-out; animation-iteration-count: infinite, infinite; animation-direction: alternate, alternate; }
-@keyframes bobB { 0% { transform: translate(0,0) rotate(var(--rot,0deg)) scale(0.94); } 50% { transform: translate(var(--dx,8px), var(--dy,-18px)) rotate(var(--rot2,0deg)) scale(1.05); } 100% { transform: translate(0,0) rotate(var(--rot,0deg)) scale(0.94); } }
-@keyframes breatheB { 0%, 100% { opacity: var(--op-a,0.35); } 50% { opacity: var(--op-b,1); } }
-.anim-spin { animation-name: spinC, breatheA; animation-timing-function: ease-in-out, ease-in-out; animation-iteration-count: infinite, infinite; animation-direction: alternate, alternate; }
-@keyframes spinC { 0% { transform: translate(0,0) rotate(var(--rot,-6deg)) scale(0.96); } 100% { transform: translate(var(--dx,-16px), var(--dy,12px)) rotate(var(--rot2,6deg)) scale(1.08); } }
-.anim-pulse { animation-name: pulseD; animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; }
-@keyframes pulseD { 0% { transform: translate(0,0) rotate(var(--rot,0deg)) scale(0.85); opacity: var(--op-a,0.3); } 100% { transform: translate(var(--dx,10px), var(--dy,-14px)) rotate(var(--rot2,0deg)) scale(1.15); opacity: var(--op-b,0.95); } }
+/* ---------- Minimal language-inspired gradient background ---------- */
+.word-field { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.bg-language-gradient {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.34;
+  transform: translate(-50%, -50%);
+  animation: language-gradient-drift 20s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+.bg-language-gradient-violet {
+  background: radial-gradient(circle, rgba(164, 145, 255, 0.42), rgba(164, 145, 255, 0.12) 42%, transparent 72%);
+}
+.bg-language-gradient-blue {
+  background: radial-gradient(circle, rgba(111, 174, 255, 0.38), rgba(111, 174, 255, 0.1) 44%, transparent 72%);
+  animation-duration: 25s;
+}
+.bg-language-gradient-cyan {
+  background: radial-gradient(circle, rgba(93, 200, 198, 0.32), rgba(93, 200, 198, 0.08) 44%, transparent 72%);
+  animation-duration: 23s;
+}
+@keyframes language-gradient-drift {
+  from { transform: translate(-53%, -47%) scale(0.94); opacity: 0.28; }
+  to { transform: translate(-47%, -53%) scale(1.06); opacity: 0.4; }
+}
 
 /* ---------- Card ---------- */
 .card {
@@ -396,8 +432,8 @@ label { display: block; font-size: var(--fs-sm); font-weight: 600; color: var(--
   border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: var(--fs-md); color: var(--navy); text-decoration: none; letter-spacing: -0.01em; }
-.brand-mark { width: 26px; height: 26px; border-radius: var(--r-sm); background: var(--btn-bg); color: var(--btn-fg); display: grid; place-items: center; flex-shrink: 0; }
-.brand-mark .logo-mark { width: 64%; height: 64%; }
+.brand-mark { width: 26px; height: 26px; display: grid; place-items: center; flex-shrink: 0; }
+.brand-mark .logo-mark { width: 100%; height: 100%; }
 .brand-name { letter-spacing: 0.02em; }
 .topbar-right { display: flex; align-items: center; gap: 6px; }
 /* Icon-only buttons in the top bar: a square antd text button (40px target),
@@ -536,24 +572,24 @@ label { display: block; font-size: var(--fs-sm); font-weight: 600; color: var(--
 .tips li { font-size: var(--fs-base); line-height: 1.6; }
 
 .loader { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 44px 10px; color: var(--text-muted); font-size: var(--fs-sm); text-align: center; }
+.loader-cards { margin-bottom: 2px; }
+.loader-cards .page-loader-card { animation-duration: 2.8s; }
+.loader-message { display: inline-flex; align-items: baseline; justify-content: center; min-height: 48px; max-width: 680px; transition: opacity 0.22s var(--ease), transform 0.22s var(--ease); }
+.loader-message::after { content: "..."; display: inline-block; width: 1.2em; overflow: hidden; text-align: left; animation: loaderDots 1.2s steps(4, end) infinite; }
+.loader-message.changing { animation: loaderMessageIn 0.35s var(--ease); }
+@keyframes loaderMessageIn { from { opacity: 0.35; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes loaderDots { 0%, 20% { width: 0; } 45% { width: 0.4em; } 70% { width: 0.8em; } 100% { width: 1.2em; } }
 .spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loader-steps { display: grid; gap: 6px; font-size: var(--fs-sm); text-align: left; }
-.loader-steps li { list-style: none; display: flex; align-items: center; gap: 8px; color: var(--text-muted); transition: color 0.2s ease; }
-.loader-steps li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: background 0.2s ease; }
-.loader-steps li.on { color: var(--navy); }
-.loader-steps li.on::before { background: var(--navy); animation: markPulse 1s infinite; }
-.loader-steps li.done::before { background: var(--success); }
 
 .score { text-align: center; padding: 20px; animation: viewIn 0.3s var(--ease); }
 .score .big { font-size: var(--fs-display); font-weight: 800; color: var(--navy); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
-  .bg-word { animation: none !important; opacity: var(--op-a,0.5); }
-  /* The draw animation ends on a fully retracted stroke, so without it the
-     logo would be invisible. Show it whole instead. */
-  .page-loader .mark .logo-mark path { animation: none !important; stroke-dashoffset: 0 !important; }
+  .bg-language-gradient { animation: none !important; }
+  .page-loader-card { animation: none !important; }
+  .page-loader, .page-loader-scene { transition: none !important; }
 }
 @media (max-width: 480px) {
   .card { padding: 24px 18px 20px; }
@@ -719,27 +755,35 @@ body.has-footer > main { width: 100%; }
 [dir="rtl"] .back-link svg, [dir="rtl"] .btn-primary svg { transform: scaleX(-1); }
 [dir="rtl"] .settings-fab { right: auto; left: 16px; }
 
-/* ---------- Dashboard ----------
-   Structure: a hero action, a strip of figures, then a two-column body with a
-   rail. Borders carry structure, shadow carries depth, and spacing does the
-   grouping — there are no divider lines on this page. */
+/* ---------- Dashboard ---------- */
 
 .dash-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
 .dash-head h1 { margin: 0 0 4px; font-size: var(--fs-3xl); line-height: 1.1; letter-spacing: -0.02em; text-wrap: balance; }
 .dash-head .subtitle { margin: 0; }
 
-.dash-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 16px; }
-.dash-main, .dash-rail { display: grid; gap: 16px; min-width: 0; align-content: start; }
-@media (max-width: 920px) { .dash-grid { grid-template-columns: 1fr; } }
+.dash-content { display: flex; flex-wrap: wrap; gap: 16px; min-width: 0; }
+/* Flatten the rendering containers so fields and statistics share the same
+   rows. Wrapping follows the space available, independent of language count. */
+.dash-main, .dash-insights { display: contents; }
+.dash-main > * { flex: 1 1 100%; min-width: 0; }
+.dash-insights > * { flex: 1 1 300px; min-width: 0; }
+.dash-content:has(> .dash-main > .path-unit:only-child) .path-unit { flex: 2 1 600px; }
 
 /* Layout for the selection-card grids. The cards themselves are styled in
    antd.css; these rules only decide how many sit side by side. */
 .lang-switch { flex: 1 1 300px; max-width: 480px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
 .option-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.option-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .topic-options { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 .set-block { display: grid; gap: 10px; padding: 8px 0; }
+.voice-preview { justify-self: start; max-width: 100%; }
+.voice-preview-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.voice-preview-speaker.is-hidden,
+.voice-preview-spinner[hidden],
+.voice-preview-status[hidden] { display: none; }
+.voice-preview-status.is-error { color: var(--danger); }
 .option .lang-flag { margin-inline-end: 4px; }
-@media (max-width: 480px) { .option-grid-3 { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .option-grid-3, .option-grid-2 { grid-template-columns: 1fr; } }
 
 /* ---------- Dashboard: the one action ----------
    The only inverted surface on the page. Contrast, not a glow or an accent
@@ -799,7 +843,7 @@ body.has-footer > main { width: 100%; }
 /* ---------- Dashboard: activity ----------
    Sixteen weeks of local days. Held left-to-right even in RTL, because the
    legend and the month ticks read as one continuous timeline. */
-.heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 3px; direction: ltr; }
+.heat { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); grid-template-rows: repeat(7, 1fr); gap: 3px; direction: ltr; }
 .heat-cell { aspect-ratio: 1; border-radius: 2px; background: var(--chip-bg); border: 1px solid var(--border); }
 .heat-cell[data-level="1"] { background: color-mix(in srgb, var(--navy) 28%, var(--card-bg)); border-color: transparent; }
 .heat-cell[data-level="2"] { background: color-mix(in srgb, var(--navy) 52%, var(--card-bg)); border-color: transparent; }
@@ -913,7 +957,7 @@ body.has-footer > main { width: 100%; }
 #exercise { min-height: 280px; animation: viewIn 0.28s var(--ease); }
 .flow-foot {
   position: sticky; bottom: 0; display: flex; justify-content: flex-end;
-  padding: 16px 0 6px; margin-top: 22px; background: var(--bg); border-top: 1px solid var(--border);
+  padding: 16px 0 6px; margin-top: 22px; background: transparent; border: 0;
 }
 .ex-eyebrow { font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); margin-bottom: 8px; }
 #exercise h1 { font-size: var(--fs-3xl); }
