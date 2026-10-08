@@ -633,6 +633,10 @@ app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] })
 
 app.get('/', (_req, res) => res.redirect('/login'));
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}
+
+export default app;
