@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node tools/check-build.js && node tools/check-schema.js",
+    "build:web": "npm run build --prefix web",
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test",

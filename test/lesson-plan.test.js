@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildFlow, lessonPlan, estimateMinutes, sectionProgress, currentSection, cleanTitle, lessonCompletion, SECTIONS } from '../public/js/lesson-plan.js';
+import { buildFlow, lessonPlan, estimateMinutes, sectionProgress, currentSection, cleanTitle, lessonCompletion, SECTIONS } from '../shared/lesson-plan.js';
 
 // A lesson in the exact shape the generator is held to (isCompleteLesson).
 const words = n => Array.from({ length: n }, (_, i) => `w${i}`).join(' ');

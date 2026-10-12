@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   schedule, newCard, dueCards, session, vocabStats,
   MIN_EASE, START_EASE, AGAIN, HARD, GOOD, EASY, MAX_INTERVAL, MATURE_DAYS,
-} from '../public/js/srs.js';
+} from '../shared/srs.js';
 
 // A fixed local noon, so nothing here depends on when the suite runs.
 const DAY = d => new Date(2026, 8, d, 12, 0, 0); // September 2026, local time

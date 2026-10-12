@@ -191,6 +191,26 @@ try {
     [userId]);
   assert.equal(attemptCount.rows[0].count, 10, 'duplicate submissions must not create extra attempts');
 
+  await db.query('insert into public.user_languages (user_id, language_code, level) values ($1, $2, $3)',
+    [userId, 'ro', 'A1']);
+  await db.query('insert into public.user_domains (user_id, language_code, domain_slug, topics) values ($1, $2, $3, $4)',
+    [userId, 'ro', 'it', ['Code review']]);
+  await db.exec('set role authenticated');
+  await db.query('select public.delete_language($1)', ['ro']);
+  await db.exec('reset role');
+  const remainingLangs = await db.query('select language_code from public.user_languages where user_id = $1 order by 1',
+    [userId]);
+  assert.deepEqual(remainingLangs.rows.map(row => row.language_code), ['en'],
+    'deleting a language removes its row but keeps the others');
+  const remainingDomains = await db.query(
+    "select count(*)::int as count from public.user_domains where user_id = $1 and language_code = 'ro'",
+    [userId]);
+  assert.equal(remainingDomains.rows[0].count, 0, 'deleting a language removes its domain selections');
+  await db.exec('set role authenticated');
+  await assert.rejects(db.query('select public.delete_language($1)', ['xx']),
+    'deleting a language the account does not learn must fail');
+  await db.exec('reset role');
+
   console.log(`Schema validation passed: schema.sql and ${migrations.length} migrations applied; progression and shared-cache contracts are present.`);
 } finally {
   await db.close();

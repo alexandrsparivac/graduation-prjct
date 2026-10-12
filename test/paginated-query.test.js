@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchAllRows } from '../public/js/paginated-query.js';
+import { fetchAllRows } from '../shared/paginated-query.js';
 
 test('fetchAllRows retrieves every row even when the server returns shorter pages', async () => {
   const source = ['a', 'b', 'c', 'd', 'e'];

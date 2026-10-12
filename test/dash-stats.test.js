@@ -3,8 +3,9 @@ import test from 'node:test';
 import {
   dayKey, addDays, currentStreak, longestStreak, daysSinceLast, activityGrid,
   meanAccuracy, pacePerWeek, materialMet, favouriteSlot,
-  domainRollup, recentlyCompleted, promotionState, PASS
-} from '../public/js/dash-stats.js';
+  domainRollup, recentlyCompleted, promotionState, PASS,
+  scoresOverTime, lessonsPerWeek, weekKey, currentWeekCount,
+} from '../shared/dash-stats.js';
 
 // A fixed "today" so none of these tests depend on when they are run.
 const NOW = new Date(2026, 8, 27, 14, 0, 0); // 27 Sep 2026, a Sunday, 14:00 local
@@ -198,4 +199,42 @@ test('promotion state requires ten recent tests above the strict pass mark', () 
   const empty = promotionState({ level: 'A1', language: 'en' });
   assert.equal(empty.ready, false);
   assert.equal(empty.percent, 0);
+});
+
+test('score trend keeps chronological order, skips unscored rows and caps length', () => {
+  const rows = [
+    done(0, 8, 8), done(1, 4, 8),
+    { lesson_id: 'practice', completed: true, score: null, total: null, completed_at: addDays(NOW, -2).toISOString() },
+    done(3, 6, 8),
+  ];
+  const trend = scoresOverTime(rows, 20);
+  assert.deepEqual(trend.map(p => p.accuracy), [0.75, 0.5, 1]);
+  assert.ok(new Date(trend[0].at) < new Date(trend[1].at));
+  assert.equal(scoresOverTime([done(0), done(1), done(2)], 2).length, 2);
+  assert.deepEqual(scoresOverTime([], 20), []);
+});
+
+test('weekly buckets are Monday-first, end with the current week and count every lesson', () => {
+  // NOW is Sunday 27 Sep 2026; its Monday is 21 Sep.
+  const rows = [done(0), done(0, 8, 8, 18), done(6), done(8), done(13)];
+  const bars = lessonsPerWeek(rows, NOW, 8);
+  assert.equal(bars.length, 8);
+  assert.ok(bars.every(b => b.monday.getDay() === 1));
+  assert.equal(dayKey(bars.at(-1).monday), '2026-09-21');
+  assert.deepEqual(bars.slice(-3).map(b => b.count), [0, 2, 3]);
+  assert.equal(bars.at(-1).count, 3, 'Sun + Sun + Mon(21st) land in the current week');
+  assert.equal(bars.at(-2).count, 2, 'Sep 19 and Sep 14 land in the previous week');
+  assert.ok(bars.slice(0, -3).every(b => b.count === 0));
+});
+
+test('weekKey pins any day to its Monday', () => {
+  assert.equal(weekKey(NOW), '2026-09-21');
+  assert.equal(weekKey(addDays(NOW, -6)), '2026-09-21');
+  assert.equal(weekKey(addDays(NOW, -7)), '2026-09-14');
+});
+
+test('the weekly goal counts only lessons finished since Monday', () => {
+  assert.equal(currentWeekCount([done(0), done(0, 8, 8, 18), done(6), done(8)], NOW), 3);
+  assert.equal(currentWeekCount([done(8)], NOW), 0);
+  assert.equal(currentWeekCount([], NOW), 0);
 });

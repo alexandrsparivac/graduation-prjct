@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { countWords, wordSegments, isCjkLanguage } from '../public/js/text-segmentation.js';
+import { countWords, wordSegments, isCjkLanguage } from '../shared/text-segmentation.js';
 
 test('segments punctuation and contractions as language-aware words', () => {
   assert.equal(countWords('The worker checks the report. Don’t stop!', 'en'), 7);

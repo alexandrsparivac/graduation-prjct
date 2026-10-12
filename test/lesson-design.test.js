@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { prepareLessonContext, lessonRequestKey, validateCoreNovelty, generateLessonParts, refineLessonParts, DOMAIN_DESIGNS, LEVEL_DESIGNS, normalizeMaterial } from '../lib/lesson-design.js';
 import { buildSectionPrompt, parseLessonReview } from '../lib/lesson-prompt.js';
-import { previousLessonMaterial, sanitizeLessonHistory } from '../public/js/lesson-variation.js';
-import catalog from '../public/js/catalog/en.js';
+import { previousLessonMaterial, sanitizeLessonHistory } from '../shared/lesson-variation.js';
+import catalog from '../shared/catalog/en.js';
 
 const request = { language: 'English', languageCode: 'en', domain: 'Agricultură', domainSlug: 'agriculture',
   topic: 'Viticultură', topicKey: 'Viticultură', level: 'A1', nativeLanguage: 'Română', variationId: 'variant-two' };

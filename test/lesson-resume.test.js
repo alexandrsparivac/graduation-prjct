@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { contentVersion, restoreLessonDraft, latestLessonDrafts, createLessonResume, localLessonDrafts, draftCompletion } from '../public/js/lesson-resume.js';
-import { buildFlow } from '../public/js/lesson-plan.js';
+import { contentVersion, restoreLessonDraft, latestLessonDrafts, createLessonResume, localLessonDrafts, draftCompletion } from '../shared/lesson-resume.js';
+import { buildFlow } from '../shared/lesson-plan.js';
 
 const storage = new Map();
 globalThis.localStorage = {
@@ -11,7 +11,9 @@ globalThis.localStorage = {
 const question = { question: 'Question?', options: ['a', 'b', 'c', 'd'], answer: 2 };
 const content = {
   title: 'A lesson', vocabulary: [{ term: 'one' }, { term: 'two' }],
-  reading: { questions: [question] }, grammar: { practice: [{ sentence: '___', answer: 'yes' }] },
+  // A real lesson always carries the passage its questions attach to; the
+  // flow only builds reading screens for one that has it.
+  reading: { passage: 'A short work note.', questions: [question] }, grammar: { practice: [{ sentence: '___', answer: 'yes' }] },
   listening: [question], speaking: [{ text: 'hello' }], quiz: [question],
 };
 const flow = buildFlow(content);
@@ -169,9 +171,9 @@ test('regenerating clears only the unfinished state and leaves past scores alone
 });
 
 test('all base languages have a translated resume action', async () => {
-  const { UI_LANGS } = await import('../public/js/i18n.js');
+  const { UI_LANGS } = await import('../shared/i18n.js');
   for (const { code } of UI_LANGS) {
-    const strings = (await import(`../public/js/i18n/${code}.js`)).default;
+    const strings = (await import(`../shared/i18n/${code}.js`)).default;
     assert.ok(strings['dash.resume']?.trim(), code);
   }
 });

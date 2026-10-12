@@ -9,17 +9,6 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 let checked = 0;
 let failed = 0;
 
-async function checkBrowserDependencies() {
-  const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
-  const sdkVersion = manifest.devDependencies?.['@supabase/supabase-js'];
-  const source = await readFile(path.join(root, 'public/js/supabase-client.js'), 'utf8');
-  const importVersion = /https:\/\/esm\.sh\/@supabase\/supabase-js@([^?'"]+)(?:\?[^'"]*)?/.exec(source)?.[1];
-  if (!/^\d+\.\d+\.\d+$/.test(sdkVersion || '') || importVersion !== sdkVersion) {
-    failed++;
-    console.error('Browser Supabase SDK must be pinned to the exact package.json devDependency version.');
-  }
-}
-
 function check(label, args, input) {
   const result = spawnSync(process.execPath, ['--check', ...args], {
     cwd: root, encoding: 'utf8', input, timeout: 10_000,
@@ -56,8 +45,7 @@ async function walk(dir) {
 }
 
 await checkFile('server.js');
-for (const dir of ['lib', 'public', 'tools', 'test']) await walk(dir);
-await checkBrowserDependencies();
+for (const dir of ['lib', 'shared', 'tools', 'test']) await walk(dir);
 
 if (failed) {
   console.error(`Build validation failed: ${failed} of ${checked} scripts.`);

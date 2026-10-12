@@ -1,0 +1,8 @@
+.ccb-traces/
+.report_assets/
+.github/
+.vscode/
+*.docx
+.env
+.env.*
+!.env.example

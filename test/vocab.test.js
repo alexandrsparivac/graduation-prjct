@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { saveLessonVocabulary, loadCards, gradeCard, isMissingTable } from '../public/js/vocab.js';
-import { START_EASE, GOOD, AGAIN } from '../public/js/srs.js';
+import { saveLessonVocabulary, loadCards, gradeCard, isMissingTable } from '../shared/vocab.js';
+import { START_EASE, GOOD, AGAIN } from '../shared/srs.js';
 
 const TODAY = new Date(2026, 8, 10, 12, 0, 0);
 

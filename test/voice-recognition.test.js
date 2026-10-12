@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { transcriptionInput, transcribeSpeech } from '../lib/transcription.js';
-import { createVoiceRecorder } from '../public/js/voice-recorder.js';
-import { similarity } from '../public/js/speech-match.js';
+import { createVoiceRecorder } from '../shared/voice-recorder.js';
+import { similarity } from '../shared/speech-match.js';
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const deferred = () => { let resolve; const promise = new Promise(yes => { resolve = yes; }); return { promise, resolve }; };
