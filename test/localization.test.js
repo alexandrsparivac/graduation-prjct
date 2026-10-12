@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs/promises';
-import base from '../public/js/catalog/ro.js';
-import en from '../public/js/catalog/en.js';
-import ru from '../public/js/catalog/ru.js';
-import { localizedDomain, localizedTopic } from '../public/js/catalog-labels.js';
-import { UI_LANGS, getLang, initI18n, setLang, domainName, topicName, languageName, t } from '../public/js/i18n.js';
-import { profileLanguage, restoreProfileLanguage, saveProfileLanguage } from '../public/js/profile-language.js';
-import { loadLocalizedLesson, saveLocalizedLesson } from '../public/js/lesson-cache.js';
+import base from '../shared/catalog/ro.js';
+import en from '../shared/catalog/en.js';
+import ru from '../shared/catalog/ru.js';
+import { localizedDomain, localizedTopic } from '../shared/catalog-labels.js';
+import { UI_LANGS, getLang, initI18n, setLang, domainName, topicName, languageName, t } from '../shared/i18n.js';
+import { profileLanguage, restoreProfileLanguage, saveProfileLanguage } from '../shared/profile-language.js';
+import { loadLocalizedLesson, saveLocalizedLesson } from '../shared/lesson-cache.js';
 
 const saved = new Map();
 globalThis.localStorage = {
@@ -21,8 +21,8 @@ Object.defineProperty(globalThis, 'navigator', { value: { language: 'ro' }, conf
 test('every selectable language covers every seeded domain and topic, plus UI error messages', async () => {
   const seed = await fs.readFile(new URL('../supabase/schema.sql', import.meta.url), 'utf8');
   for (const { code } of UI_LANGS) {
-    const catalog = (await import(`../public/js/catalog/${code}.js`)).default;
-    const strings = (await import(`../public/js/i18n/${code}.js`)).default;
+    const catalog = (await import(`../shared/catalog/${code}.js`)).default;
+    const strings = (await import(`../shared/i18n/${code}.js`)).default;
     assert.deepEqual(Object.keys(catalog), Object.keys(base), code);
     for (const [slug, d] of Object.entries(base)) {
       assert.ok(seed.includes(`('${slug}', '${d.name}', '', '${d.description}',`), slug);

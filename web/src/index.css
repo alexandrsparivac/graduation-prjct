@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* Design tokens carried over from the current app (dark-first). */
+:root,
+.dark {
+  --bg-layout: #000000;
+  --bg-container: #141414;
+  --bg-elevated: #1f1f1f;
+  --border: #424242;
+  --border-secondary: #303030;
+  --text: rgba(255, 255, 255, 0.85);
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-tertiary: rgba(255, 255, 255, 0.45);
+  --primary: #cfcfcf;
+  --primary-hover: #e5e5e5;
+  --on-primary: #141414;
+  --fill: rgba(255, 255, 255, 0.06);
+  --fill-strong: rgba(255, 255, 255, 0.1);
+  --danger-border: #7f1d1d;
+  --danger-bg: rgba(127, 29, 29, 0.25);
+  --danger-text: #fca5a5;
+  --ok-border: #14532d;
+  --ok-bg: rgba(20, 83, 45, 0.3);
+  --ok-text: #86efac;
+  --warn-text: #fde047;
+}
+
+html,
+body {
+  background: var(--bg-layout);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Global press feedback on every tab and page. Buttons that already carry
+   a Tailwind transition animate it; the rest get a short transform tune. */
+button:not(:disabled) {
+  transition-property: transform, background-color, border-color, color, opacity;
+  transition-duration: 0.22s;
+  transition-timing-function: ease-out;
+}
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+:root[data-theme="light"] {
+  --bg-layout: #f6f7fb;
+  --bg-container: #ffffff;
+  --bg-elevated: #ffffff;
+  --border: #d9d9d9;
+  --border-secondary: #eeeeee;
+  --text: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(0, 0, 0, 0.65);
+  --text-tertiary: rgba(0, 0, 0, 0.45);
+  --on-primary: #ffffff;
+  --fill: rgba(0, 0, 0, 0.05);
+  --fill-strong: rgba(0, 0, 0, 0.09);
+  --danger-border: #fca5a5;
+  --danger-bg: #fef2f2;
+  --danger-text: #b91c1c;
+  --ok-border: #86efac;
+  --ok-bg: #f0fdf4;
+  --ok-text: #15803d;
+  --warn-text: #a16207;
+}
+
+@theme inline {
+  --color-layout: var(--bg-layout);
+  --color-container: var(--bg-container);
+  --color-elevated: var(--bg-elevated);
+  --color-edge: var(--border);
+  --color-edge-soft: var(--border-secondary);
+}

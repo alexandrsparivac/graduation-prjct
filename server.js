@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,10 +25,9 @@ app.use((_req, res, next) => {
 });
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-// Comma-separated fallback chain. The big model gives the best lessons; when
-// its free-tier daily quota runs out, sections transparently continue on the
-// next model instead of failing the whole lesson.
-const GROQ_MODELS = (process.env.GROQ_MODEL || 'openai/gpt-oss-120b,openai/gpt-oss-20b,qwen/qwen3.8-27b')
+// Prefer the faster 20B model for lesson generation; fall back to the larger
+// model if its free-tier daily quota is exhausted.
+const GROQ_MODELS = (process.env.GROQ_MODEL || 'openai/gpt-oss-20b,openai/gpt-oss-120b,qwen/qwen3.8-27b')
   .split(',').map(s => s.trim()).filter(Boolean);
 
 // Shown in the UI when every model reports an exhausted daily quota.
@@ -409,6 +409,10 @@ async function requestGroq(messages, maxTokens, model, temperature = 0.65, signa
       // means we asked too soon. They need different responses.
       if (groqRes.status === 413) return { tooLarge: true };
       if (groqRes.status === 429) {
+        // "Request too large" (output-token ceiling) never clears by waiting:
+        // this model physically cannot emit what we asked for. Fail over to
+        // the next model instead of looping here until the deadline.
+        if (/request too large/i.test(text)) return { outputLimit: true };
         // Daily quota (TPD/RPD) never clears within our deadline — fail over
         // to the next model instead of waiting. Per-minute limits do clear,
         // so those are waited out on the same model.
@@ -457,6 +461,17 @@ async function generateSection(section, ctx, deadline, feedback = null, signal =
       maxTokens = Math.max(SECTION_MIN_TOKENS, Math.floor(maxTokens * 0.8));
       console.warn(`[${section}] budget too large, retrying with max_tokens=${maxTokens}.`);
       continue;
+    }
+
+    if (result.outputLimit) {
+      // This model cannot emit a section this size at all. Move on right
+      // away; only give up when no model is left.
+      if (modelIdx < GROQ_MODELS.length - 1) {
+        console.warn(`[${section}] output limit too small on ${model}, falling back to ${GROQ_MODELS[modelIdx + 1]}.`);
+        modelIdx++;
+        continue;
+      }
+      return { section, data: null, reason: `"${section}": no model can emit the required size right now` };
     }
 
     if (result.waitMs) {
@@ -512,6 +527,10 @@ async function reviewLesson(parts, ctx, deadline, signal = null) {
       if (modelIdx < GROQ_MODELS.length - 1) { modelIdx++; continue; }
       throw Object.assign(new Error(QUOTA_MSG), { quota: true });
     }
+    if (result.outputLimit) {
+      if (modelIdx < GROQ_MODELS.length - 1) { modelIdx++; continue; }
+      throw new Error('Lesson review: no model can emit the required size right now');
+    }
     if (result.error) {
       if (!result.retryable) {
         throw new Error(`Lesson review provider failed permanently (HTTP ${result.status})`);
@@ -540,10 +559,6 @@ app.post('/api/lesson', async (req, res) => {
     if (!process.env.GROQ_API_KEY) {
       return res.status(503).json({ error: 'AI is not configured (GROQ_API_KEY missing)' });
     }
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return res.status(503).json({ error: 'Lesson caching is not configured (SUPABASE_SERVICE_ROLE_KEY missing)' });
-    }
-
     let ctx;
     try {
       ctx = prepareLessonContext(req.body);
@@ -629,9 +644,16 @@ app.post('/api/lesson', async (req, res) => {
   }
 });
 
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
-
-app.get('/', (_req, res) => res.redirect('/login'));
+// The React frontend (web/) is the only UI. Serve its production build;
+// API routes above take precedence, everything else is a client route.
+const webDist = path.join(__dirname, 'web', 'dist');
+if (existsSync(path.join(webDist, 'index.html'))) {
+  app.use(express.static(webDist));
+  app.get(/^\/(?!api\/).*$/, (_req, res) => res.sendFile(path.join(webDist, 'index.html')));
+} else {
+  console.warn('web/dist/index.html is missing — run "npm run build:web" to build the frontend.');
+  app.get('/', (_req, res) => res.status(503).json({ error: 'frontend_not_built' }));
+}
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

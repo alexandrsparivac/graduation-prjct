@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildAccountExport, OWNED_TABLES } from '../public/js/account-export.js';
+import { buildAccountExport, OWNED_TABLES } from '../shared/account-export.js';
 
 test('account export includes every owned row and only the documented personal tables', async () => {
   const user = { id: 'learner-1', email: 'learner@example.test', created_at: '2026-01-01T00:00:00Z' };

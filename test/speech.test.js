@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { speechInput, escapeSpeechText, synthesizeSpeech, createSpeechService, NEURAL_VOICES, FEMALE_NEURAL_VOICES } from '../lib/tts.js';
-import { createNeuralSpeech } from '../public/js/neural-speech.js';
+import { createNeuralSpeech } from '../shared/neural-speech.js';
 
 const deferred = () => {
   let resolve, reject;
@@ -192,12 +192,12 @@ test('voice preference survives a page reload, preserves other preferences and r
   const oldStorage = globalThis.localStorage, oldDocument = globalThis.document;
   const saved = new Map([['prefs', JSON.stringify({ theme: 'dark', bgWords: false, speechRate: 'slow' })]]);
   globalThis.localStorage = { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) };
-  globalThis.document = { documentElement: { dataset: {}, classList: { toggle() {} } } };
+  globalThis.document = { documentElement: { dataset: {}, style: { setProperty() {}, removeProperty() {} }, classList: { toggle() {} } } };
   try {
-    const firstPage = await import('../public/js/prefs.js?voice-first-page');
+    const firstPage = await import('../shared/prefs.js?voice-first-page');
     assert.equal(firstPage.speechVoice(), 'male', 'existing preferences retain the existing voice');
     firstPage.setPref('speechVoice', 'female');
-    const nextPage = await import('../public/js/prefs.js?voice-next-page');
+    const nextPage = await import('../shared/prefs.js?voice-next-page');
     assert.equal(nextPage.speechVoice(), 'female');
     assert.equal(nextPage.speechRate(), 0.72);
     assert.equal(nextPage.getPref('theme'), 'dark');
@@ -206,7 +206,7 @@ test('voice preference survives a page reload, preserves other preferences and r
     assert.equal(nextPage.speechVoice(), 'male');
     assert.equal(JSON.parse(saved.get('prefs')).speechVoice, 'male');
     saved.set('prefs', JSON.stringify({ speechVoice: 'constructor' }));
-    const invalid = await import('../public/js/prefs.js?voice-invalid');
+    const invalid = await import('../shared/prefs.js?voice-invalid');
     assert.equal(invalid.speechVoice(), 'male');
     assert.equal(invalid.getPrefs().speechVoice, 'male', 'the settings picker also gets a valid default');
   } finally {

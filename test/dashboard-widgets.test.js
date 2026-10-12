@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDashboardWidgets, DASHBOARD_WIDGETS, normalizeHiddenWidgets } from '../public/js/dashboard-widgets.js';
+import { createDashboardWidgets, DASHBOARD_WIDGETS, normalizeHiddenWidgets } from '../shared/dashboard-widgets.js';
 
 const memoryStorage = () => {
   const values = new Map();
@@ -131,4 +131,22 @@ test('show all restores every widget and still works without browser storage', a
   assert.equal(await widgets.reset(), true);
   assert.ok(DASHBOARD_WIDGETS.every(w => widgets.isVisible(w.id)));
   assert.deepEqual(a.user.user_metadata.dashboard_widgets.hidden, []);
+});
+
+test('widget order persists and unknown widgets keep working', async () => {
+  const a = account();
+  const widgets = createDashboardWidgets({ ...a, storage: memoryStorage() });
+  await widgets.init();
+  assert.deepEqual(widgets.getOrder(), DASHBOARD_WIDGETS.map(w => w.id));
+  const reversed = [...DASHBOARD_WIDGETS.map(w => w.id)].reverse();
+  assert.equal(await widgets.setOrder(['recent', 'unknown-id']), true);
+  const order = widgets.getOrder();
+  assert.equal(order[0], 'recent');
+  assert.ok(order.includes('streak'));
+  assert.ok(!order.includes('unknown-id'));
+  assert.deepEqual(a.user.user_metadata.dashboard_widgets.order[0], 'recent');
+  const second = createDashboardWidgets({ ...a, storage: memoryStorage() });
+  await second.init();
+  assert.equal(second.getOrder()[0], 'recent');
+  assert.deepEqual(reversed.length, DASHBOARD_WIDGETS.length);
 });
