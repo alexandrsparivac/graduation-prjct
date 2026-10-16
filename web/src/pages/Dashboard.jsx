@@ -126,6 +126,23 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
   const [reloadKey, setReloadKey] = useState(0);
   const [dropPos, setDropPos] = useState(null); // { id, after }
   const dragId = useRef(null);
+  const loadedAt = useRef(0);
+
+  // Revalidate when the tab regains focus and data is older than 30s, so a
+  // backgrounded dashboard never sits on stale numbers for minutes.
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden && Date.now() - loadedAt.current > 30_000) {
+        setReloadKey((k) => k + 1);
+      }
+    };
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   const clearDrag = () => { dragId.current = null; setDropPos(null); };
   const posFromEvent = (e) => {
@@ -208,6 +225,7 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
       if (!langs.length) {
         if (alive) {
           setData({ emptyLangs: true });
+          loadedAt.current = Date.now();
           setLoading(false);
         }
         return;
@@ -241,6 +259,7 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
         historyReady: !attemptsRes.error,
         deck, active, level, earnedLevel, langs,
       });
+      loadedAt.current = Date.now();
       setLoading(false);
     })();
     return () => { alive = false; };

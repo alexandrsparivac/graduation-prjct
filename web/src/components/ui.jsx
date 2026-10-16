@@ -50,11 +50,11 @@ export function Field({ label, children }) {
 export const inputCls =
   'w-full rounded-lg border border-[var(--border)] bg-[var(--bg-container)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--text-tertiary)] focus:outline-none';
 
-export function BtnPrimary({ children, ...rest }) {
+export function BtnPrimary({ children, className = '', ...rest }) {
   return (
     <button
       {...rest}
-      className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-3 py-2.5 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+      className={`flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-3 py-2.5 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
     </button>

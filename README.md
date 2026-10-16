@@ -137,6 +137,18 @@ Promotion advances one CEFR level when the arithmetic mean of the learner's **la
 
 Existing lesson scores and unfinished lessons are preserved. Since the old database overwrote earlier attempts, the consecutive-test window starts with completions recorded after migration 009; old scores are not presented as reconstructed test history.
 
+## Admin panel
+
+Butonul **Admin** apare în bara de sus doar pentru conturile cu `profiles.is_admin = true`. Panoul are 5 secțiuni: **Prezentare** (statistici platformă), **Utilizatori** (căutare, filtre, detalii cont, editare nume/limbă, acordare/retragere admin, blocare/deblocare cu motiv, trimitere resetare parolă, ștergere progres, ștergere cont), **Lecții** (căutare + ștergere lecții generate), **Domenii & Limbi** (creare/editare/ștergere domenii și subiecte, vedere limbi), **Activitate** (ultimele teste și finalizări).
+
+Setup:
+
+1. Rulează migrația `supabase/migrations/016_admin.sql` în Supabase SQL Editor (adaugă `is_admin`, `is_banned`, `banned_reason`, `banned_at` + politici de citire pentru admini).
+2. Setează primul admin manual:
+   `update public.profiles set is_admin = true where id = (select id from auth.users where email = 'adresa-ta@example.com');`
+   Alternativ, pornește serverul cu `ADMIN_EMAILS=adresa-ta@example.com` (bootstrap fără SQL).
+3. Citirea tabelelor e permisivă pentru orice utilizator autentificat (migrația 017, fără verificări pe roluri în RLS) — panoul citește direct, fără cheie service. Cine VEDE panoul e decis doar de flagul `profiles.is_admin` în interfață. Acțiunile (acordare/retragere admin, ban, editare profil, resetare progres, ștergere conturi/lecții/domenii) merg prin funcțiile RPC din migrația 018, care verifică flagul în interior — tot fără cheie service. Doar coloana e-mail cere `SUPABASE_SERVICE_ROLE_KEY` în `.env`. Conturile blocate (`is_banned`) văd doar un ecran de blocare cu logout.
+
 Choose the base language in **Settings**, before or after login. It is saved in `profiles.native_language` as a language code and restored on login; a choice made before login takes precedence. Domain slugs and topic keys stay stable in the learning tables, while `domain_translations` holds their localized display text. The matching catalogs in `shared/catalog/` also work when the database translation table is unavailable. Keep topic array order aligned with `catalog/ro.js` when updating a bundled catalog.
 
 The resume card counts completed exercises, including individual vocabulary cards, and shows a progress bar. Regeneration sends the previous variants' target words, phrases and scenario summaries to the generator. Duplicate target material is rejected and retried before building the remaining sections from the new vocabulary plan. A separate AI review checks professional facts, topic/level fit, grammar and answer correctness, repairing rejected sections. The saved variant retains recent history (240 terms, 128 phrases) and belongs to the learner; the shared cache and other learners' progress stay intact.
@@ -145,7 +157,7 @@ Generation uses a domain-specific workplace brief and a separate teaching design
 
 ## Brand and audio
 
-The shared brand component, SVG asset and favicon use the artwork from `logo_ld_varianta_3.svg`, cropped to its square tile. Its original light background and dark LD mark remain visible in either theme.
+The shared brand component, SVG asset and favicon use the artwork from `web/public/img/logo-ld.svg`, cropped to its square tile. Its original light background and dark LD mark remain visible in either theme.
 
 Listening uses Microsoft neural voices through the server-side [msedge-tts](https://github.com/Migushthe2nd/MsEdgeTTS) library instead of browser speech synthesis. Settings offer male and female voices with a playable sample in the interface language. The choice is saved in this browser and applies to words, phrases, complete dialogues, reading passages and review cards. Each of the 25 learning languages has both native voice types; English uses Andrew or Ava Multilingual. The settings and slow buttons change synthesis speed, preserving a natural pitch. Server and browser audio caches distinguish voices as well as speed. Web Audio and a reusable audio element are unlocked during the click; the audio element plays the same neural MP3 if Web Audio stalls or cannot decode it. Expired sessions get one refresh, and invalid audio is not cached. Changing the voice, speed or exercise, or leaving the page, cancels playback and pending requests.
 

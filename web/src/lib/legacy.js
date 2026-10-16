@@ -25,7 +25,7 @@ export {
 } from '../../../shared/prefs.js';
 export { profileLanguage, restoreProfileLanguage, saveProfileLanguage } from '../../../shared/profile-language.js';
 export { BUILDER_SECTIONS, BUILDER_PRESETS, decodeLessonSelection, filterLessonContent } from '../../../shared/lesson-builder.js';
-export { previousLessonMaterial } from '../../../shared/lesson-variation.js';
+export { previousLessonMaterial, mergeLessonHistory, sanitizeLessonHistory } from '../../../shared/lesson-variation.js';
 export { createLessonResume, latestLessonDrafts, draftCompletion } from '../../../shared/lesson-resume.js';
 export { DASHBOARD_WIDGETS, createDashboardWidgets } from '../../../shared/dashboard-widgets.js';
 export { buildAccountExport } from '../../../shared/account-export.js';

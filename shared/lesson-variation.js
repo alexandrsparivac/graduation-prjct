@@ -8,6 +8,17 @@ export function sanitizeLessonHistory(history = {}) {
   };
 }
 
+// Combine several histories (e.g. long-term device history + current lesson),
+// keeping the most recent items within the same caps.
+export function mergeLessonHistory(...histories) {
+  return sanitizeLessonHistory({
+    terms: histories.flatMap(h => sanitizeLessonHistory(h).terms),
+    phrases: histories.flatMap(h => sanitizeLessonHistory(h).phrases),
+    scenarios: histories.flatMap(h => sanitizeLessonHistory(h).scenarios),
+    focuses: histories.flatMap(h => sanitizeLessonHistory(h).focuses),
+  });
+}
+
 // History travels with the saved variant, so a later visit still avoids prior material.
 export function previousLessonMaterial(content) {
   if (!content) return sanitizeLessonHistory();

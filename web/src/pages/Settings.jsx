@@ -12,7 +12,9 @@ import { speak, stopSpeaking, toLocale, ttsSupported } from '../lib/speech.js';
 import { signOut } from '../lib/auth.js';
 import { applyThemePrefs } from '../lib/theme.js';
 import { rememberActiveLanguage } from '../lib/lang.js';
-import { list, rise, Panel, PanelTitle, BtnSecondary, Msg, useToast } from '../components/ui.jsx';
+import { list, rise, Panel, PanelTitle, BtnSecondary, Msg, inputCls, useToast } from '../components/ui.jsx';
+
+import Admin from './Admin.jsx';
 
 const THEMES = ['system', 'light', 'dark'];
 const RATES = ['slow', 'normal', 'fast'];
@@ -53,11 +55,94 @@ function download(name, text) {
   URL.revokeObjectURL(url);
 }
 
-export default function Settings({ user, initialTab = 'appearance', onSignedOut }) {
+export default function Settings({ user, isAdmin = false, initialTab = 'appearance', onSignedOut, onProfileSaved }) {
   const [tab, setTab] = useState(initialTab);
   const [prefs, setPrefsState] = useState(() => getPrefs());
   const [toast, toastNode] = useToast();
   const [msg, setMsg] = useState('');
+
+  // Profile (name + avatar)
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarInput, setAvatarInput] = useState('');
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  const CRINGE_AVATARS = [
+    { id: 'deadpool', name: 'Deadpool' },
+    { id: 'homelander', name: 'Homelander' },
+    { id: 'shrek', name: 'Shrek' },
+    { id: 'trollface', name: 'Trollface' },
+    { id: 'doge', name: 'Doge' },
+    { id: 'pepe', name: 'Pepe' },
+    { id: 'gigachad', name: 'Gigachad' },
+    { id: 'bateman', name: 'Patrick Bateman' },
+    { id: 'joker', name: 'Joker' },
+    { id: 'minion', name: 'Minion' },
+    { id: 'amogus', name: 'Amogus' },
+    { id: 'heisenberg', name: 'Heisenberg' },
+    { id: 'batman', name: 'Batman' },
+    { id: 'spiderman', name: 'Spider-Man' },
+  ];
+  const presetUrl = (id) => `/img/avatars/${id}.svg`;
+  const previewSrc = avatarInput.trim() || avatarUrl
+    || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || '';
+
+  useEffect(() => {
+    let alive = true;
+    supabase.from('profiles').select('full_name, avatar_url').eq('id', user.id).maybeSingle()
+      .then(({ data }) => {
+        if (!alive) return;
+        const parts = String(data?.full_name || user?.user_metadata?.full_name || '').trim().split(/\s+/).filter(Boolean);
+        setFirstName(parts[0] || '');
+        setLastName(parts.slice(1).join(' ') || '');
+        setAvatarUrl(data?.avatar_url || '');
+        setProfileLoading(false);
+      })
+      .catch(() => { if (alive) setProfileLoading(false); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
+
+  const persistAvatar = async (avatar) => {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from('profiles')
+        .update({ avatar_url: avatar || null }).eq('id', user.id);
+      if (error) throw error;
+      setAvatarUrl(avatar || '');
+      toast(t('profile.saved'));
+      onProfileSaved?.();
+    } catch {
+      toast(t('profile.saveFailed'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveProfile = async (nextAvatar) => {
+    const full = `${firstName.trim()} ${lastName.trim()}`.trim().slice(0, 120);
+    const raw = nextAvatar !== undefined ? nextAvatar : (avatarInput.trim() || avatarUrl);
+    const avatar = (raw || '').slice(0, 500) || null;
+    if (avatar && !/^https:\/\//i.test(avatar)) {
+      toast(t('profile.avatarHint'), 'error');
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.from('profiles')
+        .update({ full_name: full || null, avatar_url: avatar }).eq('id', user.id);
+      if (error) throw error;
+      setAvatarUrl(avatar || '');
+      setAvatarInput('');
+      toast(t('profile.saved'));
+      onProfileSaved?.();
+    } catch {
+      toast(t('profile.saveFailed'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // Study languages
   const [studyLangs, setStudyLangs] = useState(null);
@@ -234,12 +319,14 @@ export default function Settings({ user, initialTab = 'appearance', onSignedOut 
   };
 
   const tabs = [
+    { id: 'profile', label: t('set.profile') },
     { id: 'appearance', label: t('set.appearance') },
     { id: 'language', label: t('set.language') },
     { id: 'study', label: t('set.studyLanguages') },
     { id: 'lessons', label: t('set.lessons') },
     { id: 'dashboard', label: t('set.widgets') },
     { id: 'data', label: t('set.data') },
+    ...(isAdmin ? [{ id: 'admin', label: t('admin.title') }] : []),
   ];
 
   const domainLabel = (slug) => {
@@ -263,6 +350,78 @@ export default function Settings({ user, initialTab = 'appearance', onSignedOut 
           </button>
         ))}
       </div>
+
+      {tab === 'profile' && (
+        <Panel>
+          <PanelTitle>{t('profile.title')}</PanelTitle>
+          {profileLoading ? (
+            <p className="text-sm text-[var(--text-tertiary)]">{t('common.moment')}</p>
+          ) : (
+            <>
+              <div className="flex items-center gap-4">
+                {previewSrc ? (
+                  <img src={previewSrc} alt="" className="h-20 w-20 rounded-full object-cover" />
+                ) : (
+                  <span aria-hidden="true" className="grid h-20 w-20 flex-none place-items-center rounded-full bg-[var(--fill-strong)] text-2xl font-bold text-[var(--text-secondary)]">
+                    {((firstName || user.email || '?').trim()[0] || '?').toUpperCase()}
+                  </span>
+                )}
+                <div className="grid gap-0.5 text-sm">
+                  <span className="font-medium">{`${firstName} ${lastName}`.trim() || user.email}</span>
+                  <span className="text-xs text-[var(--text-tertiary)]">{user.email}</span>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <span className="text-sm font-medium">{t('profile.avatar')}</span>
+                <span className="text-xs text-[var(--text-tertiary)]">{t('profile.avatarHint')}</span>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                  {CRINGE_AVATARS.map((a) => {
+                    const src = presetUrl(a.id);
+                    const on = !avatarInput && avatarUrl === src;
+                    return (
+                      <button
+                        key={a.id} onClick={() => { setAvatarUrl(src); setAvatarInput(''); persistAvatar(src); }}
+                        title={a.name} aria-pressed={on} aria-label={a.name}
+                        className={`overflow-hidden rounded-xl border-2 transition-all ${on ? 'border-[var(--primary)]' : 'border-transparent hover:border-[var(--text-tertiary)]'}`}
+                      >
+                        <img src={src} alt="" loading="lazy" className="block h-full w-full" />
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={avatarInput} onChange={(e) => setAvatarInput(e.target.value)}
+                    placeholder={t('profile.avatarUrlPh')} inputMode="url"
+                    aria-label={t('profile.avatarUrl')} className={inputCls}
+                  />
+                  {(avatarUrl || avatarInput) && (
+                    <BtnSecondary onClick={() => { setAvatarUrl(''); setAvatarInput(''); persistAvatar(''); }} className="w-auto flex-none px-4">
+                      {t('profile.remove')}
+                    </BtnSecondary>
+                  )}
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label className="grid gap-1 text-sm">{t('profile.firstName')}
+                  <input value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={60} autoComplete="given-name" className={inputCls} />
+                </label>
+                <label className="grid gap-1 text-sm">{t('profile.lastName')}
+                  <input value={lastName} onChange={(e) => setLastName(e.target.value)} maxLength={60} autoComplete="family-name" className={inputCls} />
+                </label>
+              </div>
+              <label className="grid gap-1 text-sm">{t('profile.email')}
+                <input value={user.email || ''} disabled className={`${inputCls} opacity-60`} />
+              </label>
+              <div>
+                <BtnSecondary onClick={() => saveProfile()} className="w-auto px-5">
+                  {busy ? '…' : t('profile.save')}
+                </BtnSecondary>
+              </div>
+            </>
+          )}
+        </Panel>
+      )}
 
       {tab === 'appearance' && (
         <Panel>
@@ -288,7 +447,10 @@ export default function Settings({ user, initialTab = 'appearance', onSignedOut 
           <div className="grid gap-2 sm:grid-cols-2">
             {(UI_LANGS || []).map((l) => (
               <button key={l.code} onClick={() => switchUiLang(l.code)} lang={l.code} className={optCls(getLang() === l.code)}>
-                <span className="text-sm">{l.flag} {l.label}</span>
+                <span className="flex items-center gap-2 text-sm">
+                  <img src={`/img/flags/${l.flag}.svg`} alt="" aria-hidden="true" loading="lazy" className="h-4 w-6 rounded-[3px] object-cover shadow-sm" />
+                  {l.label}
+                </span>
                 {l.country && <span className="text-xs text-[var(--text-secondary)]">{l.country}</span>}
               </button>
             ))}
@@ -582,6 +744,7 @@ export default function Settings({ user, initialTab = 'appearance', onSignedOut 
           </div>
         </Panel>
       )}
+      {tab === 'admin' && isAdmin && <Admin key={user.id} />}
       <Msg text={msg} />
     </motion.div>
   );

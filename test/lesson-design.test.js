@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { prepareLessonContext, lessonRequestKey, validateCoreNovelty, generateLessonParts, refineLessonParts, DOMAIN_DESIGNS, LEVEL_DESIGNS, normalizeMaterial } from '../lib/lesson-design.js';
 import { buildSectionPrompt, parseLessonReview } from '../lib/lesson-prompt.js';
-import { previousLessonMaterial, sanitizeLessonHistory } from '../shared/lesson-variation.js';
+import { previousLessonMaterial, mergeLessonHistory, sanitizeLessonHistory } from '../shared/lesson-variation.js';
 import catalog from '../shared/catalog/en.js';
 
 const request = { language: 'English', languageCode: 'en', domain: 'Agricultură', domainSlug: 'agriculture',
@@ -69,6 +69,18 @@ test('past vocabulary survives successive saved variants and newest material is 
   assert.equal(bounded.terms.length, 240);
   assert.equal(bounded.terms.at(-1), 'most recent');
   assert.deepEqual(sanitizeLessonHistory({ terms: {}, phrases: [null, 3, ' valid '] }).phrases, ['valid']);
+});
+
+test('device history merges with the current lesson so a new topic excludes all prior material', () => {
+  const stored = sanitizeLessonHistory({ terms: ['vine'], phrases: ['Check the vine.'], scenarios: ['Old scenario'] });
+  const current = previousLessonMaterial({ title: 'New', vocabulary: [{ term: 'hose' }], phrases: [{ phrase: 'Bring it.' }] });
+  const merged = mergeLessonHistory(stored, current);
+  assert.ok(merged.terms.includes('vine') && merged.terms.includes('hose'));
+  assert.ok(merged.phrases.includes('Check the vine.') && merged.phrases.includes('Bring it.'));
+  assert.ok(merged.scenarios.includes('Old scenario') && merged.scenarios.includes('New'));
+  const ctx = prepareLessonContext({ ...request, avoid: merged });
+  assert.equal(validateCoreNovelty({ ...core, vocabulary: [{ term: 'vine' }] }, ctx).valid, false);
+  assert.deepEqual(validateCoreNovelty(core, ctx), { valid: true });
 });
 
 test('the next workflow focus differs from recent variants and all section prompts retain the exact topic and level', () => {

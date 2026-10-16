@@ -122,7 +122,7 @@ export default function Review({ user, onExit }) {
   if (phase === 'error') return <p className="text-sm text-[var(--danger-text)]">{t('dash.widgets.saveFailed')}</p>;
   if (phase === 'empty' || cards.length === 0) {
     return (
-      <div className="grid justify-items-center gap-3 py-10 text-center">
+      <div className="grid min-h-[55vh] content-center justify-items-center gap-3 py-10 text-center">
         <h1 className="text-xl font-bold">{t('rev.empty.title')}</h1>
         <p className="text-sm text-[var(--text-secondary)]">{t('rev.empty.body')}</p>
         <button onClick={() => onExit('dashboard')} className="rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)]">
@@ -135,7 +135,7 @@ export default function Review({ user, onExit }) {
   if (!current) {
     const more = leftOver > 0;
     return (
-      <div className="grid justify-items-center gap-3 py-10 text-center">
+      <div className="grid min-h-[55vh] content-center justify-items-center gap-3 py-10 text-center">
         <h1 className="text-xl font-bold">{t(done ? 'rev.done.title' : 'rev.empty.title')}</h1>
         <p className="text-sm text-[var(--text-secondary)]">
           {done ? tp('rev.done.body', done, { n: done }) : t('rev.empty.body')}

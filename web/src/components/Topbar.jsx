@@ -32,9 +32,9 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
 };
 
-function Avatar({ user }) {
+function Avatar({ user, profile }) {
   const [failed, setFailed] = useState(false);
-  const src = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const src = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
   const initial = ((user?.user_metadata?.full_name || user?.email || '?').trim()[0] || '?').toUpperCase();
   if (!src || failed) {
     return (
@@ -137,7 +137,7 @@ export default function Topbar({ user, profile, activeLang, view, onNav, onAddLa
           {link('guide', t('nav.guide'), null, true)}
           {link('settings', t('nav.settings'), null, true)}
           <div className="flex items-center gap-2 rounded-full border border-[var(--border-secondary)] bg-[var(--bg-container)]/70 py-1 pr-1 pl-3 backdrop-blur-xl">
-          <Avatar user={user} />
+          <Avatar user={user} profile={profile} />
           <span className="hidden max-w-32 truncate text-sm text-[var(--text-secondary)] md:inline">
             {profile?.full_name || user?.email}
           </span>

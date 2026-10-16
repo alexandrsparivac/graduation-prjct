@@ -6,7 +6,7 @@ import {
   buildFlow, lessonPlan, estimateMinutes, sectionProgress, currentSection,
   cleanTitle, sectionTone, SECTIONS, VOCAB_CARDS_PER_PAGE,
   decodeLessonSelection, filterLessonContent, createLessonResume,
-  previousLessonMaterial, loadLocalizedLesson, saveLocalizedLesson,
+  previousLessonMaterial, mergeLessonHistory, sanitizeLessonHistory, loadLocalizedLesson, saveLocalizedLesson,
   getPref, speechRate, saveLessonVocabulary,
 } from '../lib/legacy.js';
 import { speak, stopSpeaking, listen, similarity, toLocale, ttsSupported, sttSupported, prefetchSpeech } from '../lib/speech.js';
@@ -88,6 +88,18 @@ function SayButton({ text, locale, slowable = false, small = false }) {
   );
 }
 
+// Cumulative novelty memory: every lesson the user actually opens adds its
+// material here, so the next topic starts with the previous topics excluded.
+const avoidKey = (lang, level) => `ld-avoid:${lang}:${level}`;
+const loadAvoidHistory = (lang, level) => {
+  try {
+    return sanitizeLessonHistory(JSON.parse(localStorage.getItem(avoidKey(lang, level))));
+  } catch { return sanitizeLessonHistory(); }
+};
+const storeAvoidHistory = (lang, level, history) => {
+  try { localStorage.setItem(avoidKey(lang, level), JSON.stringify(history)); } catch { /* private mode */ }
+};
+
 export default function Lesson({ user, params, onExit, onCustomize }) {
   const [toast, toastNode] = useToast();
   const [phase, setPhase] = useState('loading');
@@ -158,6 +170,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
 
   const askForLesson = useCallback(async (session) => {
     const D = domainRef.current;
+    const stored = loadAvoidHistory(params.lang, params.level);
     const payload = JSON.stringify({
       language: languageName(params.lang, 'en'),
       domain: domainName(D || params.domain),
@@ -165,7 +178,8 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
       level: params.level,
       nativeLanguage: langMeta(contentLang)?.label || contentLang,
       languageCode: params.lang, domainSlug: params.domain, topicKey: params.topic, nativeLanguageCode: contentLang,
-      variationId: crypto.randomUUID(), avoid: previousLessonMaterial(fullRef.current),
+      variationId: crypto.randomUUID(),
+      avoid: mergeLessonHistory(stored, previousLessonMaterial(fullRef.current)),
     });
     // The free tier saturates for minutes at a time: retry 429s and dropped
     // connections for a while instead of failing fast. The loader message
@@ -189,7 +203,10 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
       const body = await r.json().catch(() => ({}));
       if (r.ok && body.lesson) return body;
       if (body.quota) throw new Error(t('les.quota'));
-      if (r.status !== 429 || round > maxRetries) throw new Error(t('les.failed'));
+      // 503 without quota is transient (deadline race, brief provider outage):
+      // keep trying like we do for 429 instead of failing to the error screen.
+      const transient = r.status === 429 || (r.status === 503 && !body.quota);
+      if (!transient || round > maxRetries) throw new Error(t('les.failed'));
       setLoadMsg(t('les.stillWorking'));
       await new Promise((done) => setTimeout(done, Math.min(3000 * round, 15000)));
     }
@@ -232,6 +249,11 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
     const selection = decodeLessonSelection(params.custom) || decodeLessonSelection((getPref('lessonSections') || []).join(','));
     const c = filterLessonContent(row.content, selection);
     fullRef.current = row.content;
+    // Remember what this lesson taught, so the next topic avoids repeating it.
+    if (isCompleteLesson(row.content)) {
+      storeAvoidHistory(params.lang, params.level,
+        mergeLessonHistory(loadAvoidHistory(params.lang, params.level), previousLessonMaterial(row.content)));
+    }
     contentRef.current = c;
     flowRef.current = buildFlow(c);
     stepRef.current = 0;
