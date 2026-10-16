@@ -12,34 +12,34 @@ import roCatalog from './catalog/ro.js';
 import { localizedDomain, localizedTopic } from './catalog-labels.js';
 
 // Every language the interface can be switched to. `dir` is only set where it
-// is not left-to-right. The flag is decorative and appears only in the language
-// picker — everywhere else the interface stays free of emoji.
+// is not left-to-right. `flag` is the ISO code of the SVG in
+// `web/public/img/flags/` shown in the language picker.
 export const UI_LANGS = [
-  { code: 'ro', label: 'Română', country: 'România', flag: '🇷🇴' },
-  { code: 'en', label: 'English', country: 'United Kingdom', flag: '🇬🇧' },
-  { code: 'ru', label: 'Русский', country: 'Россия', flag: '🇷🇺' },
-  { code: 'uk', label: 'Українська', country: 'Україна', flag: '🇺🇦' },
-  { code: 'de', label: 'Deutsch', country: 'Deutschland', flag: '🇩🇪' },
-  { code: 'fr', label: 'Français', country: 'France', flag: '🇫🇷' },
-  { code: 'es', label: 'Español', country: 'España', flag: '🇪🇸' },
-  { code: 'it', label: 'Italiano', country: 'Italia', flag: '🇮🇹' },
-  { code: 'pt', label: 'Português', country: 'Portugal', flag: '🇵🇹' },
-  { code: 'nl', label: 'Nederlands', country: 'Nederland', flag: '🇳🇱' },
-  { code: 'sv', label: 'Svenska', country: 'Sverige', flag: '🇸🇪' },
-  { code: 'no', label: 'Norsk', country: 'Norge', flag: '🇳🇴' },
-  { code: 'da', label: 'Dansk', country: 'Danmark', flag: '🇩🇰' },
-  { code: 'fi', label: 'Suomi', country: 'Suomi', flag: '🇫🇮' },
-  { code: 'pl', label: 'Polski', country: 'Polska', flag: '🇵🇱' },
-  { code: 'cs', label: 'Čeština', country: 'Česko', flag: '🇨🇿' },
-  { code: 'hu', label: 'Magyar', country: 'Magyarország', flag: '🇭🇺' },
-  { code: 'el', label: 'Ελληνικά', country: 'Ελλάδα', flag: '🇬🇷' },
-  { code: 'tr', label: 'Türkçe', country: 'Türkiye', flag: '🇹🇷' },
-  { code: 'ar', label: 'العربية', country: 'العالم العربي', dir: 'rtl', flag: '🇸🇦' },
-  { code: 'he', label: 'עברית', country: 'ישראל', dir: 'rtl', flag: '🇮🇱' },
-  { code: 'hi', label: 'हिन्दी', country: 'भारत', flag: '🇮🇳' },
-  { code: 'zh', label: '中文', country: '中国', flag: '🇨🇳' },
-  { code: 'ja', label: '日本語', country: '日本', flag: '🇯🇵' },
-  { code: 'ko', label: '한국어', country: '대한민국', flag: '🇰🇷' }
+  { code: 'ro', label: 'Română', country: 'România', flag: 'ro' },
+  { code: 'en', label: 'English', country: 'United Kingdom', flag: 'gb' },
+  { code: 'ru', label: 'Русский', country: 'Россия', flag: 'ru' },
+  { code: 'uk', label: 'Українська', country: 'Україна', flag: 'ua' },
+  { code: 'de', label: 'Deutsch', country: 'Deutschland', flag: 'de' },
+  { code: 'fr', label: 'Français', country: 'France', flag: 'fr' },
+  { code: 'es', label: 'Español', country: 'España', flag: 'es' },
+  { code: 'it', label: 'Italiano', country: 'Italia', flag: 'it' },
+  { code: 'pt', label: 'Português', country: 'Portugal', flag: 'pt' },
+  { code: 'nl', label: 'Nederlands', country: 'Nederland', flag: 'nl' },
+  { code: 'sv', label: 'Svenska', country: 'Sverige', flag: 'se' },
+  { code: 'no', label: 'Norsk', country: 'Norge', flag: 'no' },
+  { code: 'da', label: 'Dansk', country: 'Danmark', flag: 'dk' },
+  { code: 'fi', label: 'Suomi', country: 'Suomi', flag: 'fi' },
+  { code: 'pl', label: 'Polski', country: 'Polska', flag: 'pl' },
+  { code: 'cs', label: 'Čeština', country: 'Česko', flag: 'cz' },
+  { code: 'hu', label: 'Magyar', country: 'Magyarország', flag: 'hu' },
+  { code: 'el', label: 'Ελληνικά', country: 'Ελλάδα', flag: 'gr' },
+  { code: 'tr', label: 'Türkçe', country: 'Türkiye', flag: 'tr' },
+  { code: 'ar', label: 'العربية', country: 'العالم العربي', dir: 'rtl', flag: 'sa' },
+  { code: 'he', label: 'עברית', country: 'ישראל', dir: 'rtl', flag: 'il' },
+  { code: 'hi', label: 'हिन्दी', country: 'भारत', flag: 'in' },
+  { code: 'zh', label: '中文', country: '中国', flag: 'cn' },
+  { code: 'ja', label: '日本語', country: '日本', flag: 'jp' },
+  { code: 'ko', label: '한국어', country: '대한민국', flag: 'kr' }
 ];
 
 export const DEFAULT_LANG = 'ro';

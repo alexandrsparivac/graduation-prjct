@@ -1,20 +1,15 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../lib/supabase.js';
-import { t, tp, languageName, domainName, domainDescription, topicName, LEVELS } from '../lib/legacy.js';
-import { BtnPrimary, BtnSecondary, Msg } from '../components/ui.jsx';
+import { t, tp, languageName, langMeta, domainName, domainDescription, topicName, LEVELS } from '../lib/legacy.js';
+import { BtnSecondary, Msg, inputCls } from '../components/ui.jsx';
 import { useTheme } from '../lib/useTheme.jsx';
-import { domainIcon } from '../../../shared/domain-icons.js';
 import { topicIcon } from '../../../shared/topic-icons.js';
 
 const iconSrc = (slug, topic) => {
   const m = topicIcon(slug, topic).match(/src="([^"]+)"/);
   return m ? m[1] : null;
 };
-
-function RawIcon({ html }) {
-  return <span className="inline-flex" aria-hidden="true" dangerouslySetInnerHTML={{ __html: html }} />;
-}
 
 export default function Onboarding({ edit = false, onDone }) {
   const theme = useTheme();
@@ -26,8 +21,18 @@ export default function Onboarding({ edit = false, onDone }) {
   const [domains, setDomains] = useState([]);
   const [language, setLanguage] = useState(null);
   const [level, setLevel] = useState(null);
-  const [pickedDomains, setPickedDomains] = useState([]);
   const [topics, setTopics] = useState({});
+  const [query, setQuery] = useState('');
+  const [dir, setDir] = useState(1);
+  const go = (n) => {
+    setDir(n >= step ? 1 : -1);
+    setStep(n);
+  };
+
+  // Step changes feel abrupt on long pages; glide back to the top instead of jumping.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
 
   useEffect(() => {
     let alive = true;
@@ -55,7 +60,6 @@ export default function Onboarding({ edit = false, onDone }) {
           setLevel(ul[0].level);
           const { data: ud } = await supabase.from('user_domains').select('*').eq('user_id', user.id).eq('language_code', ul[0].language_code);
           if (!alive) return;
-          setPickedDomains((ud || []).map((d) => d.domain_slug));
           setTopics(Object.fromEntries((ud || []).map((d) => [d.domain_slug, d.topics])));
         }
       }
@@ -64,11 +68,8 @@ export default function Onboarding({ edit = false, onDone }) {
     return () => { alive = false; };
   }, [edit]);
 
-  const topicCount = pickedDomains.reduce((s, d) => s + (topics[d]?.length || 0), 0);
-
-  const toggleDomain = (slug) => {
-    setPickedDomains((prev) => (prev.includes(slug) ? prev.filter((d) => d !== slug) : [...prev, slug]));
-  };
+  const topicCount = domains.reduce((s, d) => s + (topics[d.slug]?.length || 0), 0);
+  const chosenCount = domains.filter((d) => (topics[d.slug] || []).length > 0).length;
 
   const toggleTopic = (slug, topic) => {
     setTopics((prev) => {
@@ -81,6 +82,7 @@ export default function Onboarding({ edit = false, onDone }) {
 
   const toggleAll = (slug) => {
     const d = domains.find((x) => x.slug === slug);
+    if (!d) return;
     setTopics((prev) => {
       const allOn = (prev[slug] || []).length === d.topics.length;
       return { ...prev, [slug]: allOn ? [] : [...d.topics] };
@@ -88,7 +90,7 @@ export default function Onboarding({ edit = false, onDone }) {
   };
 
   const finish = async () => {
-    const chosen = pickedDomains.filter((s) => topics[s]?.length > 0);
+    const chosen = domains.filter((d) => (topics[d.slug] || []).length > 0);
     if (!chosen.length) {
       setError(t('ob.noTopics'));
       return;
@@ -98,7 +100,7 @@ export default function Onboarding({ edit = false, onDone }) {
       const { error } = await supabase.rpc('save_onboarding', {
         p_language: language,
         p_level: level,
-        p_domains: chosen.map((domain_slug) => ({ domain_slug, topics: topics[domain_slug] })),
+        p_domains: chosen.map((d) => ({ domain_slug: d.slug, topics: topics[d.slug] })),
       });
       if (error) {
         setError(error.message);
@@ -116,92 +118,101 @@ export default function Onboarding({ edit = false, onDone }) {
   if (loading) return <p className="text-sm text-[var(--text-secondary)]">{t('common.moment')}</p>;
 
   const optCls = (on) =>
-    `flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-colors ${
+    `flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all duration-200 active:scale-[0.98] ${
       on ? 'border-[var(--primary)] bg-[var(--fill)]' : 'border-[var(--border)] bg-[var(--bg-container)] hover:border-[var(--text-tertiary)]'
     }`;
+
+  const stepMotion = {
+    initial: { opacity: 0, x: 44 * dir },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -44 * dir },
+    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+  };
+
+  const q = query.trim().toLowerCase();
+  const visibleDomains = domains
+    .map((d) => {
+      const nameHit = domainName(d).toLowerCase().includes(q);
+      return { d, topics: !q ? d.topics : nameHit ? d.topics : d.topics.filter((topic) => topicName(d.slug, topic).toLowerCase().includes(q)) };
+    })
+    .filter((x) => x.topics.length > 0);
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-5">
       <div className="flex items-center gap-2" aria-hidden="true">
-        {[1, 2, 3, 4].map((n) => (
-          <span key={n} className={`h-1.5 flex-1 rounded-full ${n <= step ? 'bg-[var(--primary)]' : 'bg-[var(--fill-strong)]'}`} />
+        {[1, 2, 3].map((n) => (
+          <span key={n} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${n <= step ? 'bg-[var(--primary)]' : 'bg-[var(--fill-strong)]'}`} />
         ))}
       </div>
       <Msg text={error} />
 
+      <AnimatePresence mode="wait" initial={false}>
       {step === 1 && (
-        <section className="grid gap-3">
+        <motion.section key="ob-1" {...stepMotion} className="grid gap-3">
           <h2 className="text-lg font-bold">{t('ob.s1.h1')}</h2>
           <p className="text-sm text-[var(--text-secondary)]">{t('ob.s1.sub')}</p>
           <div className="grid gap-2.5 sm:grid-cols-2">
             {languages.map((l) => (
               <button key={l.code} onClick={() => setLanguage(l.code)} className={optCls(language === l.code)}>
-                <span className="text-sm font-semibold">{languageName(l.code)}</span>
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  {langMeta(l.code)?.flag && (
+                    <img src={`/img/flags/${langMeta(l.code).flag}.svg`} alt="" aria-hidden="true" loading="lazy" className="h-4 w-6 rounded-[3px] object-cover shadow-sm" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                  {languageName(l.code)}
+                </span>
                 <span className="text-sm text-[var(--text-secondary)]" lang={l.code} dir="auto">{l.native_name}</span>
               </button>
             ))}
           </div>
           <div className="flex justify-end">
-            <button onClick={() => setStep(2)} disabled={!language} className="rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90 disabled:opacity-40">
+            <button onClick={() => go(2)} disabled={!language} className="rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)] transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-40">
               {t('common.continue')}
             </button>
           </div>
-        </section>
+        </motion.section>
       )}
 
       {step === 2 && (
-        <section className="grid gap-3">
+        <motion.section key="ob-2" {...stepMotion} className="grid gap-3">
           <h2 className="text-lg font-bold">{t('ob.s2.h1')}</h2>
           <p className="text-sm text-[var(--text-secondary)]">{t('ob.s2.sub')}</p>
           <div className="grid gap-2.5 sm:grid-cols-2">
-            {LEVELS.map((c) => (
-              <button key={c} onClick={() => setLevel(c)} className={optCls(level === c)}>
-                <span className="text-sm font-bold">{c}</span>
-                <span className="text-sm font-semibold">{t(`lvl.${c}.name`)}</span>
-                <span className="text-xs text-[var(--text-secondary)]">{t(`lvl.${c}.desc`)}</span>
-              </button>
-            ))}
+            {LEVELS.map((c) => {
+              const on = level === c;
+              return (
+                <button key={c} onClick={() => setLevel(c)} aria-pressed={on} className={`${optCls(on)} ${on ? 'shadow-md' : ''}`}>
+                  <span className="flex w-full items-center gap-3">
+                    <span aria-hidden="true" className={`grid h-10 w-10 flex-none place-items-center rounded-xl text-sm font-bold transition-colors ${on ? 'bg-[var(--primary)] text-[var(--on-primary)]' : 'bg-[var(--fill)] text-[var(--text)]'}`}>
+                      {c}
+                    </span>
+                    <span className="grid flex-1 gap-0.5 text-left">
+                      <span className="text-sm font-semibold">{t(`lvl.${c}.name`)}</span>
+                      <span className="text-xs leading-relaxed text-[var(--text-secondary)]">{t(`lvl.${c}.desc`)}</span>
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <div className="flex items-center justify-between">
-            <BtnSecondary onClick={() => setStep(1)} className="w-auto px-4">{t('common.back')}</BtnSecondary>
-            <button onClick={() => setStep(3)} disabled={!level} className="rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90 disabled:opacity-40">
+            <BtnSecondary onClick={() => go(1)} className="w-auto px-4">{t('common.back')}</BtnSecondary>
+            <button onClick={() => go(3)} disabled={!level} className="rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)] transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-40">
               {t('common.continue')}
             </button>
           </div>
-        </section>
+        </motion.section>
       )}
 
       {step === 3 && (
-        <section className="grid gap-3">
-          <h2 className="text-lg font-bold">{t('ob.s3.h1')}</h2>
-          <p className="text-sm text-[var(--text-secondary)]">{t('ob.s3.sub')}</p>
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            {domains.map((d) => (
-              <button key={d.slug} onClick={() => toggleDomain(d.slug)} className={optCls(pickedDomains.includes(d.slug))}>
-                <span className="text-[var(--primary)]"><RawIcon html={domainIcon(d.slug)} /></span>
-                <span className="text-sm font-semibold">{domainName(d)}</span>
-                <span className="text-xs text-[var(--text-secondary)]">{domainDescription(d)}</span>
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center justify-between">
-            <BtnSecondary onClick={() => setStep(2)} className="w-auto px-4">{t('common.back')}</BtnSecondary>
-            <span className="text-sm text-[var(--text-secondary)]">
-              {pickedDomains.length ? tp('ob.countDomains', pickedDomains.length) : ''}
-            </span>
-            <button onClick={() => setStep(4)} disabled={!pickedDomains.length} className="rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90 disabled:opacity-40">
-              {t('common.continue')}
-            </button>
-          </div>
-        </section>
-      )}
-
-      {step === 4 && (
-        <section className="grid gap-4">
+        <motion.section key="ob-3" {...stepMotion} className="grid gap-4">
           <h2 className="text-lg font-bold">{t('ob.s4.h1')}</h2>
           <p className="text-sm text-[var(--text-secondary)]">{t('ob.s4.sub')}</p>
-          {pickedDomains.map((slug) => {
-            const d = domains.find((x) => x.slug === slug);
+          <input
+            value={query} onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('ob.search')} aria-label={t('ob.search')} className={inputCls}
+          />
+          {visibleDomains.map(({ d, topics: list }) => {
+            const slug = d.slug;
             const picked = topics[slug] || [];
             const allOn = picked.length === d.topics.length;
             return (
@@ -213,7 +224,7 @@ export default function Onboarding({ edit = false, onDone }) {
                   </button>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {d.topics.map((topic) => {
+                  {list.map((topic) => {
                     const on = picked.includes(topic);
                     const src = iconSrc(slug, topic);
                     return (
@@ -229,17 +240,21 @@ export default function Onboarding({ edit = false, onDone }) {
               </div>
             );
           })}
-          <div className="flex items-center justify-between">
-            <BtnSecondary onClick={() => setStep(3)} className="w-auto px-4">{t('common.back')}</BtnSecondary>
+          {!visibleDomains.length && (
+            <p className="text-sm text-[var(--text-secondary)]">{t('les.page.empty')}</p>
+          )}
+          <div className="flex items-center justify-between gap-2">
+            <BtnSecondary onClick={() => go(2)} className="w-auto px-4">{t('common.back')}</BtnSecondary>
             <span className="text-sm text-[var(--text-secondary)]">
-              {topicCount ? tp('ob.countLessons', topicCount) : ''}
+              {topicCount ? tp('ob.countLessons', topicCount) : chosenCount ? tp('ob.countDomains', chosenCount) : ''}
             </span>
-            <button onClick={finish} disabled={saving} className="rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90 disabled:opacity-40">
+            <button onClick={finish} disabled={saving} className="rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)] transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-40">
               {t('ob.finish')}
             </button>
           </div>
-        </section>
+        </motion.section>
       )}
+      </AnimatePresence>
     </motion.div>
   );
 }

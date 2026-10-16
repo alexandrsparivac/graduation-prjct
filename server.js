@@ -375,6 +375,369 @@ app.post('/api/lesson-attempt', async (req, res) => {
   }
 });
 
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
+  .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+async function supabaseAuthAdmin(resource, { method = 'GET', body } = {}) {
+  const baseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!baseUrl || !serviceKey) throw new Error('admin_unavailable');
+  const response = await fetch(`${baseUrl}/auth/v1/admin/${resource}`, {
+    method,
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+    signal: AbortSignal.timeout(10_000),
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    console.error(`Supabase auth admin failed [${response.status}]:`, text.slice(0, 300));
+    throw new Error('admin_action_failed');
+  }
+  return text ? JSON.parse(text) : null;
+}
+
+async function verifyAdmin(req) {
+  const user = await verifySupabaseUser(req);
+  if (!user) return null;
+  if (ADMIN_EMAILS.includes(String(user.email || '').toLowerCase())) return user;
+  // Simplu: e admin dacă profiles.is_admin este true. Citim rândul propriu
+  // cu tokenul apelantului (politica RLS "profiles: own" permite asta),
+  // fără roluri și fără cheia service.
+  try {
+    const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/profiles?select=is_admin&id=eq.${encodeURIComponent(user.id)}`, {
+      headers: { apikey: process.env.SUPABASE_ANON_KEY, Authorization: req.headers.authorization || '' },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    if (rows[0]?.is_admin === true) return user;
+  } catch { /* fall through */ }
+  return null;
+}
+
+function requireAdmin(handler) {
+  return async (req, res) => {
+    try {
+      const admin = await verifyAdmin(req);
+      if (!admin) return res.status(403).json({ error: 'forbidden' });
+      req.adminUser = admin;
+      return handler(req, res);
+    } catch (error) {
+      console.error('Admin endpoint failed:', error.message);
+      return res.status(503).json({ error: 'admin_unavailable' });
+    }
+  };
+}
+
+const safeRows = async (resource) => {
+  try { return await supabaseServiceRequest(resource); }
+  catch { return []; }
+};
+
+// ============ ADMIN PANEL API ============
+
+app.get('/api/admin/overview', requireAdmin(async (_req, res) => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'admin_unavailable' });
+  const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+  const monthAgo = new Date(Date.now() - 30 * 86400_000).toISOString();
+  const [profiles, lessons, progress, attempts, vocab, languages, domains, newWeek] = await Promise.all([
+    safeRows('profiles?select=id,created_at,is_admin,is_banned&limit=2000'),
+    safeRows('lessons?select=id,created_at,language_code,level&limit=2000'),
+    safeRows('user_progress?select=user_id,lesson_id,completed,score,total,completed_at&limit=5000'),
+    safeRows(`lesson_attempts?select=sequence,score,total,completed_at&completed_at=gte.${encodeURIComponent(monthAgo)}&order=sequence.desc&limit=1000`),
+    safeRows('user_vocabulary?select=user_id&limit=2000'),
+    safeRows('languages?select=code'),
+    safeRows('domains?select=slug'),
+    safeRows(`profiles?select=id&created_at=gte.${encodeURIComponent(weekAgo)}&limit=2000`),
+  ]);
+  const completed = progress.filter(p => p.completed);
+  const attemptsWeek = attempts.filter(a => a.completed_at >= weekAgo);
+  res.json({
+    users: {
+      total: profiles.length,
+      admins: profiles.filter(p => p.is_admin).length,
+      banned: profiles.filter(p => p.is_banned).length,
+      newWeek: newWeek.length,
+    },
+    lessons: { total: lessons.length },
+    progress: {
+      rows: progress.length,
+      completed: completed.length,
+      avgScore: completed.length
+        ? completed.reduce((s, p) => s + (p.total ? p.score / p.total : 0), 0) / completed.length
+        : null,
+    },
+    attempts: { month: attempts.length, week: attemptsWeek.length },
+    vocab: { cards: vocab.length },
+    catalog: { languages: languages.length, domains: domains.length },
+  });
+}));
+
+app.get('/api/admin/users', requireAdmin(async (req, res) => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'admin_unavailable' });
+  const q = String(req.query.q || '').toLowerCase().trim();
+  const filter = String(req.query.filter || 'all');
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const [profiles, authList] = await Promise.all([
+    safeRows('profiles?select=id,full_name,avatar_url,native_language,onboarding_done,is_admin,is_banned,banned_reason,banned_at,created_at&order=created_at.desc&limit=1000'),
+    (async () => {
+      try { return await supabaseAuthAdmin(`users?per_page=200&page=1`); }
+      catch { return { users: [] }; }
+    })(),
+  ]);
+  const authById = Object.fromEntries(((authList?.users) || []).map(u => [u.id, u]));
+  let users = profiles.map(p => {
+    const a = authById[p.id] || {};
+    return {
+      ...p,
+      email: a.email || null,
+      email_confirmed: !!a.email_confirmed_at,
+      last_sign_in_at: a.last_sign_in_at || null,
+      auth_banned_until: a.banned_until || null,
+    };
+  });
+  if (q) {
+    users = users.filter(u =>
+      (u.email || '').toLowerCase().includes(q) ||
+      (u.full_name || '').toLowerCase().includes(q) ||
+      u.id.toLowerCase().includes(q));
+  }
+  const weekAgo = Date.now() - 7 * 86400_000;
+  if (filter === 'admins') users = users.filter(u => u.is_admin);
+  else if (filter === 'banned') users = users.filter(u => u.is_banned);
+  else if (filter === 'recent') users = users.filter(u => new Date(u.created_at).getTime() >= weekAgo);
+  else if (filter === 'no_onboarding') users = users.filter(u => !u.onboarding_done);
+  const total = users.length;
+  const start = (page - 1) * limit;
+  res.json({ users: users.slice(start, start + limit), total, page, limit });
+}));
+
+app.get('/api/admin/users/:id', requireAdmin(async (req, res) => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'admin_unavailable' });
+  const id = req.params.id;
+  const [profile, langs, domains, progress, attempts, vocab] = await Promise.all([
+    safeRows(`profiles?select=*&id=eq.${encodeURIComponent(id)}`).then(r => r[0] || null),
+    safeRows(`user_languages?select=language_code,level,earned_level,created_at&user_id=eq.${encodeURIComponent(id)}`),
+    safeRows(`user_domains?select=language_code,domain_slug,topics,created_at&user_id=eq.${encodeURIComponent(id)}`),
+    safeRows(`user_progress?select=lesson_id,completed,score,total,completed_at&user_id=eq.${encodeURIComponent(id)}&limit=500`),
+    safeRows(`lesson_attempts?select=sequence,lesson_id,language_code,level,score,total,completed_at&user_id=eq.${encodeURIComponent(id)}&order=sequence.desc&limit=50`),
+    safeRows(`user_vocabulary?select=language_code,term,kind,due_on&user_id=eq.${encodeURIComponent(id)}&limit=200`),
+  ]);
+  if (!profile) return res.status(404).json({ error: 'user_not_found' });
+  let authUser = null;
+  try { authUser = await supabaseAuthAdmin(`users/${encodeURIComponent(id)}`); } catch { /* optional */ }
+  res.json({
+    profile,
+    email: authUser?.email || null,
+    email_confirmed: !!authUser?.email_confirmed_at,
+    last_sign_in_at: authUser?.last_sign_in_at || null,
+    languages: langs, domains, progress, attempts, vocab,
+  });
+}));
+
+app.patch('/api/admin/users/:id', requireAdmin(async (req, res) => {
+  const id = req.params.id;
+  const { full_name, native_language, is_admin, is_banned, banned_reason } = req.body || {};
+  const patch = {};
+  if (full_name !== undefined) {
+    if (typeof full_name !== 'string' || full_name.length > 120) return res.status(400).json({ error: 'invalid_full_name' });
+    patch.full_name = full_name.trim() || null;
+  }
+  if (native_language !== undefined) {
+    if (!supportedLanguageCodes.has(native_language)) return res.status(400).json({ error: 'invalid_language' });
+    patch.native_language = native_language;
+  }
+  if (is_admin !== undefined) {
+    if (typeof is_admin !== 'boolean') return res.status(400).json({ error: 'invalid_role' });
+    if (req.adminUser.id === id && !is_admin) return res.status(400).json({ error: 'cannot_demote_self' });
+    patch.is_admin = is_admin;
+  }
+  if (is_banned !== undefined) {
+    if (typeof is_banned !== 'boolean') return res.status(400).json({ error: 'invalid_ban' });
+    patch.is_banned = is_banned;
+    patch.banned_at = is_banned ? new Date().toISOString() : null;
+    patch.banned_reason = is_banned ? String(banned_reason || '').slice(0, 300) || null : null;
+  } else if (banned_reason !== undefined && typeof banned_reason === 'string') {
+    patch.banned_reason = banned_reason.slice(0, 300) || null;
+  }
+  if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing_to_update' });
+  try {
+    const rows = await supabaseServiceRequest(`profiles?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH', body: patch, prefer: 'return=representation',
+    });
+    if (is_banned === true) {
+      try { await supabaseAuthAdmin(`users/${encodeURIComponent(id)}/ban`, { method: 'PUT' }); } catch { /* profile flag is source of truth */ }
+    }
+    if (is_banned === false) {
+      try { await supabaseAuthAdmin(`users/${encodeURIComponent(id)}/ban`, { method: 'DELETE' }); } catch { /* ignore */ }
+    }
+    res.json({ user: rows[0] || null });
+  } catch {
+    res.status(503).json({ error: 'admin_action_failed' });
+  }
+}));
+
+app.post('/api/admin/users/:id/reset-progress', requireAdmin(async (req, res) => {
+  const id = req.params.id;
+  try {
+    await supabaseServiceRequest(`user_progress?user_id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+    await supabaseServiceRequest(`user_vocabulary?user_id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+    res.json({ ok: true });
+  } catch {
+    res.status(503).json({ error: 'admin_action_failed' });
+  }
+}));
+
+app.post('/api/admin/users/:id/recovery', requireAdmin(async (req, res) => {
+  const id = req.params.id;
+  try {
+    const authUser = await supabaseAuthAdmin(`users/${encodeURIComponent(id)}`);
+    if (!authUser?.email) return res.status(404).json({ error: 'no_email' });
+    const r = await fetch(`${process.env.SUPABASE_URL}/auth/v1/recover`, {
+      method: 'POST',
+      headers: { apikey: process.env.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: authUser.email }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) throw new Error('recovery_failed');
+    res.json({ ok: true, email: authUser.email });
+  } catch {
+    res.status(503).json({ error: 'admin_action_failed' });
+  }
+}));
+
+app.delete('/api/admin/users/:id', requireAdmin(async (req, res) => {
+  const id = req.params.id;
+  if (req.adminUser.id === id) return res.status(400).json({ error: 'cannot_delete_self' });
+  try {
+    await supabaseAuthAdmin(`users/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    res.json({ ok: true });
+  } catch {
+    res.status(503).json({ error: 'admin_action_failed' });
+  }
+}));
+
+app.get('/api/admin/lessons', requireAdmin(async (req, res) => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'admin_unavailable' });
+  const q = String(req.query.q || '').toLowerCase().trim();
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 100));
+  const rows = await safeRows(`lessons?select=id,language_code,domain_slug,topic,level,native_language,model,created_at&order=created_at.desc&limit=${limit * 2}`);
+  const filtered = q
+    ? rows.filter(l => (l.topic || '').toLowerCase().includes(q) || (l.domain_slug || '').toLowerCase().includes(q) || l.id.toLowerCase().includes(q))
+    : rows;
+  const progress = await safeRows('user_progress?select=lesson_id,completed&limit=5000');
+  const doneByLesson = {};
+  for (const p of progress) {
+    doneByLesson[p.lesson_id] = doneByLesson[p.lesson_id] || { started: 0, done: 0 };
+    doneByLesson[p.lesson_id].started++;
+    if (p.completed) doneByLesson[p.lesson_id].done++;
+  }
+  res.json({
+    lessons: filtered.slice(0, limit).map(l => ({ ...l, stats: doneByLesson[l.id] || { started: 0, done: 0 } })),
+    total: filtered.length,
+  });
+}));
+
+app.delete('/api/admin/lessons/:id', requireAdmin(async (req, res) => {
+  try {
+    await supabaseServiceRequest(`lessons?id=eq.${encodeURIComponent(req.params.id)}`, { method: 'DELETE' });
+    res.json({ ok: true });
+  } catch {
+    res.status(503).json({ error: 'admin_action_failed' });
+  }
+}));
+
+app.get('/api/admin/activity', requireAdmin(async (_req, res) => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'admin_unavailable' });
+  const [attempts, progress] = await Promise.all([
+    safeRows('lesson_attempts?select=sequence,user_id,lesson_id,language_code,level,score,total,completed_at&order=sequence.desc&limit=60'),
+    safeRows('user_progress?select=user_id,lesson_id,completed,completed_at&order=completed_at.desc.nullslast&limit=60'),
+  ]);
+  const profiles = await safeRows('profiles?select=id,full_name&limit=1000');
+  const names = Object.fromEntries(profiles.map(p => [p.id, p.full_name || p.id.slice(0, 8)]));
+  res.json({
+    attempts: attempts.map(a => ({ ...a, user_name: names[a.user_id] || a.user_id.slice(0, 8) })),
+    recent: progress.filter(p => p.completed).slice(0, 30).map(p => ({ ...p, user_name: names[p.user_id] || p.user_id.slice(0, 8) })),
+  });
+}));
+
+app.get('/api/admin/catalog', requireAdmin(async (_req, res) => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'admin_unavailable' });
+  const [languages, domains, translations, lessons] = await Promise.all([
+    safeRows('languages?select=code,name,native_name,flag&order=code'),
+    safeRows('domains?select=slug,name,description,topics&order=slug'),
+    safeRows('lesson_localizations?select=lesson_id,native_language&limit=2000'),
+    safeRows('lessons?select=id,language_code,domain_slug&limit=2000'),
+  ]);
+  const locByLesson = {};
+  for (const t of translations) {
+    locByLesson[t.lesson_id] = locByLesson[t.lesson_id] || [];
+    locByLesson[t.lesson_id].push(t.native_language);
+  }
+  const lessonsByLang = {};
+  for (const l of lessons) {
+    lessonsByLang[l.language_code] = (lessonsByLang[l.language_code] || 0) + 1;
+  }
+  res.json({ languages, domains, locByLesson, lessonsByLang });
+}));
+
+app.post('/api/admin/domains', requireAdmin(async (req, res) => {
+  const { slug, name, description, topics } = req.body || {};
+  if (!/^[a-z][a-z0-9_-]{1,49}$/i.test(slug || '') || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'invalid_domain' });
+  }
+  try {
+    const rows = await supabaseServiceRequest('domains', {
+      method: 'POST',
+      body: {
+        slug: slug.toLowerCase(), name: name.trim(),
+        description: String(description || '').slice(0, 500),
+        topics: Array.isArray(topics) ? topics.map(String).filter(Boolean).slice(0, 50) : [],
+      },
+      prefer: 'return=representation',
+    });
+    res.status(201).json({ domain: rows[0] });
+  } catch {
+    res.status(503).json({ error: 'admin_action_failed' });
+  }
+}));
+
+app.put('/api/admin/domains/:slug', requireAdmin(async (req, res) => {
+  const { name, description, topics } = req.body || {};
+  const patch = {};
+  if (name !== undefined) {
+    if (typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'invalid_domain' });
+    patch.name = name.trim();
+  }
+  if (description !== undefined) patch.description = String(description).slice(0, 500);
+  if (topics !== undefined) {
+    if (!Array.isArray(topics)) return res.status(400).json({ error: 'invalid_topics' });
+    patch.topics = topics.map(String).filter(Boolean).slice(0, 50);
+  }
+  try {
+    const rows = await supabaseServiceRequest(`domains?slug=eq.${encodeURIComponent(req.params.slug)}`, {
+      method: 'PATCH', body: patch, prefer: 'return=representation',
+    });
+    res.json({ domain: rows[0] || null });
+  } catch {
+    res.status(503).json({ error: 'admin_action_failed' });
+  }
+}));
+
+app.delete('/api/admin/domains/:slug', requireAdmin(async (req, res) => {
+  try {
+    await supabaseServiceRequest(`domains?slug=eq.${encodeURIComponent(req.params.slug)}`, { method: 'DELETE' });
+    res.json({ ok: true });
+  } catch {
+    res.status(503).json({ error: 'admin_action_failed' });
+  }
+}));
+
 async function requestGroq(messages, maxTokens, model, temperature = 0.65, signal = null, timeoutMs = 45_000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(new Error('Groq request timed out')), Math.max(1, timeoutMs));

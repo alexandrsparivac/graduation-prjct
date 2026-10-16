@@ -1,0 +1,368 @@
+de: missing 315
+de: wrote 315 keys
+done
+ar: missing 315
+ar: wrote 315 keys
+cs: missing 315
+cs: wrote 315 keys
+da: missing 315
+da: wrote 315 keys
+de: missing 0
+el: missing 315
+el: wrote 315 keys
+es: missing 315
+es: wrote 315 keys
+fi: missing 315
+fi: wrote 315 keys
+fr: missing 315
+fr: wrote 315 keys
+he: missing 315
+he: wrote 315 keys
+hi: missing 315
+hi: wrote 315 keys
+hu: missing 315
+hu: wrote 315 keys
+it: missing 315
+it: wrote 315 keys
+ja: missing 315
+ja: wrote 315 keys
+ko: missing 315
+ko: wrote 315 keys
+nl: missing 315
+nl: wrote 315 keys
+no: missing 315
+no: wrote 315 keys
+pl: missing 315
+pl: wrote 315 keys
+pt: missing 315
+pt: wrote 315 keys
+ru: missing 312
+ru: wrote 312 keys
+sv: missing 315
+sv: wrote 315 keys
+tr: missing 315
+tr: chunk 150 FAILED (groq failed: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` ser)
+tr: chunk 250 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+tr: wrote 215 keys
+uk: missing 315
+uk: chunk 100 FAILED (groq failed: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` ser)
+uk: chunk 150 FAILED (groq failed: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` ser)
+uk: skip admin.lessons.title (empty)
+uk: skip admin.lessons.search (empty)
+uk: skip admin.lessons.statsCapped (empty)
+uk: skip admin.lessons.loadFailed (empty)
+uk: skip admin.lessons.none (empty)
+uk: skip admin.lessons.del (empty)
+uk: skip admin.lessons.confirm (empty)
+uk: skip admin.lessons.pressAgain (empty)
+uk: skip admin.lessons.deleted (empty)
+uk: skip admin.lessons.deleteFailed (empty)
+uk: chunk 300 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+uk: wrote 190 keys
+zh: missing 315
+zh: chunk 0 FAILED (groq failed: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` ser)
+zh: chunk 100 FAILED (groq failed: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` ser)
+zh: chunk 200 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+zh: chunk 300 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+zh: wrote 150 keys
+done
+tr: missing 100
+tr: skip admin.catalog.description (empty)
+tr: skip admin.catalog.descriptionPh (empty)
+tr: wrote 98 keys
+uk: missing 125
+uk: chunk 50 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+uk: chunk 75 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+uk: wrote 75 keys
+zh: missing 165
+zh: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+zh: chunk 75 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+zh: wrote 115 keys
+done
+tr: missing 4
+tr: wrote 4 keys
+uk: missing 52
+uk: chunk 50 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+uk: wrote 50 keys
+zh: missing 52
+zh: wrote 52 keys
+done
+uk: missing 2
+uk: wrote 2 keys
+done
+ar: missing 2
+ar: wrote 2 keys
+cs: missing 2
+cs: wrote 2 keys
+da: missing 2
+da: wrote 2 keys
+de: missing 2
+de: wrote 2 keys
+el: missing 2
+el: wrote 2 keys
+es: missing 2
+es: wrote 2 keys
+fi: missing 2
+fi: wrote 2 keys
+fr: missing 2
+fr: wrote 2 keys
+he: missing 2
+he: wrote 2 keys
+hi: missing 2
+hi: wrote 2 keys
+hu: missing 2
+hu: wrote 2 keys
+it: missing 2
+it: wrote 2 keys
+ja: missing 2
+ja: wrote 2 keys
+ko: missing 2
+ko: wrote 2 keys
+nl: missing 2
+nl: wrote 2 keys
+no: missing 2
+no: wrote 2 keys
+pl: missing 2
+pl: wrote 2 keys
+pt: missing 2
+pt: wrote 2 keys
+ru: missing 2
+ru: wrote 2 keys
+sv: missing 2
+sv: wrote 2 keys
+tr: missing 0
+uk: missing 0
+zh: missing 0
+done
+ar: missing 7
+ar: wrote 7 keys
+cs: missing 7
+cs: wrote 7 keys
+da: missing 7
+da: wrote 7 keys
+de: missing 7
+de: wrote 7 keys
+el: missing 7
+el: wrote 7 keys
+es: missing 7
+es: wrote 7 keys
+fi: missing 7
+fi: chunk 0 FAILED (groq failed: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` ser)
+fr: missing 7
+fr: wrote 7 keys
+he: missing 7
+he: chunk 0 FAILED (groq failed: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` ser)
+hi: missing 7
+hi: chunk 0 FAILED (groq failed: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` ser)
+hu: missing 7
+ar: missing 26
+hu: wrote 7 keys
+it: missing 7
+ar: chunk 0 FAILED (groq failed: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` ser)
+it: wrote 7 keys
+ja: missing 7
+ar: wrote 1 keys
+cs: missing 26
+ja: chunk 0 FAILED (groq failed: {"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` ser)
+ko: missing 7
+cs: wrote 26 keys
+da: missing 26
+ko: wrote 7 keys
+nl: missing 7
+nl: wrote 7 keys
+no: missing 7
+da: wrote 26 keys
+de: missing 26
+no: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+pl: missing 7
+pl: wrote 7 keys
+pt: missing 7
+de: wrote 26 keys
+el: missing 26
+pt: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+ru: missing 7
+ru: wrote 7 keys
+sv: missing 7
+sv: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+tr: missing 7
+el: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+el: wrote 25 keys
+es: missing 26
+tr: wrote 7 keys
+uk: missing 7
+es: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+uk: wrote 7 keys
+zh: missing 7
+es: wrote 1 keys
+fi: missing 33
+zh: wrote 7 keys
+done
+ar: missing 25
+fi: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+fi: wrote 25 keys
+fr: missing 26
+ar: wrote 25 keys
+cs: missing 0
+da: missing 0
+de: missing 0
+el: missing 1
+fr: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+fr: wrote 1 keys
+he: missing 33
+el: wrote 1 keys
+es: missing 25
+es: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+fi: missing 8
+he: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+he: wrote 25 keys
+hi: missing 33
+fi: wrote 8 keys
+fr: missing 25
+fr: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+he: missing 8
+he: wrote 8 keys
+hi: missing 33
+hi: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+hi: wrote 25 keys
+hu: missing 26
+hu: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+hi: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+hi: wrote 25 keys
+hu: missing 26
+hu: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+it: missing 26
+it: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+hu: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+hu: wrote 25 keys
+it: missing 26
+it: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+ja: missing 33
+it: wrote 26 keys
+ja: missing 33
+ja: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+ja: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+ko: missing 26
+ja: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+ja: wrote 25 keys
+ko: missing 26
+ko: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+ko: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+ko: wrote 25 keys
+nl: missing 26
+ko: wrote 1 keys
+nl: missing 26
+nl: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+nl: wrote 26 keys
+no: missing 33
+nl: wrote 1 keys
+no: missing 33
+no: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+no: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+no: wrote 25 keys
+pl: missing 26
+no: wrote 8 keys
+pl: missing 26
+pl: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+pl: wrote 26 keys
+pt: missing 33
+pl: wrote 1 keys
+pt: missing 33
+pt: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+pt: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+pt: wrote 25 keys
+ru: missing 26
+pt: wrote 8 keys
+ru: missing 26
+ru: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+ru: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+ru: wrote 25 keys
+sv: missing 33
+ru: wrote 1 keys
+sv: missing 33
+sv: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+sv: wrote 33 keys
+tr: missing 26
+sv: wrote 8 keys
+tr: missing 26
+tr: wrote 26 keys
+uk: missing 26
+tr: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+uk: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+tr: wrote 1 keys
+uk: missing 26
+uk: wrote 1 keys
+zh: missing 26
+uk: wrote 26 keys
+zh: missing 26
+zh: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+zh: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+done
+ar: missing 0
+cs: missing 0
+da: missing 0
+de: missing 0
+el: missing 0
+es: missing 25
+zh: chunk 25 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+zh: wrote 25 keys
+done
+es: wrote 25 keys
+fi: missing 0
+fr: missing 25
+fr: wrote 25 keys
+he: missing 0
+hi: missing 8
+hi: wrote 8 keys
+hu: missing 1
+hu: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+it: missing 0
+ja: missing 8
+ja: wrote 8 keys
+ko: missing 25
+ko: wrote 25 keys
+nl: missing 25
+nl: wrote 25 keys
+no: missing 25
+no: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+pl: missing 25
+pl: wrote 25 keys
+pt: missing 25
+pt: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+ru: missing 25
+ru: wrote 25 keys
+sv: missing 25
+sv: wrote 25 keys
+tr: missing 25
+tr: chunk 0 FAILED (groq failed: {"error":{"message":"Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01ksaq4d8sfx6saq0t8sp5w9xw` se)
+uk: missing 0
+zh: missing 1
+zh: wrote 1 keys
+done
+ar: missing 0
+cs: missing 0
+da: missing 0
+de: missing 0
+el: missing 0
+es: missing 0
+fi: missing 0
+fr: missing 0
+he: missing 0
+hi: missing 0
+hu: missing 1
+hu: wrote 1 keys
+it: missing 0
+ja: missing 0
+ko: missing 0
+nl: missing 0
+no: missing 25
+no: wrote 25 keys
+pl: missing 0
+pt: missing 25
+pt: wrote 25 keys
+ru: missing 0
+sv: missing 0
+tr: missing 25
+tr: wrote 25 keys
+uk: missing 0
+zh: missing 0
+done
