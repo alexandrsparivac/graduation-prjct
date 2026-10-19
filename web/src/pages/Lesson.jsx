@@ -12,6 +12,7 @@ import {
 import { speak, stopSpeaking, listen, similarity, toLocale, ttsSupported, sttSupported, prefetchSpeech } from '../lib/speech.js';
 import { domainIcon } from '../../../shared/domain-icons.js';
 import { useToast } from '../components/ui.jsx';
+import LoadingIndicator from '../components/LoadingIndicator.jsx';
 import Confetti from '../components/Confetti.jsx';
 const SECTION_ICON = {
   vocab: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
@@ -138,7 +139,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
     stepRef.current += 1;
     setSaveFailed(false);
     checkpoint();
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     bump((x) => x + 1);
   }, [checkpoint]);
 
@@ -430,7 +431,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
         key={stepIdx}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
+        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
         className="grid content-start gap-4"
       >
         <StepBody
@@ -571,7 +572,7 @@ function MicButton({ expected, locale, toast }) {
         {ICON_MIC}
       </button>
       <div role="status" aria-live="polite">
-        {status === 'recording' && <span className="text-xs text-[var(--text-secondary)]">{t('common.moment')}</span>}
+        {status === 'recording' && <LoadingIndicator className="h-4 w-4" />}
         {status === 'processing' && <span className="text-xs text-[var(--text-secondary)]">{t('les.speak.processing')}</span>}
         {typeof status === 'string' && status.startsWith('les.') && (
           <span className="text-xs text-[var(--text-secondary)]">{t(status)}</span>
@@ -765,7 +766,7 @@ export function StepBody(props) {
         <p className="text-sm text-[var(--text-secondary)]">{t('les.phrases.sub')}</p>
         <div className="grid gap-2.5">
           {(c.phrases || []).map((p, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: Math.min(i * 0.04, 0.3) }}
+            <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1], delay: Math.min(i * 0.04, 0.3) }}
               className="grid gap-1 rounded-xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-3.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-[15px] font-semibold">{p.phrase}</div>

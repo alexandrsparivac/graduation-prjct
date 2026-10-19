@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase.js';
 import { t, loadCatalogTranslations, loadCards, domainName } from '../lib/legacy.js';
+import { LoadingOverlay } from '../components/LoadingIndicator.jsx';
 import { resolveActiveLanguage } from '../lib/lang.js';
 
 const list = {
@@ -9,7 +10,7 @@ const list = {
 };
 const card = {
   hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } },
 };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -58,7 +59,7 @@ export default function Vocab() {
     });
   }, [state.cards, query, filter]);
 
-  if (state.loading) return <p className="text-sm text-[var(--text-secondary)]">{t('common.moment')}</p>;
+  if (state.loading) return <LoadingOverlay />;
   if (state.error) return <p className="text-sm text-[var(--danger-text)]">{state.error}</p>;
 
   const tabs = [

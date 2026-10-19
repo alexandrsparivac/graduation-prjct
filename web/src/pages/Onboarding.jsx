@@ -5,19 +5,21 @@ import { t, tp, languageName, langMeta, domainName, domainDescription, topicName
 import { BtnSecondary, Msg, inputCls } from '../components/ui.jsx';
 import { useTheme } from '../lib/useTheme.jsx';
 import { topicIcon } from '../../../shared/topic-icons.js';
+import { LoadingOverlay } from '../components/LoadingIndicator.jsx';
 
 const iconSrc = (slug, topic) => {
   const m = topicIcon(slug, topic).match(/src="([^"]+)"/);
   return m ? m[1] : null;
 };
 
-export default function Onboarding({ edit = false, onDone }) {
+export default function Onboarding({ edit = false, add = false, onDone }) {
   const theme = useTheme();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [languages, setLanguages] = useState([]);
+  const [existingLanguages, setExistingLanguages] = useState([]);
   const [domains, setDomains] = useState([]);
   const [language, setLanguage] = useState(null);
   const [level, setLevel] = useState(null);
@@ -52,6 +54,11 @@ export default function Onboarding({ edit = false, onDone }) {
       }
       setLanguages(languagesResult.data || []);
       setDomains(domainsResult.data || []);
+      if (add) {
+        const { data: enrolled } = await supabase.from('user_languages').select('language_code').eq('user_id', user.id);
+        if (!alive) return;
+        setExistingLanguages((enrolled || []).map((row) => row.language_code));
+      }
       if (edit) {
         const { data: ul } = await supabase.from('user_languages').select('*').eq('user_id', user.id).limit(1);
         if (!alive) return;
@@ -66,7 +73,7 @@ export default function Onboarding({ edit = false, onDone }) {
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [edit]);
+  }, [edit, add]);
 
   const topicCount = domains.reduce((s, d) => s + (topics[d.slug]?.length || 0), 0);
   const chosenCount = domains.filter((d) => (topics[d.slug] || []).length > 0).length;
@@ -107,7 +114,7 @@ export default function Onboarding({ edit = false, onDone }) {
         return;
       }
       try { localStorage.setItem('activeLanguage', language); } catch { /* next page still works */ }
-      onDone('guide');
+      onDone(add ? 'dashboard' : 'guide');
     } catch (err) {
       setError(err?.message || t('dash.widgets.saveFailed'));
     } finally {
@@ -115,10 +122,10 @@ export default function Onboarding({ edit = false, onDone }) {
     }
   };
 
-  if (loading) return <p className="text-sm text-[var(--text-secondary)]">{t('common.moment')}</p>;
+  if (loading) return <LoadingOverlay />;
 
   const optCls = (on) =>
-    `flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all duration-200 active:scale-[0.98] ${
+    `flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all duration-300 active:scale-[0.985] ${
       on ? 'border-[var(--primary)] bg-[var(--fill)]' : 'border-[var(--border)] bg-[var(--bg-container)] hover:border-[var(--text-tertiary)]'
     }`;
 
@@ -126,7 +133,7 @@ export default function Onboarding({ edit = false, onDone }) {
     initial: { opacity: 0, x: 44 * dir },
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: -44 * dir },
-    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
   };
 
   const q = query.trim().toLowerCase();
@@ -138,7 +145,7 @@ export default function Onboarding({ edit = false, onDone }) {
     .filter((x) => x.topics.length > 0);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-5">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }} className="grid gap-5">
       <div className="flex items-center gap-2" aria-hidden="true">
         {[1, 2, 3].map((n) => (
           <span key={n} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${n <= step ? 'bg-[var(--primary)]' : 'bg-[var(--fill-strong)]'}`} />
@@ -152,7 +159,7 @@ export default function Onboarding({ edit = false, onDone }) {
           <h2 className="text-lg font-bold">{t('ob.s1.h1')}</h2>
           <p className="text-sm text-[var(--text-secondary)]">{t('ob.s1.sub')}</p>
           <div className="grid gap-2.5 sm:grid-cols-2">
-            {languages.map((l) => (
+            {languages.filter((l) => !add || !existingLanguages.includes(l.code)).map((l) => (
               <button key={l.code} onClick={() => setLanguage(l.code)} className={optCls(language === l.code)}>
                 <span className="flex items-center gap-2 text-sm font-semibold">
                   {langMeta(l.code)?.flag && (

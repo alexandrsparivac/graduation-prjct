@@ -12,6 +12,7 @@ const HEX_COLOR = /^#[\da-f]{6}$/i;
 
 export const DEFAULTS = {
   theme: 'system',          // 'system' | 'light' | 'dark'
+  headerLayout: 'top',      // 'top' | 'left'
   accent: 'violet',         // Persistent system-wide accent colour
   bgWords: true,            // ambient background effects
   showTranslations: true,   // reveal the reading translation without asking
@@ -40,6 +41,7 @@ export function getPrefs() {
   if (typeof cache.accent === 'string' && HEX_COLOR.test(cache.accent)) cache.accent = cache.accent.toLowerCase();
   else if (!ACCENTS.includes(cache.accent)) cache.accent = DEFAULTS.accent;
   if (!SPEECH_VOICES.includes(cache.speechVoice)) cache.speechVoice = DEFAULTS.speechVoice;
+  if (!['top', 'left'].includes(cache.headerLayout)) cache.headerLayout = DEFAULTS.headerLayout;
   const validSections = new Set(BUILDER_SECTIONS.map(section => section.key));
   cache.lessonSections = Array.isArray(cache.lessonSections)
     ? [...new Set(cache.lessonSections.filter(section => validSections.has(section)))]

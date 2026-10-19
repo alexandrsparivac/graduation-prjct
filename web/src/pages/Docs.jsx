@@ -1,40 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { t } from '../lib/legacy.js';
+import FaqAccordion from '../components/FaqAccordion.jsx';
 
 /* ---------- FAQ: accordion ---------- */
 
 function FaqDocs() {
-  const [open, setOpen] = useState(0);
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-1 border-t border-[var(--border-secondary)] pt-6">
-      {Array.from({ length: 8 }, (_, n) => {
-        const isOpen = open === n;
-        return (
-          <div key={n} className="border-b border-[var(--border-secondary)]">
-            <button
-              onClick={() => setOpen(isOpen ? -1 : n)}
-              aria-expanded={isOpen}
-              className="flex w-full items-center justify-between gap-3 py-4 text-left"
-            >
-              <span className="text-[15px] font-semibold">{t(`faq.q${n + 1}`)}</span>
-              <svg
-                width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-                className={`flex-none text-[var(--text-tertiary)] transition-transform ${isOpen ? 'rotate-180' : ''}`}
-              >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-            <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-              <div className="overflow-hidden">
-                <p className="max-w-2xl pb-5 text-sm leading-relaxed text-[var(--text-secondary)]">
-                  {t(`faq.a${n + 1}`)}
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }} className="grid gap-4 pt-6">
+      <div className="grid gap-2"><h1 className="text-2xl font-bold tracking-tight">{t('faq.title')}</h1><p className="text-sm text-[var(--text-secondary)]">{t('faq.sub')}</p></div>
+      <FaqAccordion />
     </motion.div>
   );
 }
@@ -66,13 +41,16 @@ function TermsDocs({ autoPrivacy = false }) {
   };
   useEffect(() => {
     if (autoPrivacy) {
-      document.getElementById('legal-group-priv')?.scrollIntoView({ block: 'start' });
+      const timer = window.setTimeout(() => {
+        document.getElementById('legal-group-priv')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 380);
+      return () => window.clearTimeout(timer);
     }
   }, [autoPrivacy]);
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-6">
+    <div className="grid gap-6">
       <div className="grid items-start gap-6 pt-4 lg:grid-cols-[220px_1fr]">
-        <nav aria-label="Legal" className="grid gap-3 lg:sticky lg:top-20">
+        <nav aria-label={t('faq.legalNav')} className="grid gap-3 lg:sticky lg:top-20">
           {numbered.map((g) => (
             <div key={g.badge} className="grid gap-1">
               <p className="px-3 text-[11px] font-bold tracking-[0.14em] text-[var(--text-tertiary)] uppercase">{g.badge}</p>
@@ -93,9 +71,6 @@ function TermsDocs({ autoPrivacy = false }) {
           {numbered.map((g) => (
             <section key={g.badge} id={g.badge === 'Privacy' ? 'legal-group-priv' : undefined} className="grid scroll-mt-24 gap-6">
               <div className="grid gap-2 border-b border-[var(--border-secondary)] pb-5">
-                <span className="w-fit rounded-full bg-[var(--fill)] px-3 py-1 text-[11px] font-bold tracking-[0.14em] text-[var(--text-secondary)] uppercase">
-                  {g.badge}
-                </span>
                 <h2 className="text-2xl font-bold tracking-tight">{g.title}</h2>
                 <p className="text-xs text-[var(--text-tertiary)]">{g.sub}</p>
               </div>
@@ -118,7 +93,7 @@ function TermsDocs({ autoPrivacy = false }) {
           ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 

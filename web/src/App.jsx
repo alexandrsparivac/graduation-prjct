@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, MotionConfig } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from './lib/supabase.js';
 import { getProfile } from './lib/auth.js';
-import { t, languageName, onPrefsChange } from './lib/legacy.js';
+import { t, languageName, onPrefsChange, getPref } from './lib/legacy.js';
 import { applyThemePrefs } from './lib/theme.js';
 import { resolveActiveLanguage } from './lib/lang.js';
 import { useI18nReady, useI18n } from './lib/i18n.jsx';
@@ -27,19 +27,24 @@ function ChatGPTIcon() {
   );
 }
 
-function Footer({ onDoc }) {
+function Footer({ onDoc, layout = 'top' }) {
+  const badge = (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-secondary)] bg-[var(--bg-container)] px-2.5 py-1">
+      <ChatGPTIcon />
+      <span>{t('foot.generated')}</span>
+    </span>
+  );
+  const links = (
+    <span className="flex flex-wrap items-center gap-x-5 gap-y-2">
+      <button onClick={() => onDoc('terms')} className="hover:text-[var(--text-secondary)]">{t('foot.terms')}</button>
+      <button onClick={() => onDoc('priv')} className="hover:text-[var(--text-secondary)]">{t('foot.privacy')}</button>
+    </span>
+  );
   return (
-    <footer className="mx-auto w-full max-w-5xl border-t border-[var(--border-secondary)] px-4 pt-4 pb-8">
-      <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 text-xs text-[var(--text-tertiary)]">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-secondary)] bg-[var(--bg-container)] px-2.5 py-1">
-          <ChatGPTIcon />
-          <span>{t('foot.generated')}</span>
-        </span>
-        <span className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <button onClick={() => onDoc('faq')} className="hover:text-[var(--text-secondary)]">{t('foot.faq')}</button>
-          <button onClick={() => onDoc('terms')} className="hover:text-[var(--text-secondary)]">{t('foot.terms')}</button>
-          <button onClick={() => onDoc('priv')} className="hover:text-[var(--text-secondary)]">{t('foot.privacy')}</button>
-        </span>
+    <footer className={`mx-auto w-full max-w-5xl px-4 ${layout === 'left' ? 'flex flex-1 items-end' : 'border-t border-[var(--border-secondary)] pt-4 pb-8'}`}>
+      <div className={`flex w-full flex-wrap items-center justify-between gap-x-5 gap-y-2 text-xs text-[var(--text-tertiary)] ${layout === 'left' ? 'pb-2' : ''}`}>
+        {layout !== 'left' && badge}
+        {layout !== 'left' && links}
       </div>
     </footer>
   );
@@ -52,11 +57,14 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [checking, setChecking] = useState(true);
   const [view, setView] = useState('dashboard');
-  const [obEdit, setObEdit] = useState(false);
+  const [headerLayout, setHeaderLayout] = useState(() => getPref('headerLayout'));
+  const [obAdd, setObAdd] = useState(false);
   const [lessonParams, setLessonParams] = useState(null);
-  const [settingsTab, setSettingsTab] = useState('appearance');
+  const [settingsTab, setSettingsTab] = useState('profile');
+  const [showProfileWelcome, setShowProfileWelcome] = useState(false);
   const nav = (v) => {
-    if (v !== 'onboarding') setObEdit(false);
+    if (v !== 'onboarding') setObAdd(false);
+    if (v === 'settings') setSettingsTab('profile');
     setView(v);
   };
 
@@ -76,7 +84,10 @@ export default function App() {
 
   useEffect(() => {
     applyThemePrefs();
-    const off = onPrefsChange(() => applyThemePrefs());
+    const off = onPrefsChange(() => {
+      applyThemePrefs();
+      setHeaderLayout(getPref('headerLayout'));
+    });
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user || null);
       setChecking(false);
@@ -205,15 +216,15 @@ export default function App() {
   }
 
   return (
-    <MotionConfig reducedMotion="user" transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>
-    <div className="flex min-h-screen flex-col">
+    <div className={`min-h-screen ${headerLayout === 'left' ? 'flex' : 'flex flex-col'}`}>
       <AmbientGL />
-      <Topbar user={user} profile={profile} activeLang={activeLang} view={view === 'lesson' ? 'lessons' : APP_VIEWS.has(view) ? view : 'dashboard'} onNav={nav} onAddLanguage={() => { setObEdit(true); setView('onboarding'); }} />
+      <Topbar layout={headerLayout} user={user} profile={profile} view={view === 'lesson' ? 'lessons' : APP_VIEWS.has(view) ? view : 'dashboard'} onNav={nav} />
+      <div className="flex min-w-0 flex-1 flex-col">
       <AnimatePresence mode="wait">
         {view === 'dashboard' && (
           <MotionView key="dashboard">
             <ErrorBoundary key={`dash-boundary-${user.id}-${dashTick}`}>
-              <Dashboard key={`${user.id}-${dashTick}`} user={user} onReview={() => setView('review')} onStartLesson={startLesson} />
+              <Dashboard key={`${user.id}-${dashTick}`} user={user} onReview={() => setView('review')} onOpenVocabulary={() => setView('vocab')} onStartLesson={startLesson} />
             </ErrorBoundary>
           </MotionView>
         )}
@@ -240,17 +251,29 @@ export default function App() {
         )}
         {view === 'guide' && (
           <MotionView key="guide">
-            <Guide onGo={() => setView('dashboard')} />
+          <Guide onOpenLessons={() => setView('lessons')} onOpenDashboard={() => setView('dashboard')} />
           </MotionView>
         )}
         {view === 'onboarding' && (
-          <MotionView key={`onboarding-${obEdit ? 'edit' : 'fresh'}`}>
-            <Onboarding key={obEdit ? 'edit' : 'fresh'} edit={obEdit} onDone={(route) => {
+          <MotionView key={`onboarding-${obAdd ? 'add' : 'fresh'}`}>
+            <Onboarding key={obAdd ? 'add' : 'fresh'} add={obAdd} onDone={(route) => {
               supabase.from('user_languages').select('language_code, level').eq('user_id', user.id).order('created_at')
                 .then(({ data }) => {
                   const langs = data || [];
                   const active = localStorage.getItem('activeLanguage');
                   setActiveLang(langs.find((l) => l.language_code === active) || langs[0] || null);
+                  if (!obAdd) {
+                    const promptKey = `ld-profile-welcome:${user.id}`;
+                    let alreadyShown = false;
+                    try { alreadyShown = localStorage.getItem(promptKey) === '1'; } catch { /* show for this session */ }
+                    if (!alreadyShown) {
+                      try { localStorage.setItem(promptKey, '1'); } catch { /* session state still prevents repeats */ }
+                      setShowProfileWelcome(true);
+                      setView('dashboard');
+                      return;
+                    }
+                  }
+                  setObAdd(false);
                   setView(route);
                 });
             }} />
@@ -263,7 +286,7 @@ export default function App() {
         )}
         {view === 'settings' && (
           <MotionView key="settings">
-            <Settings key={user.id} user={user} isAdmin={profile?.is_admin === true} initialTab={settingsTab} onSignedOut={() => { setUser(null); setActiveLang(null); setView('login'); }} onProfileSaved={() => { getProfile(user.id).then(setProfile).catch(() => {}); }} />
+          <Settings key={user.id} user={user} isAdmin={profile?.is_admin === true} initialTab={settingsTab} onAddStudyLanguage={() => { setObAdd(true); setView('onboarding'); }} onSignedOut={() => { setUser(null); setActiveLang(null); setView('login'); }} onProfileSaved={() => { getProfile(user.id).then(setProfile).catch(() => {}); }} />
           </MotionView>
         )}
         {view === 'lesson' && lessonParams && (
@@ -292,8 +315,37 @@ export default function App() {
           </MotionView>
         )}
       </AnimatePresence>
-      <Footer onDoc={goDoc} />
+      <AnimatePresence>
+        {showProfileWelcome && (
+          <motion.div
+            className="fixed inset-0 z-[100] grid place-items-center bg-black/55 px-4 py-6 backdrop-blur-sm"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }} role="presentation"
+          >
+            <motion.section
+              role="dialog" aria-modal="true" aria-labelledby="profile-welcome-title"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md rounded-3xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-6 shadow-2xl sm:p-8"
+            >
+              <div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-[var(--fill)] text-[var(--primary)]" aria-hidden="true">
+                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0M19 5v4m-2-2h4"/></svg>
+              </div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--primary)]">{t('profile.welcome.eyebrow')}</p>
+              <h2 id="profile-welcome-title" className="text-2xl font-semibold tracking-tight">{t('profile.welcome.title')}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">{t('profile.welcome.sub')}</p>
+              <button
+                onClick={() => { setShowProfileWelcome(false); setSettingsTab('profile'); setView('settings'); }}
+                className="mt-6 w-full rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90"
+              >
+                {t('profile.welcome.cta')}
+              </button>
+            </motion.section>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <Footer onDoc={goDoc} layout={headerLayout} />
+      </div>
     </div>
-    </MotionConfig>
   );
 }

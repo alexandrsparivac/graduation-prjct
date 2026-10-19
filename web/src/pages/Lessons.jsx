@@ -5,6 +5,7 @@ import { t, domainName, topicName, loadCatalogTranslations } from '../lib/legacy
 import { useTheme } from '../lib/useTheme.jsx';
 import { resolveActiveLanguage, rememberActiveLanguage } from '../lib/lang.js';
 import { topicIcon } from '../../../shared/topic-icons.js';
+import { LoadingOverlay } from '../components/LoadingIndicator.jsx';
 
 const iconSrc = (domain, topic) => {
   const m = topicIcon(domain, topic).match(/src="([^"]+)"/);
@@ -16,7 +17,7 @@ const list = {
 };
 const card = {
   hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } },
 };
 
 export default function Lessons({ onStartLesson }) {
@@ -24,6 +25,7 @@ export default function Lessons({ onStartLesson }) {
   const [state, setState] = useState({ loading: true, error: '', items: [], active: null, level: '' });
   const [closed, setClosed] = useState(() => new Set());
   const [query, setQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState('az');
   const closedStoreKey = (lang) => `closedGroups:${lang || ''}`;
   const toggleGroup = (domain) => {
     setClosed((prev) => {
@@ -72,7 +74,7 @@ export default function Lessons({ onStartLesson }) {
     return () => { alive = false; };
   }, []);
 
-  if (state.loading) return <p className="text-sm text-[var(--text-secondary)]">{t('common.moment')}</p>;
+  if (state.loading) return <LoadingOverlay />;
   if (state.error) return <p className="text-sm text-[var(--danger-text)]">{state.error}</p>;
   if (!state.items.length) return <p className="text-sm text-[var(--text-secondary)]">{t('les.page.empty')}</p>;
 
@@ -90,16 +92,34 @@ export default function Lessons({ onStartLesson }) {
     }
     group.topics.push(item.topic);
   }
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  const sortDirection = sortOrder === 'az' ? 1 : -1;
+  byDomain.sort((a, b) => sortDirection * collator.compare(domainName(a.domain), domainName(b.domain)));
+  byDomain.forEach((group) => group.topics.sort((a, b) => (
+    sortDirection * collator.compare(topicName(group.domain, a), topicName(group.domain, b))
+  )));
 
   return (
     <motion.div variants={list} initial="hidden" animate="show" className="grid gap-4">
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={t('les.search')}
-        aria-label={t('les.search')}
-        className="min-w-0 rounded-full border border-[var(--border-secondary)] bg-[var(--bg-container)] px-4 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--text-tertiary)] focus:outline-none"
-      />
+      <div className="flex w-full items-center justify-between gap-3">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t('les.search')}
+          aria-label={t('les.search')}
+          className="min-w-0 flex-1 rounded-full border border-[var(--border-secondary)] bg-[var(--bg-container)] px-4 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--text-tertiary)] focus:outline-none sm:max-w-2xl"
+        />
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+          aria-label={t('les.sort')}
+          title={t('les.sort')}
+          className="h-10 w-28 flex-none rounded-full border border-[var(--border-secondary)] bg-[var(--bg-container)] px-3 text-sm text-[var(--text)] focus:border-[var(--text-tertiary)] focus:outline-none"
+        >
+          <option value="az">A–Z</option>
+          <option value="za">Z–A</option>
+        </select>
+      </div>
       {!byDomain.length ? (
         <p className="text-sm text-[var(--text-secondary)]">{q ? t('voc.none') : t('les.page.empty')}</p>
       ) : null}

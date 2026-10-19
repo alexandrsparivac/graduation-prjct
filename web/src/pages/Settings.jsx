@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../lib/supabase.js';
 import {
   t, tp, getLang, setLang, languageName, domainName, topicName, UI_LANGS,
@@ -12,7 +12,9 @@ import { speak, stopSpeaking, toLocale, ttsSupported } from '../lib/speech.js';
 import { signOut } from '../lib/auth.js';
 import { applyThemePrefs } from '../lib/theme.js';
 import { rememberActiveLanguage } from '../lib/lang.js';
+import { resolveAvatarImage } from '../../../shared/profile-avatar.js';
 import { list, rise, Panel, PanelTitle, BtnSecondary, Msg, inputCls, useToast } from '../components/ui.jsx';
+import LoadingIndicator from '../components/LoadingIndicator.jsx';
 
 import Admin from './Admin.jsx';
 
@@ -55,7 +57,7 @@ function download(name, text) {
   URL.revokeObjectURL(url);
 }
 
-export default function Settings({ user, isAdmin = false, initialTab = 'appearance', onSignedOut, onProfileSaved }) {
+export default function Settings({ user, isAdmin = false, initialTab = 'profile', onSignedOut, onProfileSaved, onAddStudyLanguage }) {
   const [tab, setTab] = useState(initialTab);
   const [prefs, setPrefsState] = useState(() => getPrefs());
   const [toast, toastNode] = useToast();
@@ -68,25 +70,14 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
   const [avatarInput, setAvatarInput] = useState('');
   const [profileLoading, setProfileLoading] = useState(true);
 
-  const CRINGE_AVATARS = [
-    { id: 'deadpool', name: 'Deadpool' },
-    { id: 'homelander', name: 'Homelander' },
-    { id: 'shrek', name: 'Shrek' },
-    { id: 'trollface', name: 'Trollface' },
-    { id: 'doge', name: 'Doge' },
-    { id: 'pepe', name: 'Pepe' },
-    { id: 'gigachad', name: 'Gigachad' },
-    { id: 'bateman', name: 'Patrick Bateman' },
-    { id: 'joker', name: 'Joker' },
-    { id: 'minion', name: 'Minion' },
-    { id: 'amogus', name: 'Amogus' },
-    { id: 'heisenberg', name: 'Heisenberg' },
-    { id: 'batman', name: 'Batman' },
-    { id: 'spiderman', name: 'Spider-Man' },
+  const PROFILE_AVATARS = [
+    { id: 'woman-young' }, { id: 'man-young' },
+    { id: 'woman-adult' }, { id: 'man-adult' },
+    { id: 'woman-senior' }, { id: 'man-senior' },
   ];
   const presetUrl = (id) => `/img/avatars/${id}.svg`;
-  const previewSrc = avatarInput.trim() || avatarUrl
-    || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || '';
+  const previewSrc = resolveAvatarImage(avatarInput.trim() || avatarUrl
+    || user?.user_metadata?.avatar_url || user?.user_metadata?.picture) || '';
 
   useEffect(() => {
     let alive = true;
@@ -185,7 +176,7 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
       user,
       onChange: () => setWidgetTick((x) => x + 1),
       onStatus: (value) => setWidgetStatus(
-        value === 'saving' ? t('common.moment')
+        value === 'saving' ? 'saving'
           : value === 'saved' ? t('common.saved')
             : value === 'error' ? t('dash.widgets.saveFailed') : ''
       ),
@@ -267,18 +258,24 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
     }
   };
 
-  const previewVoice = () => {
-    if (preview.active) {
-      stopSpeaking();
-      return;
-    }
-    setPreview({ active: true, loading: true, status: t('common.moment') });
+  const playVoiceSample = (voiceType) => {
+    stopSpeaking();
+    setPreview({ active: true, loading: true, status: '' });
     speak(t('set.speechVoice.sample'), toLocale(getLang()), {
+      voiceType,
       onstart: () => setPreview({ active: true, loading: false, status: t('set.speechVoice.playing') }),
       onend: () => setPreview({ active: false, loading: false, status: t('set.speechVoice.finished') }),
       oncancel: () => setPreview({ active: false, loading: false, status: '' }),
       onerror: () => setPreview({ active: false, loading: false, status: t('audio.error') }),
     });
+  };
+
+  const previewVoice = () => {
+    if (preview.active) {
+      stopSpeaking();
+      return;
+    }
+    playVoiceSample(prefs.speechVoice);
   };
 
   const saveSections = (sections) => {
@@ -335,27 +332,40 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-4">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }} className="grid gap-6">
       {toastNode}
-      <div role="tablist" aria-label={t('set.tabs')} className="flex flex-wrap gap-2">
+      <header className="grid gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">{t('set.title')}</h1>
+      <div role="tablist" aria-label={t('set.tabs')} className="flex gap-1 overflow-x-auto border-b border-[var(--border-secondary)] pb-2">
         {tabs.map((tb) => (
-          <button
+          <motion.button
             key={tb.id} role="tab" aria-selected={tab === tb.id}
             onClick={() => setTab(tb.id)}
-            className={`rounded-full px-4 py-2 text-sm transition-colors ${
-              tab === tb.id ? 'bg-[var(--primary)] font-semibold text-[var(--on-primary)]' : 'border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)]'
+            className={`relative flex-none rounded-lg px-3 py-2 text-sm transition-colors ${
+              tab === tb.id ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-secondary)] hover:bg-[var(--fill)] hover:text-[var(--text)]'
             }`}
           >
-            {tb.label}
-          </button>
+            {tab === tb.id && <motion.span layoutId="settings-active-tab" className="absolute inset-0 rounded-lg bg-[var(--fill-strong)]" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
+            <span className="relative z-10">{tb.label}</span>
+          </motion.button>
         ))}
       </div>
+      </header>
 
+      <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={tab}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -5 }}
+        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+        className="grid min-w-0 content-start gap-4"
+      >
       {tab === 'profile' && (
-        <Panel>
+        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
           <PanelTitle>{t('profile.title')}</PanelTitle>
           {profileLoading ? (
-            <p className="text-sm text-[var(--text-tertiary)]">{t('common.moment')}</p>
+            <LoadingIndicator />
           ) : (
             <>
               <div className="flex items-center gap-4">
@@ -374,17 +384,18 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
               <div className="grid gap-2">
                 <span className="text-sm font-medium">{t('profile.avatar')}</span>
                 <span className="text-xs text-[var(--text-tertiary)]">{t('profile.avatarHint')}</span>
-                <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-                  {CRINGE_AVATARS.map((a) => {
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  {PROFILE_AVATARS.map((a) => {
                     const src = presetUrl(a.id);
                     const on = !avatarInput && avatarUrl === src;
+                    const label = t(`profile.avatar.${a.id}`);
                     return (
                       <button
                         key={a.id} onClick={() => { setAvatarUrl(src); setAvatarInput(''); persistAvatar(src); }}
-                        title={a.name} aria-pressed={on} aria-label={a.name}
-                        className={`overflow-hidden rounded-xl border-2 transition-all ${on ? 'border-[var(--primary)]' : 'border-transparent hover:border-[var(--text-tertiary)]'}`}
+                        title={label} aria-pressed={on} aria-label={label}
+                        className={`grid place-items-center rounded-xl border p-2 transition-all ${on ? 'border-[var(--primary)] bg-[var(--fill)]' : 'border-[var(--border-secondary)] hover:border-[var(--text-tertiary)]'}`}
                       >
-                        <img src={src} alt="" loading="lazy" className="block h-full w-full" />
+                        <img src={src} alt="" loading="lazy" className="h-16 w-16 rounded-full" />
                       </button>
                     );
                   })}
@@ -424,7 +435,7 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
       )}
 
       {tab === 'appearance' && (
-        <Panel>
+        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
           <PanelTitle>{t('set.appearance')}</PanelTitle>
           <div className="grid gap-2">
             <span className="text-sm font-medium">{t('set.theme')}</span>
@@ -437,11 +448,36 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
               ))}
             </div>
           </div>
+          <div className="grid gap-2">
+            <span className="text-sm font-medium">{t('set.headerLayout')}</span>
+            <div className="grid grid-cols-2 gap-2">
+              {['top', 'left'].map((layout) => (
+                <button
+                  key={layout}
+                  onClick={() => setP('headerLayout', layout)}
+                  aria-pressed={prefs.headerLayout === layout}
+                  className={optCls(prefs.headerLayout === layout)}
+                >
+                  <span className="flex h-9 w-full items-center gap-1.5" aria-hidden="true">
+                    <span className="h-full w-2 rounded-sm bg-[var(--fill-strong)]" />
+                    <span className="flex h-full flex-1 flex-col gap-1">
+                      <span className={`rounded-sm bg-[var(--fill-strong)] ${layout === 'top' ? 'h-2 w-full' : 'h-2 w-2/3'}`} />
+                      <span className="flex flex-1 gap-1">
+                        {layout === 'left' && <span className="w-2 rounded-sm bg-[var(--primary)]" />}
+                        <span className="flex-1 rounded-sm bg-[var(--fill)]" />
+                      </span>
+                    </span>
+                  </span>
+                  <span className="text-sm">{t(`set.headerLayout.${layout}`)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </Panel>
       )}
 
       {tab === 'language' && (
-        <Panel>
+        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
           <PanelTitle>{t('set.language')}</PanelTitle>
           <p className="text-sm text-[var(--text-secondary)]">{t('set.language.hint')}</p>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -459,10 +495,13 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
       )}
 
       {tab === 'study' && (
-        <Panel>
+        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
           <PanelTitle>{t('set.studyLanguages')}</PanelTitle>
           <p className="text-sm text-[var(--text-secondary)]">{t('set.studyLanguages.hint')}</p>
-          {!studyLangs && <p className="text-sm text-[var(--text-tertiary)]">{t('common.moment')}</p>}
+          <button onClick={onAddStudyLanguage} className="w-fit rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90">
+            + {t('dash.addLanguage')}
+          </button>
+          {!studyLangs && <LoadingIndicator />}
           {studyLangs && studyLangs.length === 0 && <p className="text-sm text-[var(--text-secondary)]">{t('set.studyLanguages.empty')}</p>}
           <div className="grid gap-2">
             {(studyLangs || []).map((l) => {
@@ -575,7 +614,7 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
       )}
 
       {tab === 'lessons' && (
-        <Panel>
+        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
           <PanelTitle>{t('set.lessons')}</PanelTitle>
           <Toggle label={t('set.showTranslations')} hint={t('set.showTranslations.hint')} checked={!!prefs.showTranslations} onChange={(v) => setP('showTranslations', v)} />
           <div className="grid gap-2">
@@ -585,14 +624,14 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
             </span>
             <div className="grid grid-cols-2 gap-2">
               {['male', 'female'].map((x) => (
-                <button key={x} onClick={() => { try { stopSpeaking(); } catch { /* preview already idle */ } setP('speechVoice', x); }} className={optCls(prefs.speechVoice === x)}>
+                <button key={x} onClick={() => { setP('speechVoice', x); playVoiceSample(x); }} aria-pressed={prefs.speechVoice === x} className={optCls(prefs.speechVoice === x)}>
                   <span className="text-sm">{t(`set.speechVoice.${x}`)}</span>
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-2">
               <BtnSecondary onClick={previewVoice} className="w-auto px-4">
-                {preview.loading ? '…' : preview.active ? t('set.speechVoice.stop') : t('set.speechVoice.preview')}
+                {preview.loading ? <LoadingIndicator className="h-4 w-4" /> : preview.active ? t('set.speechVoice.stop') : t('set.speechVoice.preview')}
               </BtnSecondary>
               {preview.status && <span className="text-xs text-[var(--text-secondary)]">{preview.status}</span>}
             </div>
@@ -659,7 +698,7 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
       )}
 
       {tab === 'dashboard' && (
-        <Panel>
+        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
           <PanelTitle>{t('set.widgets')}</PanelTitle>
           <p className="text-sm text-[var(--text-secondary)]">{t('dash.widgets.hint')}</p>
           <div>
@@ -697,12 +736,12 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
               );
             })}
           </div>
-          {widgetStatus && <span className="text-xs text-[var(--text-secondary)]">{widgetStatus}</span>}
+          {widgetStatus === 'saving' ? <LoadingIndicator /> : widgetStatus && <span className="text-xs text-[var(--text-secondary)]">{widgetStatus}</span>}
         </Panel>
       )}
 
       {tab === 'data' && (
-        <Panel>
+        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
           <PanelTitle>{t('set.data')}</PanelTitle>
           <div className="flex items-center justify-between gap-4 py-1">
             <span className="grid gap-0.5">
@@ -745,6 +784,8 @@ export default function Settings({ user, isAdmin = false, initialTab = 'appearan
         </Panel>
       )}
       {tab === 'admin' && isAdmin && <Admin key={user.id} />}
+      </motion.div>
+      </AnimatePresence>
       <Msg text={msg} />
     </motion.div>
   );

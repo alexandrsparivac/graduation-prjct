@@ -13,6 +13,7 @@ import {
 import { domainIcon } from '../../../shared/domain-icons.js';
 import { topicIcon } from '../../../shared/topic-icons.js';
 import { useToast } from '../components/ui.jsx';
+import { LoadingOverlay } from '../components/LoadingIndicator.jsx';
 import { resolveActiveLanguage, rememberActiveLanguage } from '../lib/lang.js';
 
 const PASS_PCT = Math.round(PASS * 100);
@@ -31,7 +32,7 @@ const iconSrc = (domain, topic) => {
 const list = { show: { transition: { staggerChildren: 0.06 } } };
 const rise = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.46, ease: [0.22, 1, 0.36, 1] } },
 };
 
 const fmtNum = (n) => new Intl.NumberFormat(getLang(), { maximumFractionDigits: 1 }).format(n);
@@ -117,7 +118,7 @@ function Donut({ learned, total }) {
 
 const LEVEL_IDX = { A1: 0, A2: 1, B1: 2, B2: 3, C1: 4, C2: 5 };
 
-export default function Dashboard({ user, onReview, onStartLesson }) {
+export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLesson }) {
   const [toast, toastNode] = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -266,7 +267,7 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, reloadKey]);
 
-  if (loading || !widgets) return <p className="text-sm text-[var(--text-secondary)]">{t('common.moment')}</p>;
+  if (loading || !widgets) return <LoadingOverlay />;
   if (error && !data) return <p className="text-sm text-[var(--danger-text)]">{error}</p>;
   if (data?.emptyLangs) {
     return (
@@ -363,11 +364,16 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
   const visibleKpis = kpis.filter((k) => isVisible(k.id));
 
   const points = scoresOverTime(doneInLang, 20);
+  const trendAverage = points.length ? points.reduce((sum, point) => sum + point.accuracy, 0) / points.length : null;
+  const latestScore = points.length ? points[points.length - 1].accuracy : null;
   const bars = lessonsPerWeek(progress, new Date(), 8);
   const barsTotal = bars.reduce((s, b) => s + b.count, 0);
+  const bestWeek = Math.max(0, ...bars.map((b) => b.count));
+  const averageWeek = bars.length ? barsTotal / bars.length : 0;
   const target = getGoalTarget(user);
   const weekCount = currentWeekCount(progress);
   const goalPct = Math.min(100, Math.round((weekCount / target) * 100));
+  const goalRemaining = Math.max(0, target - weekCount);
   const grid = activityGrid(progress, new Date(), HEAT_WEEKS);
   const inWindow = grid.flat().reduce((s, c) => s + c.count, 0);
   const hasDone = progress.some((p) => p.completed && p.completed_at);
@@ -446,7 +452,7 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
             })()}
           </div>
           ) : (
-            <p className="text-sm text-[var(--text-secondary)]">{t('dash.empty.lessons')}</p>
+            <p className="text-sm text-[var(--text-secondary)]">{t('dash.focus.clear')}</p>
           )}
         </motion.section>
       )}
@@ -502,7 +508,10 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
           {points.length ? (
             <>
               <TrendChart points={points} />
-              <p className="text-xs text-[var(--text-tertiary)]">{t('dash.trend.last', { n: points.length })} · {fmtPct(points[points.length - 1].accuracy)}%</p>
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-[var(--text-tertiary)]">
+                <span>{t('dash.trend.last', { n: points.length })}</span>
+                <span>{t('dash.trend.summary', { avg: fmtPct(trendAverage), last: fmtPct(latestScore) })}</span>
+              </div>
             </>
           ) : (
             <p className="text-sm text-[var(--text-secondary)]">{t('dash.trend.empty')}</p>
@@ -516,6 +525,8 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
           <h2 className="text-sm font-semibold">{t('dash.weekly.title')}</h2>
           <Bars bars={bars} />
           <p className="text-xs text-[var(--text-tertiary)]">{t('dash.weekly.span')}: <b>{barsTotal}</b></p>
+          <p className="text-xs text-[var(--text-secondary)]">{t('dash.weekly.summary', { current: weekCount, average: fmtNum(averageWeek), best: bestWeek })}</p>
+          {next && <button onClick={() => onStartLesson(startParams(next.domain, next.topic))} className="mt-1 w-fit rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--fill)]">{t('dash.focus.next')}: {topicName(next.domain, next.topic)} →</button>}
         </motion.section>
       )}
 
@@ -525,22 +536,28 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
           <h2 className="text-sm font-semibold">{t('dash.mastery.title')}</h2>
           {deck && deck.total ? (
           <>
+          <p className="text-xs text-[var(--text-secondary)]">{t('dash.mastery.summary', { pct: Math.round((deck.learned / deck.total) * 100) })}</p>
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--fill-strong)]" role="progressbar" aria-label={t('dash.mastery.title')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((deck.learned / deck.total) * 100)}>
+            <div className="h-full rounded-full bg-[var(--primary)] transition-[width] duration-500" style={{ width: Math.round((deck.learned / deck.total) * 100) + '%' }} />
+          </div>
           <div className="flex items-center gap-4">
             <Donut learned={deck.learned} total={deck.total} />
             <div className="grid gap-1 text-sm">
               <div>{tp('dash.kpi.learned', deck.learned, { n: fmtNum(deck.learned) })} {t('dash.mastery.learned')}</div>
               <div className="text-[var(--text-secondary)]">{fmtNum(deck.total - deck.learned)} {t('dash.mastery.learning')}</div>
-              <div className="text-xs text-[var(--text-tertiary)]">{fmtNum(deck.due)} {t('dash.mastery.due')}</div>
+              <div className="text-xs text-[var(--text-tertiary)]">{deck.due ? tp('dash.review.due', deck.due, { n: fmtNum(deck.due) }) : t('dash.review.clear')}</div>
             </div>
           </div>
-          {!!deck.due && (
-            <button onClick={onReview} className="w-fit rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--on-primary)]">
-              {t('dash.review.start')}
-            </button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            <button onClick={onOpenVocabulary} className="w-fit rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium transition-colors hover:bg-[var(--fill)]">{t('voc.title')}</button>
+            {!!deck.due && <button onClick={onReview} className="w-fit rounded-lg bg-[var(--primary)] px-3 py-2 text-xs font-semibold text-[var(--on-primary)]">{t('dash.review.start')}</button>}
+          </div>
           </>
           ) : (
-            <p className="text-sm text-[var(--text-secondary)]">{t('dash.empty.words')}</p>
+            <div className="grid gap-2">
+              <p className="text-sm text-[var(--text-secondary)]">{t('dash.empty.words')}</p>
+              {next && <button onClick={() => onStartLesson(startParams(next.domain, next.topic))} className="w-fit rounded-lg bg-[var(--primary)] px-3 py-2 text-xs font-semibold text-[var(--on-primary)]">{t('dash.next.btn.start')}</button>}
+            </div>
           )}
         </motion.section>
       )}
@@ -556,6 +573,7 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
           <p className="text-xs text-[var(--text-secondary)]">
             {weekCount >= target ? t('dash.goal.reached') : t('dash.goal.progress', { done: weekCount, target })}
           </p>
+          {goalRemaining > 0 && <p className="text-xs text-[var(--text-tertiary)]">{t('dash.goal.remaining', { n: goalRemaining })}</p>}
           <div className="flex gap-2">
             <button
               onClick={() => {
@@ -592,6 +610,7 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
               {t('dash.review.start')}
             </button>
           )}
+          {deck && <button onClick={onOpenVocabulary} className="w-fit rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--fill)]">{t('voc.title')}</button>}
         </motion.section>
       )}
 
@@ -653,7 +672,7 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
                   className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-[var(--fill)]">
                   {src && <img src={src} alt="" aria-hidden="true" loading="lazy" className="h-5 w-5 opacity-80" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
                   <span className="min-w-0 flex-1 truncate">{topicName(x.domain, x.topic)}</span>
-                  <span className="flex-none text-xs text-[var(--text-tertiary)]">{p.score}/{p.total}</span>
+                  <span className="flex-none text-xs text-[var(--text-tertiary)]">{fmtPct(p.score / p.total)}% · {p.score}/{p.total}</span>
                 </button>
               );
             })}
@@ -712,6 +731,7 @@ export default function Dashboard({ user, onReview, onStartLesson }) {
                   {src && <img src={src} alt="" aria-hidden="true" loading="lazy" className="h-5 w-5 opacity-80" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
                   <span className="min-w-0 flex-1 truncate">{topicName(p.lessons.domain_slug, p.lessons.topic)}</span>
                   <span className="flex-none text-xs text-[var(--text-tertiary)]">
+                    {progMap[p.lesson_id]?.total ? `${fmtPct(progMap[p.lesson_id].score / progMap[p.lesson_id].total)}% · ` : ''}
                     {fmtAgo(Math.round((new Date(new Date().setHours(0, 0, 0, 0)) - new Date(new Date(p.completed_at).setHours(0, 0, 0, 0))) / 86400000))}
                   </span>
                 </button>

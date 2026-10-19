@@ -125,7 +125,7 @@ function Users({ toast }) {
                   {((u.full_name || u.email || '?').trim()[0] || '?').toUpperCase()}
                 </span>
                 <span className="grid min-w-0 flex-1">
-                  <span className="truncate text-sm font-semibold">{u.full_name || t('admin.users.noName')} {u.is_admin && <Badge kind="admin">admin</Badge>} {u.is_banned && <Badge kind="banned">{t('admin.badge.banned')}</Badge>}</span>
+                  <span className="truncate text-sm font-semibold">{u.full_name || t('admin.users.noName')} {u.is_admin && <Badge kind="admin">{t('admin.badge.admin')}</Badge>} {u.is_banned && <Badge kind="banned">{t('admin.badge.banned')}</Badge>}</span>
                   <span className="truncate text-xs text-[var(--text-tertiary)]">{u.email || t('admin.users.noEmail')} · {t('admin.users.since', { date: fmtDate(u.created_at) })}</span>
                 </span>
               </button>
@@ -150,7 +150,7 @@ function Users({ toast }) {
               <strong>{detail.profile.full_name || t('admin.users.noName')}</strong>
               <span className="text-[var(--text-secondary)]">{detail.email || t('admin.users.noEmail')} {detail.email_confirmed ? t('admin.detail.confirmed') : t('admin.detail.unconfirmed')}</span>
               <span className="text-xs text-[var(--text-tertiary)]">{t('admin.detail.meta', { id: detail.profile.id, created: fmtDateTime(detail.profile.created_at), login: fmtDateTime(detail.last_sign_in_at) })}</span>
-              <span className="flex gap-1.5">{detail.profile.is_admin && <Badge kind="admin">admin</Badge>}{detail.profile.is_banned && <Badge kind="banned">{t('admin.badge.banned')}</Badge>}{!detail.profile.onboarding_done && <Badge>{t('admin.detail.unfinished')}</Badge>}</span>
+              <span className="flex gap-1.5">{detail.profile.is_admin && <Badge kind="admin">{t('admin.badge.admin')}</Badge>}{detail.profile.is_banned && <Badge kind="banned">{t('admin.badge.banned')}</Badge>}{!detail.profile.onboarding_done && <Badge>{t('admin.detail.unfinished')}</Badge>}</span>
               {detail.profile.is_banned && detail.profile.banned_reason && <span className="text-xs text-[var(--danger-text)]">{t('admin.detail.reason', { reason: detail.profile.banned_reason })}</span>}
             </div>
             <div className="grid gap-2 rounded-xl border border-[var(--border-secondary)] p-3">
@@ -431,7 +431,7 @@ export default function Admin() {
     { id: 'activity', labelKey: 'admin.tab.activity' },
   ]), []);
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-4">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }} className="grid gap-4">
       {toastNode}
       <PageHead title={t('admin.title')} sub={t('admin.sub')} />
       <div role="tablist" aria-label={t('admin.tabs.label')} className="flex flex-wrap gap-2">
