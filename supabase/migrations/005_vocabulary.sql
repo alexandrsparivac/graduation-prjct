@@ -13,6 +13,7 @@ create table if not exists public.user_vocabulary (
   term text not null,
   translation text not null,
   kind text not null default 'word' check (kind in ('word', 'phrase')),
+  is_saved boolean not null default false,
   example text,
   -- Where it was met. Useful context on the review card, and the reason a word
   -- survives its source lesson being regenerated.

@@ -99,8 +99,8 @@ export function MotionView({ k, children }) {
       key={k}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4, transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } }}
-      transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
+      exit={{ opacity: 0, y: -3, transition: { duration: 0.1, ease: [0.22, 1, 0.36, 1] } }}
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className="mx-auto grid w-full max-w-5xl flex-1 content-start gap-4 px-4 py-8"
     >
       {children}

@@ -20,12 +20,11 @@ const card = {
   show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } },
 };
 
-export default function Lessons({ onStartLesson }) {
+export default function Lessons({ onStartLesson, variant = 'lesson' }) {
+  const isPractice = variant === 'practice';
   const theme = useTheme();
   const [state, setState] = useState({ loading: true, error: '', items: [], active: null, level: '' });
   const [closed, setClosed] = useState(() => new Set());
-  const [query, setQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState('az');
   const closedStoreKey = (lang) => `closedGroups:${lang || ''}`;
   const toggleGroup = (domain) => {
     setClosed((prev) => {
@@ -78,13 +77,8 @@ export default function Lessons({ onStartLesson }) {
   if (state.error) return <p className="text-sm text-[var(--danger-text)]">{state.error}</p>;
   if (!state.items.length) return <p className="text-sm text-[var(--text-secondary)]">{t('les.page.empty')}</p>;
 
-  const q = query.trim().toLocaleLowerCase();
   const byDomain = [];
   for (const item of state.items) {
-    if (q) {
-      const hay = `${domainName(item.domain)} ${topicName(item.domain, item.topic)}`.toLocaleLowerCase();
-      if (!hay.includes(q)) continue;
-    }
     let group = byDomain.find((g) => g.domain === item.domain);
     if (!group) {
       group = { domain: item.domain, topics: [] };
@@ -93,35 +87,15 @@ export default function Lessons({ onStartLesson }) {
     group.topics.push(item.topic);
   }
   const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-  const sortDirection = sortOrder === 'az' ? 1 : -1;
-  byDomain.sort((a, b) => sortDirection * collator.compare(domainName(a.domain), domainName(b.domain)));
+  byDomain.sort((a, b) => collator.compare(domainName(a.domain), domainName(b.domain)));
   byDomain.forEach((group) => group.topics.sort((a, b) => (
-    sortDirection * collator.compare(topicName(group.domain, a), topicName(group.domain, b))
+    collator.compare(topicName(group.domain, a), topicName(group.domain, b))
   )));
 
   return (
     <motion.div variants={list} initial="hidden" animate="show" className="grid gap-4">
-      <div className="flex w-full items-center justify-between gap-3">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t('les.search')}
-          aria-label={t('les.search')}
-          className="min-w-0 flex-1 rounded-full border border-[var(--border-secondary)] bg-[var(--bg-container)] px-4 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--text-tertiary)] focus:outline-none sm:max-w-2xl"
-        />
-        <select
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value)}
-          aria-label={t('les.sort')}
-          title={t('les.sort')}
-          className="h-10 w-28 flex-none rounded-full border border-[var(--border-secondary)] bg-[var(--bg-container)] px-3 text-sm text-[var(--text)] focus:border-[var(--text-tertiary)] focus:outline-none"
-        >
-          <option value="az">A–Z</option>
-          <option value="za">Z–A</option>
-        </select>
-      </div>
       {!byDomain.length ? (
-        <p className="text-sm text-[var(--text-secondary)]">{q ? t('voc.none') : t('les.page.empty')}</p>
+        <p className="text-sm text-[var(--text-secondary)]">{t('les.page.empty')}</p>
       ) : null}
       {byDomain.map((group) => {
         const isOpen = !closed.has(group.domain);
@@ -144,16 +118,50 @@ export default function Lessons({ onStartLesson }) {
           <div className="grid gap-2.5 sm:grid-cols-2">
             {group.topics.map((topic) => {
               const src = iconSrc(group.domain, topic);
+              const params = { lang: state.active, domain: group.domain, topic, level: state.level };
               return (
+              isPractice ? (
+              <motion.div
+                key={topic}
+                variants={card}
+                whileHover={{ y: -1 }}
+                className="grid gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-container)] p-4 transition-colors hover:border-[var(--primary)]"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  {src && <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--fill)]">
+                    <img src={src} alt="" aria-hidden="true" loading="lazy" className={`h-5 w-5 opacity-80 ${theme === 'dark' ? 'invert' : ''}`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  </span>}
+                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{topicName(group.domain, topic)}</span>
+                  <button type="button" title={t('pron.modeVoice')} aria-label={t('pron.modeVoice')} onClick={() => onStartLesson({ ...params, mode: 'voice' })} className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--fill)] text-[var(--text)] transition-colors hover:bg-[var(--primary)] hover:text-[var(--on-primary)]">
+                    <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8"/></svg>
+                  </button>
+                  <button type="button" title={t('pron.modeChat')} aria-label={t('pron.modeChat')} onClick={() => onStartLesson({ ...params, mode: 'chat' })} className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:bg-[var(--fill)] hover:text-[var(--text)]">
+                    <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/></svg>
+                  </button>
+                </div>
+              </motion.div>
+              ) : (
               <motion.button
                 key={topic}
                 type="button"
-                onClick={() => onStartLesson({ lang: state.active, domain: group.domain, topic, level: state.level })}
+                onClick={() => onStartLesson(params)}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-container)] p-4 text-left transition-colors hover:border-[var(--primary)] hover:bg-[var(--fill)]"
+                className={`group flex items-center gap-3 border border-[var(--border)] bg-[var(--bg-container)] p-4 text-left transition-colors hover:border-[var(--primary)] hover:bg-[var(--fill)] ${isPractice ? 'rounded-2xl' : 'rounded-xl'}`}
               >
                 {src && (
+                isPractice ? (
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--fill)] transition-colors group-hover:bg-[var(--primary)]/10">
+                    <img
+                      src={src}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className={`h-5 w-5 opacity-80 ${theme === 'dark' ? 'invert' : ''}`}
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  </span>
+                ) : (
                 <img
                   src={src}
                   alt=""
@@ -162,9 +170,11 @@ export default function Lessons({ onStartLesson }) {
                   className={`h-6 w-6 shrink-0 opacity-80 ${theme === 'dark' ? 'invert' : ''}`}
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
+                )
                 )}
                 <span className="truncate text-[15px] font-semibold">{topicName(group.domain, topic)}</span>
               </motion.button>
+              )
               );
             })}
           </div>

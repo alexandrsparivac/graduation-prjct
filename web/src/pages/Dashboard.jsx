@@ -78,11 +78,16 @@ function Bars({ bars }) {
   const H = 112, P = 8;
   const max = Math.max(1, ...bars.map((b) => b.count));
   const bw = (W - 2 * P) / bars.length;
+  const now = new Date();
+  const currentMonday = new Date(now);
+  currentMonday.setHours(0, 0, 0, 0);
+  currentMonday.setDate(currentMonday.getDate() - ((currentMonday.getDay() + 6) % 7));
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('dash.weekly.title')} className="w-full">
       {bars.map((b, i) => {
         const h = Math.round(((H - 32) * b.count) / max);
         const cx = P + i * bw + bw / 2;
+        const currentWeek = b.monday.toDateString() === currentMonday.toDateString();
         return (
           <g key={i}>
             <title>{tp('dash.act.cell', b.count, { date: fmtDay(b.monday) })}</title>
@@ -90,7 +95,9 @@ function Bars({ bars }) {
               x={(cx - (bw - 6) / 2).toFixed(1)} y={H - 24 - h}
               width={(bw - 6).toFixed(1)} height={Math.max(b.count ? 3 : 0, h)} rx="2"
               fill={b.count ? 'var(--primary)' : 'var(--border-secondary)'}
+              className={currentWeek && b.count ? 'dashboard-live-bar' : undefined}
             />
+            {currentWeek && b.count > 0 && <circle className="dashboard-live-dot" cx={cx.toFixed(1)} cy={Math.max(7, H - 28 - h).toFixed(1)} r="2.5" fill="var(--primary)" />}
             <text x={cx.toFixed(1)} y={H - 8} textAnchor="middle" fontSize="9" fill="var(--text-tertiary)">
               {b.monday.getDate()}
             </text>
@@ -374,12 +381,30 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
   const weekCount = currentWeekCount(progress);
   const goalPct = Math.min(100, Math.round((weekCount / target) * 100));
   const goalRemaining = Math.max(0, target - weekCount);
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthLessons = doneInLang.filter((p) => new Date(p.completed_at) >= monthStart).length;
+  const monthWeeks = Math.ceil(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() / 7);
+  const monthTarget = target * monthWeeks;
+  const monthPct = Math.min(100, Math.round((monthLessons / monthTarget) * 100));
+  const rhythmBands = doneInLang.reduce((bands, p) => {
+    const hour = new Date(p.completed_at).getHours();
+    const slot = hour < 6 ? 0 : hour < 12 ? 1 : hour < 18 ? 2 : 3;
+    bands[slot] += 1;
+    return bands;
+  }, [0, 0, 0, 0]);
+  const rhythmTotal = rhythmBands.reduce((sum, count) => sum + count, 0);
+  const rhythmPeak = rhythmTotal >= 5
+    ? { slot: ['night', 'morning', 'day', 'evening'][rhythmBands.indexOf(Math.max(...rhythmBands))], count: Math.max(...rhythmBands) }
+    : null;
   const grid = activityGrid(progress, new Date(), HEAT_WEEKS);
+  const todayCount = grid.flat().find((cell) => cell.date.toDateString() === now.toDateString())?.count || 0;
   const inWindow = grid.flat().reduce((s, c) => s + c.count, 0);
   const hasDone = progress.some((p) => p.completed && p.completed_at);
   const habit = favouriteSlot(progress);
   const roll = domainRollup(ud, progOf, (d) => domainName(d));
   const recent = recentlyCompleted(doneInLang, 5);
+  const strongest = roll.filter((r) => r.accuracy !== null).sort((a, b) => b.accuracy - a.accuracy)[0] || null;
 
   const promote = async () => {
     const { data: newLevel, error: err } = await supabase.rpc('try_promote', { p_language: active });
@@ -401,40 +426,51 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
       {resume && (
         <button
           onClick={() => onStartLesson({ ...startParams(resume.params.domain, resume.params.topic, resume.params.custom, true) })}
-          className="group grid gap-2 rounded-2xl border border-[var(--primary)] bg-[var(--bg-container)] p-4 text-left md:col-span-2 xl:col-span-4"
+          className="group relative grid gap-3 overflow-hidden rounded-[1.35rem] border border-[var(--primary)] bg-[var(--primary)] p-5 text-left text-[var(--on-primary)] transition-transform duration-300 hover:-translate-y-0.5 md:col-span-2 md:grid-cols-[1fr_auto] md:items-center xl:col-span-4"
         >
-          <span className="text-xs font-semibold tracking-wide text-[var(--text-secondary)] uppercase">{t('dash.resume')}</span>
-          <span className="text-lg font-bold">{topicName(resume.params.domain, resume.params.topic)}</span>
-          <span className="text-xs text-[var(--text-tertiary)]">
-            {t('les.stepOf', { n: (draftCompletion(resume).stepIdx || 0) + 1, total: draftCompletion(resume).totalSteps || '?' })} · {t('les.continue')} →
+          <span className="grid gap-1.5">
+            <span className="text-[11px] font-bold tracking-[0.14em] text-[var(--on-primary)]/65 uppercase">{t('dash.resume')}</span>
+            <span className="text-lg font-bold tracking-tight">{topicName(resume.params.domain, resume.params.topic)}</span>
+            <span className="text-sm text-[var(--on-primary)]/75">
+              {t('les.stepOf', { n: (draftCompletion(resume).stepIdx || 0) + 1, total: draftCompletion(resume).totalSteps || '?' })}
+            </span>
           </span>
+          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--on-primary)]/25 px-4 py-2 text-sm font-semibold transition-colors group-hover:bg-[var(--on-primary)]/10">{t('les.continue')} <span aria-hidden="true">→</span></span>
         </button>
       )}
 
       {visibleKpis.length > 0 && (
         <div className="grid grid-cols-2 gap-3 md:col-span-2 lg:grid-cols-4 xl:col-span-4">
           {[...visibleKpis].sort((a, b) => orderOf(a.id) - orderOf(b.id)).map((k) => (
-            <motion.div key={k.id} layout variants={rise} draggable onDragStart={(e) => onDragStart(e, k.id)} onDragOver={(e) => onDragOverCard(e, k.id)} onDrop={onDropOn(k.id)} onDragEnd={clearDrag} className={`group relative grid content-start gap-1 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4` + (dropPos?.id === k.id ? ' ring-2 ring-[var(--primary)]' : '')}>
+            <motion.div key={k.id} layout variants={rise} draggable onDragStart={(e) => onDragStart(e, k.id)} onDragOver={(e) => onDragOverCard(e, k.id)} onDrop={onDropOn(k.id)} onDragEnd={clearDrag} className={`group relative grid min-h-32 content-between gap-4 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 transition-[border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-[var(--text-tertiary)]` + (dropPos?.id === k.id ? ' ring-2 ring-[var(--primary)]' : '')}>
               <WidgetTools id={k.id} hideLabel={t('dash.widgets.hide', { name: k.label })} />
-              <span className="text-xs text-[var(--text-secondary)]">{k.label}</span>
-              <span className="text-3xl font-bold tracking-tight">{k.n}</span>
-              <span className="text-xs text-[var(--text-tertiary)]">{k.sub}</span>
+              <span className="flex items-start justify-between gap-2 pr-7">
+                <span className="text-xs font-semibold tracking-wide text-[var(--text-secondary)]">{k.label}</span>
+                <span aria-hidden="true" className={`mt-0.5 h-2 w-2 rounded-full bg-[var(--primary)] opacity-65 ${k.id === 'streak' && streak > 0 ? 'dashboard-live-dot' : ''}`} />
+              </span>
+              <span className="grid gap-2">
+                <span className="text-3xl font-bold leading-none tracking-tight">{k.n}</span>
+                <span className="text-xs leading-relaxed text-[var(--text-tertiary)]">{k.sub}</span>
+                {k.id === 'completed' && <span className="h-1 overflow-hidden rounded-full bg-[var(--fill-strong)]"><span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${topics.length ? Math.min(100, (doneList.length / topics.length) * 100) : 0}%` }} /></span>}
+                {k.id === 'average' && <span className="h-1 overflow-hidden rounded-full bg-[var(--fill-strong)]"><span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${promo.accuracy === null ? 0 : Math.min(100, promo.accuracy * 100)}%` }} /></span>}
+                {k.id === 'words' && deck?.total > 0 && <span className="h-1 overflow-hidden rounded-full bg-[var(--fill-strong)]"><span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${Math.min(100, (deck.learned / deck.total) * 100)}%` }} /></span>}
+              </span>
             </motion.div>
           ))}
         </div>
       )}
 
       {isVisible('focus') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('focus') }} draggable onDragStart={(e) => onDragStart(e, 'focus')} onDragOver={(e) => onDragOverCard(e, 'focus')} onDrop={onDropOn('focus')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4` + (dropPos?.id === 'focus' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('focus') }} draggable onDragStart={(e) => onDragStart(e, 'focus')} onDragOver={(e) => onDragOverCard(e, 'focus')} onDrop={onDropOn('focus')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[color-mix(in_srgb,var(--primary)_4%,var(--bg-container))] p-4 transition-[border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-[var(--text-tertiary)]` + (dropPos?.id === 'focus' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="focus" hideLabel={t('dash.widgets.hide', { name: t('dash.focus.title') })} />
-          <h2 className="text-sm font-semibold">{t('dash.focus.title')}</h2>
+          <h2 className="flex items-center gap-2 text-sm font-semibold"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--primary)] dashboard-live-dot" />{t('dash.focus.title')}</h2>
           {(next || weak[0]) ? (
           <div className="grid gap-1.5">
             {next && (
               <button onClick={() => onStartLesson(startParams(next.domain, next.topic))}
-                className="flex w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-[var(--fill)]">
-                <span className="min-w-0 truncate">{t('dash.focus.next')}: {topicName(next.domain, next.topic)}</span>
-                <span aria-hidden="true" className="flex-none">→</span>
+                className="flex w-full min-w-0 items-center justify-between gap-3 overflow-hidden rounded-xl border border-[var(--border-secondary)] bg-[var(--bg-container)] px-3 py-3 text-left text-sm transition-[background-color,border-color] hover:border-[var(--text-tertiary)] hover:bg-[var(--fill)]">
+                <span className="grid min-w-0 gap-1"><span className="text-[10px] font-bold tracking-wider text-[var(--text-tertiary)] uppercase">{t('dash.focus.next')}</span><span className="truncate font-semibold">{topicName(next.domain, next.topic)}</span></span>
+                <span aria-hidden="true" className="flex-none text-lg">→</span>
               </button>
             )}
             {weak[0] && (() => {
@@ -443,7 +479,7 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
               const src = iconSrc(w0.domain, w0.topic);
               return (
                 <button onClick={() => onStartLesson(startParams(w0.domain, w0.topic))}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-[var(--fill)]">
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--fill)]">
                   {src && <img src={src} alt="" aria-hidden="true" loading="lazy" className="h-5 w-5 opacity-80" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
                   <span className="min-w-0 flex-1 truncate">{t('dash.focus.weak')}: {topicName(w0.domain, w0.topic)}</span>
                   <span className="flex-none text-xs text-[var(--text-tertiary)]">{p.score}/{p.total}</span>
@@ -457,13 +493,68 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
         </motion.section>
       )}
 
+      {isVisible('month') && (
+        <motion.section layout variants={rise} style={{ order: orderOf('month') }} draggable onDragStart={(e) => onDragStart(e, 'month')} onDragOver={(e) => onDragOverCard(e, 'month')} onDrop={onDropOn('month')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4` + (dropPos?.id === 'month' ? ' ring-2 ring-[var(--primary)]' : '')}>
+          <WidgetTools id="month" hideLabel={t('dash.widgets.hide', { name: t('dash.month.title') })} />
+          <div className="flex items-start justify-between gap-3 pr-7">
+            <h2 className="text-sm font-semibold">{t('dash.month.title')}</h2>
+            <span className="text-xs font-medium text-[var(--text-tertiary)]">{new Intl.DateTimeFormat(getLang(), { month: 'short' }).format(now)}</span>
+          </div>
+          <div className="text-4xl font-bold tracking-tight">{fmtNum(monthLessons)}<span className="ml-2 text-sm font-medium text-[var(--text-tertiary)]">/ {fmtNum(monthTarget)}</span></div>
+          <div className="h-2 overflow-hidden rounded-full bg-[var(--fill-strong)]" role="progressbar" aria-label={t('dash.month.title')} aria-valuemin="0" aria-valuemax={monthTarget} aria-valuenow={Math.min(monthLessons, monthTarget)}>
+            <div className={`h-full rounded-full bg-[var(--primary)] transition-[width] duration-500 ${monthLessons > 0 ? 'dashboard-live-fill' : ''}`} style={{ width: `${monthPct}%` }} />
+          </div>
+          <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-secondary)]">
+            <span>{t('dash.goal.progress', { done: monthLessons, target: monthTarget })}</span>
+            <span className="font-semibold text-[var(--text)]">{monthPct}%</span>
+          </div>
+        </motion.section>
+      )}
+
+      {isVisible('rhythm') && (
+        <motion.section layout variants={rise} style={{ order: orderOf('rhythm') }} draggable onDragStart={(e) => onDragStart(e, 'rhythm')} onDragOver={(e) => onDragOverCard(e, 'rhythm')} onDrop={onDropOn('rhythm')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4` + (dropPos?.id === 'rhythm' ? ' ring-2 ring-[var(--primary)]' : '')}>
+          <WidgetTools id="rhythm" hideLabel={t('dash.widgets.hide', { name: t('dash.habit.title') })} />
+          <h2 className="pr-7 text-sm font-semibold">{t('dash.habit.title')}</h2>
+          {rhythmPeak ? (
+            <>
+              <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{t(`dash.habit.${rhythmPeak.slot}`)}</p>
+              <div className="grid gap-2.5">
+                {rhythmBands.map((count, i) => (
+                  <div key={i} className="grid grid-cols-[3.5rem_1fr_2rem] items-center gap-2 text-xs">
+                    <span className="text-[var(--text-tertiary)]">{['00–05', '06–11', '12–17', '18–23'][i]}</span>
+                    <span className="h-1.5 overflow-hidden rounded-full bg-[var(--fill-strong)]"><span className={`block h-full rounded-full bg-[var(--primary)] ${count === rhythmPeak.count && count > 0 ? 'dashboard-live-fill' : ''}`} style={{ width: `${rhythmTotal ? (count / rhythmTotal) * 100 : 0}%`, opacity: 0.45 + (count / Math.max(1, ...rhythmBands)) * 0.55 }} /></span>
+                    <span className="text-right font-medium text-[var(--text-secondary)]">{fmtNum(count)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-[var(--text-secondary)]">{t('dash.act.empty')}</p>
+          )}
+        </motion.section>
+      )}
+
+      {isVisible('strength') && (
+        <motion.section layout variants={rise} style={{ order: orderOf('strength') }} draggable onDragStart={(e) => onDragStart(e, 'strength')} onDragOver={(e) => onDragOverCard(e, 'strength')} onDrop={onDropOn('strength')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[color-mix(in_srgb,var(--primary)_4%,var(--bg-container))] p-4` + (dropPos?.id === 'strength' ? ' ring-2 ring-[var(--primary)]' : '')}>
+          <WidgetTools id="strength" hideLabel={t('dash.widgets.hide', { name: t('dash.strength.title') })} />
+          <h2 className="pr-7 text-sm font-semibold">{t('dash.strength.title')}</h2>
+          {strongest ? (
+            <>
+              <span className="truncate text-lg font-bold tracking-tight">{strongest.name}</span>
+              <div className="flex items-baseline justify-between gap-2"><span className="text-4xl font-bold tracking-tight">{fmtPct(strongest.accuracy)}%</span><span className="text-xs text-[var(--text-secondary)]">{t('dash.unitDone', { done: strongest.done, total: strongest.total })}</span></div>
+              <div className="h-2 overflow-hidden rounded-full bg-[var(--fill-strong)]"><span className="block h-full rounded-full bg-[var(--primary)] dashboard-live-fill" style={{ width: `${Math.min(100, Math.round(strongest.accuracy * 100))}%` }} /></div>
+            </>
+          ) : <p className="text-sm text-[var(--text-secondary)]">{t('dash.empty.scores')}</p>}
+        </motion.section>
+      )}
+
       {isVisible('level') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('level') }} draggable onDragStart={(e) => onDragStart(e, 'level')} onDragOver={(e) => onDragOverCard(e, 'level')} onDrop={onDropOn('level')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2.5 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 md:col-span-2 xl:col-span-2` + (dropPos?.id === 'level' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('level') }} draggable onDragStart={(e) => onDragStart(e, 'level')} onDragOver={(e) => onDragOverCard(e, 'level')} onDrop={onDropOn('level')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-5 md:col-span-2 xl:col-span-2` + (dropPos?.id === 'level' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="level" hideLabel={t('dash.widgets.hide', { name: t('dash.widgets.level') })} />
           <h2 className="text-sm font-semibold">{promo.next ? t('dash.lvl.toward', { level: promo.next }) : t('dash.lvl.max')}</h2>
-          <div className="flex gap-1" aria-hidden="true">
+          <div className="flex gap-1.5" aria-hidden="true">
             {LEVELS.map((l, i) => (
-              <span key={l} className={`grid h-7 flex-1 place-items-center rounded-md text-[11px] font-bold ${i < idx ? 'bg-[var(--fill-strong)] text-[var(--text-tertiary)]' : i === idx ? 'bg-[var(--primary)] text-[var(--on-primary)]' : 'bg-[var(--fill)] text-[var(--text-tertiary)]'}`}>
+              <span key={l} className={`grid h-9 flex-1 place-items-center rounded-lg text-xs font-bold ${i < idx ? 'bg-[var(--fill-strong)] text-[var(--text-secondary)]' : i === idx ? 'bg-[var(--primary)] text-[var(--on-primary)]' : 'bg-[var(--fill)] text-[var(--text-tertiary)]'}`}>
                 {l}
               </span>
             ))}
@@ -476,7 +567,7 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
                 {promo.accuracy === null ? '' : ` · ${t('dash.lvl.seriesAvg', { avg: fmtPct(promo.accuracy) })}`}
               </p>
               <div className="h-1.5 overflow-hidden rounded-full bg-[var(--fill-strong)]" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={promo.percent}>
-                <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${promo.percent}%` }} />
+                <div className={`h-full rounded-full bg-[var(--primary)] ${promo.percent > 0 ? 'dashboard-live-fill' : ''}`} style={{ width: `${promo.percent}%` }} />
               </div>
             </>
           )}
@@ -502,12 +593,12 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
       )}
 
       {isVisible('trend') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('trend') }} draggable onDragStart={(e) => onDragStart(e, 'trend')} onDragOver={(e) => onDragOverCard(e, 'trend')} onDrop={onDropOn('trend')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 md:col-span-2 xl:col-span-2` + (dropPos?.id === 'trend' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('trend') }} draggable onDragStart={(e) => onDragStart(e, 'trend')} onDragOver={(e) => onDragOverCard(e, 'trend')} onDrop={onDropOn('trend')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-5 md:col-span-2 xl:col-span-2` + (dropPos?.id === 'trend' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="trend" hideLabel={t('dash.widgets.hide', { name: t('dash.trend.title') })} />
           <h2 className="text-sm font-semibold">{t('dash.trend.title')}</h2>
           {points.length ? (
             <>
-              <TrendChart points={points} />
+              <div className="rounded-xl bg-[var(--bg-layout)] px-3 py-2"><TrendChart points={points} /></div>
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-[var(--text-tertiary)]">
                 <span>{t('dash.trend.last', { n: points.length })}</span>
                 <span>{t('dash.trend.summary', { avg: fmtPct(trendAverage), last: fmtPct(latestScore) })}</span>
@@ -520,29 +611,29 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
       )}
 
       {isVisible('weekly') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('weekly') }} draggable onDragStart={(e) => onDragStart(e, 'weekly')} onDragOver={(e) => onDragOverCard(e, 'weekly')} onDrop={onDropOn('weekly')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 md:col-span-2 xl:col-span-2` + (dropPos?.id === 'weekly' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('weekly') }} draggable onDragStart={(e) => onDragStart(e, 'weekly')} onDragOver={(e) => onDragOverCard(e, 'weekly')} onDrop={onDropOn('weekly')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-5 md:col-span-2 xl:col-span-2` + (dropPos?.id === 'weekly' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="weekly" hideLabel={t('dash.widgets.hide', { name: t('dash.weekly.title') })} />
           <h2 className="text-sm font-semibold">{t('dash.weekly.title')}</h2>
-          <Bars bars={bars} />
-          <p className="text-xs text-[var(--text-tertiary)]">{t('dash.weekly.span')}: <b>{barsTotal}</b></p>
+          <div className="rounded-xl bg-[var(--bg-layout)] px-3 py-2"><Bars bars={bars} /></div>
+          <p className="text-xs text-[var(--text-tertiary)]">{t('dash.weekly.span')}: <b className="text-[var(--text)]">{barsTotal}</b></p>
           <p className="text-xs text-[var(--text-secondary)]">{t('dash.weekly.summary', { current: weekCount, average: fmtNum(averageWeek), best: bestWeek })}</p>
           {next && <button onClick={() => onStartLesson(startParams(next.domain, next.topic))} className="mt-1 w-fit rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--fill)]">{t('dash.focus.next')}: {topicName(next.domain, next.topic)} →</button>}
         </motion.section>
       )}
 
       {isVisible('mastery') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('mastery') }} draggable onDragStart={(e) => onDragStart(e, 'mastery')} onDragOver={(e) => onDragOverCard(e, 'mastery')} onDrop={onDropOn('mastery')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4` + (dropPos?.id === 'mastery' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('mastery') }} draggable onDragStart={(e) => onDragStart(e, 'mastery')} onDragOver={(e) => onDragOverCard(e, 'mastery')} onDrop={onDropOn('mastery')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-5 transition-[border-color] duration-300 hover:border-[var(--text-tertiary)]` + (dropPos?.id === 'mastery' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="mastery" hideLabel={t('dash.widgets.hide', { name: t('dash.mastery.title') })} />
           <h2 className="text-sm font-semibold">{t('dash.mastery.title')}</h2>
           {deck && deck.total ? (
           <>
-          <p className="text-xs text-[var(--text-secondary)]">{t('dash.mastery.summary', { pct: Math.round((deck.learned / deck.total) * 100) })}</p>
+          <div className="flex items-end justify-between gap-3"><p className="text-xs text-[var(--text-secondary)]">{t('dash.mastery.summary', { pct: Math.round((deck.learned / deck.total) * 100) })}</p><span className="text-2xl font-bold tracking-tight">{Math.round((deck.learned / deck.total) * 100)}<span className="text-sm text-[var(--text-tertiary)]">%</span></span></div>
           <div className="h-1.5 overflow-hidden rounded-full bg-[var(--fill-strong)]" role="progressbar" aria-label={t('dash.mastery.title')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round((deck.learned / deck.total) * 100)}>
             <div className="h-full rounded-full bg-[var(--primary)] transition-[width] duration-500" style={{ width: Math.round((deck.learned / deck.total) * 100) + '%' }} />
           </div>
           <div className="flex items-center gap-4">
             <Donut learned={deck.learned} total={deck.total} />
-            <div className="grid gap-1 text-sm">
+            <div className="grid gap-2 text-sm">
               <div>{tp('dash.kpi.learned', deck.learned, { n: fmtNum(deck.learned) })} {t('dash.mastery.learned')}</div>
               <div className="text-[var(--text-secondary)]">{fmtNum(deck.total - deck.learned)} {t('dash.mastery.learning')}</div>
               <div className="text-xs text-[var(--text-tertiary)]">{deck.due ? tp('dash.review.due', deck.due, { n: fmtNum(deck.due) }) : t('dash.review.clear')}</div>
@@ -563,12 +654,12 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
       )}
 
       {isVisible('goal') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('goal') }} draggable onDragStart={(e) => onDragStart(e, 'goal')} onDragOver={(e) => onDragOverCard(e, 'goal')} onDrop={onDropOn('goal')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4` + (dropPos?.id === 'goal' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('goal') }} draggable onDragStart={(e) => onDragStart(e, 'goal')} onDragOver={(e) => onDragOverCard(e, 'goal')} onDrop={onDropOn('goal')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[color-mix(in_srgb,var(--primary)_4%,var(--bg-container))] p-5` + (dropPos?.id === 'goal' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="goal" hideLabel={t('dash.widgets.hide', { name: t('dash.goal.title') })} />
           <h2 className="text-sm font-semibold">{t('dash.goal.title')}</h2>
-          <div className="text-3xl font-bold">{weekCount}<span className="text-lg text-[var(--text-tertiary)]">/{target}</span></div>
+          <div className="flex items-baseline gap-2"><span className="text-4xl font-bold tracking-tight">{weekCount}</span><span className="text-base text-[var(--text-tertiary)]">/ {target}</span><span className="ml-auto text-sm font-semibold text-[var(--text-secondary)]">{goalPct}%</span></div>
           <div className="h-1.5 overflow-hidden rounded-full bg-[var(--fill-strong)]" role="progressbar" aria-label={t('dash.goal.title')} aria-valuemin="0" aria-valuemax={target} aria-valuenow={Math.min(weekCount, target)}>
-            <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${goalPct}%` }} />
+            <div className={`h-full rounded-full bg-[var(--primary)] ${weekCount > 0 ? 'dashboard-live-fill' : ''}`} style={{ width: `${goalPct}%` }} />
           </div>
           <p className="text-xs text-[var(--text-secondary)]">
             {weekCount >= target ? t('dash.goal.reached') : t('dash.goal.progress', { done: weekCount, target })}
@@ -594,16 +685,13 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
       )}
 
       {isVisible('review') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('review') }} draggable onDragStart={(e) => onDragStart(e, 'review')} onDragOver={(e) => onDragOverCard(e, 'review')} onDrop={onDropOn('review')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4` + (dropPos?.id === 'review' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('review') }} draggable onDragStart={(e) => onDragStart(e, 'review')} onDragOver={(e) => onDragOverCard(e, 'review')} onDrop={onDropOn('review')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-5` + (dropPos?.id === 'review' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="review" hideLabel={t('dash.widgets.hide', { name: t('dash.review.title') })} />
           <h2 className="text-sm font-semibold">{t('dash.review.title')}</h2>
           {deck && deck.total ? (
-          <div className="text-3xl font-bold">{deck.due}<span className="text-sm font-normal text-[var(--text-tertiary)]"> {tp('dash.review.of', deck.total, { n: fmtNum(deck.total) })}</span></div>
+          <div className="grid gap-1"><div className="text-4xl font-bold tracking-tight">{deck.due}<span className="text-sm font-medium text-[var(--text-tertiary)]"> {tp('dash.review.of', deck.total, { n: fmtNum(deck.total) })}</span></div><p className="text-xs text-[var(--text-secondary)]">{deck.due ? tp('dash.review.due', deck.due, { n: fmtNum(deck.due) }) : t('dash.review.clear')}</p></div>
           ) : (
             <p className="text-sm text-[var(--text-secondary)]">{t('dash.empty.words')}</p>
-          )}
-          {deck && !!deck.total && (
-          <p className="text-xs text-[var(--text-secondary)]">{deck.due ? tp('dash.review.due', deck.due, { n: fmtNum(deck.due) }) : t('dash.review.clear')}</p>
           )}
           {!!deck?.due && (
             <button onClick={onReview} className="w-fit rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--on-primary)]">
@@ -615,9 +703,9 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
       )}
 
       {isVisible('activity') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('activity') }} draggable onDragStart={(e) => onDragStart(e, 'activity')} onDragOver={(e) => onDragOverCard(e, 'activity')} onDrop={onDropOn('activity')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 md:col-span-2 xl:col-span-4` + (dropPos?.id === 'activity' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('activity') }} draggable onDragStart={(e) => onDragStart(e, 'activity')} onDragOver={(e) => onDragOverCard(e, 'activity')} onDrop={onDropOn('activity')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-5 md:col-span-2 xl:col-span-4` + (dropPos?.id === 'activity' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="activity" hideLabel={t('dash.widgets.hide', { name: t('dash.act.title') })} />
-          <h2 className="text-sm font-semibold">{t('dash.act.title')}</h2>
+          <div className="flex items-center justify-between gap-4"><h2 className="text-sm font-semibold">{t('dash.act.title')}</h2><span className="inline-flex items-center gap-2 text-[11px] font-medium text-[var(--text-tertiary)]"><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full bg-[var(--primary)] ${todayCount ? 'dashboard-live-dot' : ''}`} />{fmtNum(todayCount)}</span></div>
           {!hasDone ? (
             <div className="grid gap-2">
               <span className="text-sm text-[var(--text-secondary)]">{t('dash.act.empty')}</span>
@@ -627,14 +715,14 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
             </div>
           ) : (
             <>
-              <div className="flex gap-[3px]" role="img" aria-label={tp('dash.act.summary', inWindow)}>
+              <div className="flex gap-[3px] rounded-xl bg-[var(--bg-layout)] p-3" role="img" aria-label={tp('dash.act.summary', inWindow)}>
                 {grid.map((col, wi) => (
                   <div key={wi} className="grid flex-1 gap-[3px]">
                     {col.map((c) => (
                       <span
                         key={c.key}
                         title={c.future ? '' : tp('dash.act.cell', c.count, { date: fmtDay(c.date) })}
-                        className="aspect-square w-full rounded-[3px]"
+                        className={`aspect-square w-full rounded-[3px] ${c.date.toDateString() === now.toDateString() && c.count > 0 ? 'dashboard-live-cell' : ''}`}
                         style={{ background: c.future ? 'transparent' : `color-mix(in srgb, var(--primary) ${(c.count >= 4 ? 100 : c.count * 25)}%, var(--fill-strong))`, opacity: c.future ? 0.25 : 1, border: c.future ? '1px dashed var(--border-secondary)' : 'none' }}
                       />
                     ))}
@@ -658,7 +746,7 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
       )}
 
       {isVisible('weak') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('weak') }} draggable onDragStart={(e) => onDragStart(e, 'weak')} onDragOver={(e) => onDragOverCard(e, 'weak')} onDrop={onDropOn('weak')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4` + (dropPos?.id === 'weak' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('weak') }} draggable onDragStart={(e) => onDragStart(e, 'weak')} onDragOver={(e) => onDragOverCard(e, 'weak')} onDrop={onDropOn('weak')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-5` + (dropPos?.id === 'weak' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="weak" hideLabel={t('dash.widgets.hide', { name: t('dash.rev.title') })} />
           <h2 className="text-sm font-semibold">{t('dash.rev.title')}</h2>
           <p className="text-xs text-[var(--text-secondary)]">{t('dash.rev.note', { pass: PASS_PCT })}</p>
@@ -669,10 +757,10 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
               const src = iconSrc(x.domain, x.topic);
               return (
                 <button key={`${x.domain}|${x.topic}`} onClick={() => onStartLesson(startParams(x.domain, x.topic))}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-[var(--fill)]">
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors hover:bg-[var(--fill)]">
                   {src && <img src={src} alt="" aria-hidden="true" loading="lazy" className="h-5 w-5 opacity-80" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
-                  <span className="min-w-0 flex-1 truncate">{topicName(x.domain, x.topic)}</span>
-                  <span className="flex-none text-xs text-[var(--text-tertiary)]">{fmtPct(p.score / p.total)}% · {p.score}/{p.total}</span>
+                  <span className="grid min-w-0 flex-1 gap-1"><span className="truncate">{topicName(x.domain, x.topic)}</span><span className="h-1 overflow-hidden rounded-full bg-[var(--fill-strong)]"><span className="block h-full rounded-full bg-[var(--primary)]" style={{ width: `${Math.min(100, (p.score / p.total) * 100)}%` }} /></span></span>
+                  <span className="flex-none text-xs font-semibold text-[var(--text-secondary)]">{fmtPct(p.score / p.total)}%</span>
                 </button>
               );
             })}
@@ -684,13 +772,13 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
       )}
 
       {isVisible('domains') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('domains') }} draggable onDragStart={(e) => onDragStart(e, 'domains')} onDragOver={(e) => onDragOverCard(e, 'domains')} onDrop={onDropOn('domains')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2.5 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 md:col-span-2 xl:col-span-2` + (dropPos?.id === 'domains' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('domains') }} draggable onDragStart={(e) => onDragStart(e, 'domains')} onDragOver={(e) => onDragOverCard(e, 'domains')} onDrop={onDropOn('domains')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-5 md:col-span-2 xl:col-span-2` + (dropPos?.id === 'domains' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="domains" hideLabel={t('dash.widgets.hide', { name: t('dash.dom.title') })} />
           <h2 className="text-sm font-semibold">{t('dash.dom.title')}</h2>
           {roll.filter((r) => r.accuracy !== null).length > 1 && (
             <p className="text-xs text-[var(--text-secondary)]">{t('dash.dom.note')}</p>
           )}
-          <div className="grid gap-2.5">
+          <div className="grid gap-3">
             {roll.map((r) => {
               const pct = r.accuracy === null ? null : Math.round(r.accuracy * 100);
               const under = pct !== null && r.accuracy < PASS;
@@ -705,7 +793,7 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
                       {pct === null ? t('dash.dom.noScore') : under ? `${pct}% · ${t('dash.dom.under')}` : `${pct}%`}
                     </span>
                   </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--fill-strong)]" aria-hidden="true">
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--fill-strong)]" aria-hidden="true">
                     <div className={`h-full rounded-full ${under ? 'bg-[var(--danger-text)]' : 'bg-[var(--primary)]'}`} style={{ width: `${pct ?? 0}%` }} />
                   </div>
                   <div className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">{t('dash.unitDone', { done: r.done, total: r.total })}</div>
@@ -718,7 +806,7 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
       )}
 
       {isVisible('recent') && (
-        <motion.section layout variants={rise} style={{ order: orderOf('recent') }} draggable onDragStart={(e) => onDragStart(e, 'recent')} onDragOver={(e) => onDragOverCard(e, 'recent')} onDrop={onDropOn('recent')} onDragEnd={clearDrag} className={`group relative grid content-start gap-2 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4` + (dropPos?.id === 'recent' ? ' ring-2 ring-[var(--primary)]' : '')}>
+        <motion.section layout variants={rise} style={{ order: orderOf('recent') }} draggable onDragStart={(e) => onDragStart(e, 'recent')} onDragOver={(e) => onDragOverCard(e, 'recent')} onDrop={onDropOn('recent')} onDragEnd={clearDrag} className={`group relative grid content-start gap-3 rounded-[1.2rem] border border-[var(--border-secondary)] bg-[var(--bg-container)] p-5` + (dropPos?.id === 'recent' ? ' ring-2 ring-[var(--primary)]' : '')}>
           <WidgetTools id="recent" hideLabel={t('dash.widgets.hide', { name: t('dash.rec.title') })} />
           <h2 className="text-sm font-semibold">{t('dash.rec.title')}</h2>
           {recent.length ? (
@@ -727,7 +815,7 @@ export default function Dashboard({ user, onReview, onOpenVocabulary, onStartLes
               const src = iconSrc(p.lessons.domain_slug, p.lessons.topic);
               return (
                 <button key={p.lesson_id} onClick={() => onStartLesson(startParams(p.lessons.domain_slug, p.lessons.topic))}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-[var(--fill)]">
+                  className="flex w-full items-center gap-2.5 rounded-xl border-b border-[var(--border-secondary)] px-2 py-2.5 text-left text-sm transition-colors last:border-b-0 hover:bg-[var(--fill)]">
                   {src && <img src={src} alt="" aria-hidden="true" loading="lazy" className="h-5 w-5 opacity-80" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
                   <span className="min-w-0 flex-1 truncate">{topicName(p.lessons.domain_slug, p.lessons.topic)}</span>
                   <span className="flex-none text-xs text-[var(--text-tertiary)]">

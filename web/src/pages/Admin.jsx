@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { adminApi } from '../lib/admin.js';
-import { Panel, PanelTitle, BtnSecondary, Msg, inputCls, useToast, PageHead } from '../components/ui.jsx';
+import { Panel, PanelTitle, BtnSecondary, Msg, inputCls, useToast } from '../components/ui.jsx';
 import { t, getLang, langMeta } from '../lib/legacy.js';
 
 const FILTERS = [
@@ -433,7 +433,7 @@ export default function Admin() {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }} className="grid gap-4">
       {toastNode}
-      <PageHead title={t('admin.title')} sub={t('admin.sub')} />
+      <p className="text-sm text-[var(--text-secondary)]">{t('admin.sub')}</p>
       <div role="tablist" aria-label={t('admin.tabs.label')} className="flex flex-wrap gap-2">
         {tabs.map((tb) => (
           <button

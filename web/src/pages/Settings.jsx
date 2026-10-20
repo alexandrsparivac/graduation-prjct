@@ -13,7 +13,7 @@ import { signOut } from '../lib/auth.js';
 import { applyThemePrefs } from '../lib/theme.js';
 import { rememberActiveLanguage } from '../lib/lang.js';
 import { resolveAvatarImage } from '../../../shared/profile-avatar.js';
-import { list, rise, Panel, PanelTitle, BtnSecondary, Msg, inputCls, useToast } from '../components/ui.jsx';
+import { list, rise, BtnSecondary, Msg, inputCls, useToast } from '../components/ui.jsx';
 import LoadingIndicator from '../components/LoadingIndicator.jsx';
 
 import Admin from './Admin.jsx';
@@ -30,9 +30,17 @@ const SLIDERS_SVG = (
 const iconBtnCls =
   'grid h-10 w-10 flex-none place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--bg-container)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)] hover:border-[var(--text-tertiary)]';
 const optCls = (on) =>
-  `flex flex-col items-start gap-1 rounded-xl border p-3.5 text-left transition-colors ${
-    on ? 'border-[var(--primary)] bg-[var(--fill)]' : 'border-[var(--border)] bg-[var(--bg-container)] hover:border-[var(--text-tertiary)]'
+  `flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-[background-color,border-color,color] duration-200 ${
+    on ? 'border-[var(--text)] bg-[var(--fill)]' : 'border-[var(--border-secondary)] bg-transparent hover:border-[var(--text-tertiary)] hover:bg-[var(--fill)]'
   }`;
+
+function SettingsSection({ children }) {
+  return (
+    <section className="grid content-start gap-5">
+      {children}
+    </section>
+  );
+}
 
 function Toggle({ label, hint, checked, onChange }) {
   return (
@@ -332,21 +340,21 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }} className="grid gap-6">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }} className="grid gap-7">
       {toastNode}
-      <header className="grid gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('set.title')}</h1>
-      <div role="tablist" aria-label={t('set.tabs')} className="flex gap-1 overflow-x-auto border-b border-[var(--border-secondary)] pb-2">
+      <header className="grid gap-5">
+        <h1 className="text-2xl font-bold tracking-tight">{t('set.title')}</h1>
+      <div role="tablist" aria-label={t('set.tabs')} className="flex gap-4 overflow-x-auto border-b border-[var(--border-secondary)]">
         {tabs.map((tb) => (
           <motion.button
             key={tb.id} role="tab" aria-selected={tab === tb.id}
             onClick={() => setTab(tb.id)}
-            className={`relative flex-none rounded-lg px-3 py-2 text-sm transition-colors ${
-              tab === tb.id ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-secondary)] hover:bg-[var(--fill)] hover:text-[var(--text)]'
+            className={`relative flex-none px-1 pb-3 text-sm transition-colors ${
+              tab === tb.id ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
             }`}
           >
-            {tab === tb.id && <motion.span layoutId="settings-active-tab" className="absolute inset-0 rounded-lg bg-[var(--fill-strong)]" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
-            <span className="relative z-10">{tb.label}</span>
+            {tab === tb.id && <motion.span layoutId="settings-active-tab" className="absolute inset-x-0 bottom-[-1px] h-0.5 bg-[var(--primary)]" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
+            <span>{tb.label}</span>
           </motion.button>
         ))}
       </div>
@@ -359,84 +367,100 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -5 }}
         transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-        className="grid min-w-0 content-start gap-4"
+        className="grid min-w-0 content-start gap-6"
       >
       {tab === 'profile' && (
-        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
-          <PanelTitle>{t('profile.title')}</PanelTitle>
+        <SettingsSection>
           {profileLoading ? (
-            <LoadingIndicator />
+            <div className="grid min-h-48 place-items-center rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)]">
+              <LoadingIndicator />
+            </div>
           ) : (
-            <>
-              <div className="flex items-center gap-4">
-                {previewSrc ? (
-                  <img src={previewSrc} alt="" className="h-20 w-20 rounded-full object-cover" />
-                ) : (
-                  <span aria-hidden="true" className="grid h-20 w-20 flex-none place-items-center rounded-full bg-[var(--fill-strong)] text-2xl font-bold text-[var(--text-secondary)]">
-                    {((firstName || user.email || '?').trim()[0] || '?').toUpperCase()}
-                  </span>
-                )}
-                <div className="grid gap-0.5 text-sm">
-                  <span className="font-medium">{`${firstName} ${lastName}`.trim() || user.email}</span>
-                  <span className="text-xs text-[var(--text-tertiary)]">{user.email}</span>
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <span className="text-sm font-medium">{t('profile.avatar')}</span>
-                <span className="text-xs text-[var(--text-tertiary)]">{t('profile.avatarHint')}</span>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                  {PROFILE_AVATARS.map((a) => {
-                    const src = presetUrl(a.id);
-                    const on = !avatarInput && avatarUrl === src;
-                    const label = t(`profile.avatar.${a.id}`);
-                    return (
-                      <button
-                        key={a.id} onClick={() => { setAvatarUrl(src); setAvatarInput(''); persistAvatar(src); }}
-                        title={label} aria-pressed={on} aria-label={label}
-                        className={`grid place-items-center rounded-xl border p-2 transition-all ${on ? 'border-[var(--primary)] bg-[var(--fill)]' : 'border-[var(--border-secondary)] hover:border-[var(--text-tertiary)]'}`}
-                      >
-                        <img src={src} alt="" loading="lazy" className="h-16 w-16 rounded-full" />
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    value={avatarInput} onChange={(e) => setAvatarInput(e.target.value)}
-                    placeholder={t('profile.avatarUrlPh')} inputMode="url"
-                    aria-label={t('profile.avatarUrl')} className={inputCls}
-                  />
-                  {(avatarUrl || avatarInput) && (
-                    <BtnSecondary onClick={() => { setAvatarUrl(''); setAvatarInput(''); persistAvatar(''); }} className="w-auto flex-none px-4">
-                      {t('profile.remove')}
-                    </BtnSecondary>
+            <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+              <section className="grid min-w-0 content-start gap-5 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 sm:p-5">
+                <div className="flex min-w-0 items-center gap-4 rounded-xl bg-[var(--fill)] p-4">
+                  {previewSrc ? (
+                    <img src={previewSrc} alt="" className="h-[72px] w-[72px] flex-none rounded-2xl object-cover ring-1 ring-[var(--border-secondary)]" />
+                  ) : (
+                    <span aria-hidden="true" className="grid h-[72px] w-[72px] flex-none place-items-center rounded-2xl bg-[var(--primary)] text-2xl font-bold text-[var(--on-primary)]">
+                      {((firstName || user.email || '?').trim()[0] || '?').toUpperCase()}
+                    </span>
                   )}
+                  <div className="grid min-w-0 gap-1">
+                    <h2 className="text-base font-semibold tracking-tight text-[var(--text)]">{t('profile.title')}</h2>
+                    <span className="truncate text-sm font-medium text-[var(--text)]">{`${firstName} ${lastName}`.trim() || user.email}</span>
+                    <span className="truncate text-xs text-[var(--text-tertiary)]">{user.email}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <label className="grid gap-1 text-sm">{t('profile.firstName')}
-                  <input value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={60} autoComplete="given-name" className={inputCls} />
+
+                <div className="grid gap-3">
+                  <div className="grid gap-1">
+                    <span className="text-sm font-semibold text-[var(--text)]">{t('profile.avatar')}</span>
+                    <span className="text-xs leading-relaxed text-[var(--text-tertiary)]">{t('profile.avatarHint')}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-3 xl:grid-cols-6">
+                    {PROFILE_AVATARS.map((a) => {
+                      const src = presetUrl(a.id);
+                      const on = !avatarInput && avatarUrl === src;
+                      const label = t(`profile.avatar.${a.id}`);
+                      return (
+                        <motion.button
+                          key={a.id} type="button" onClick={() => { setAvatarUrl(src); setAvatarInput(''); persistAvatar(src); }}
+                          title={label} aria-pressed={on} aria-label={label}
+                          whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} transition={{ duration: 0.16 }}
+                          className={`group relative grid min-w-0 justify-items-center gap-2 rounded-xl border p-2 transition-colors ${on ? 'border-[var(--primary)] bg-[var(--fill)] shadow-sm' : 'border-[var(--border-secondary)] bg-[var(--bg-layout)] hover:border-[var(--text-tertiary)] hover:bg-[var(--fill)]'}`}
+                        >
+                          <img src={src} alt="" loading="lazy" className={`h-12 w-12 rounded-full object-cover transition-transform duration-200 group-hover:scale-105 sm:h-14 sm:w-14 ${on ? 'ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg-container)]' : 'ring-1 ring-[var(--border-secondary)]'}`} />
+                          <span className="w-full truncate text-center text-[10px] leading-tight text-[var(--text-secondary)] sm:text-[11px]">{label}</span>
+                          {on && <span className="absolute right-1.5 top-1.5 grid h-4 w-4 place-items-center rounded-full bg-[var(--primary)] text-[var(--on-primary)]" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="m3.5 8 3 3 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></span>}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex min-w-0 gap-2">
+                    <input
+                      value={avatarInput} onChange={(e) => setAvatarInput(e.target.value)}
+                      placeholder={t('profile.avatarUrlPh')} inputMode="url"
+                      aria-label={t('profile.avatarUrl')} className={`${inputCls} min-w-0`}
+                    />
+                    {(avatarUrl || avatarInput) && (
+                      <BtnSecondary onClick={() => { setAvatarUrl(''); setAvatarInput(''); persistAvatar(''); }} className="w-auto flex-none px-3 sm:px-4">
+                        {t('profile.remove')}
+                      </BtnSecondary>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <section className="grid content-start gap-5 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 sm:p-5">
+                <div className="grid gap-1">
+                  <h2 className="text-base font-semibold tracking-tight text-[var(--text)]">{t('profile.title')}</h2>
+                  <p className="text-xs leading-relaxed text-[var(--text-tertiary)]">{t('profile.welcome.sub')}</p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="grid gap-1.5 text-sm font-medium">{t('profile.firstName')}
+                    <input value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={60} autoComplete="given-name" className={inputCls} />
+                  </label>
+                  <label className="grid gap-1.5 text-sm font-medium">{t('profile.lastName')}
+                    <input value={lastName} onChange={(e) => setLastName(e.target.value)} maxLength={60} autoComplete="family-name" className={inputCls} />
+                  </label>
+                </div>
+                <label className="grid gap-1.5 text-sm font-medium">{t('profile.email')}
+                  <input value={user.email || ''} disabled className={`${inputCls} cursor-not-allowed opacity-60`} />
                 </label>
-                <label className="grid gap-1 text-sm">{t('profile.lastName')}
-                  <input value={lastName} onChange={(e) => setLastName(e.target.value)} maxLength={60} autoComplete="family-name" className={inputCls} />
-                </label>
-              </div>
-              <label className="grid gap-1 text-sm">{t('profile.email')}
-                <input value={user.email || ''} disabled className={`${inputCls} opacity-60`} />
-              </label>
-              <div>
-                <BtnSecondary onClick={() => saveProfile()} className="w-auto px-5">
-                  {busy ? '…' : t('profile.save')}
-                </BtnSecondary>
-              </div>
-            </>
+                <div className="flex justify-end border-t border-[var(--border-secondary)] pt-4">
+                  <button type="button" onClick={() => saveProfile()} disabled={busy} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--primary)] px-5 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60">
+                    {busy ? '…' : t('profile.save')}
+                  </button>
+                </div>
+              </section>
+            </div>
           )}
-        </Panel>
+        </SettingsSection>
       )}
 
       {tab === 'appearance' && (
-        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
-          <PanelTitle>{t('set.appearance')}</PanelTitle>
+        <SettingsSection>
           <div className="grid gap-2">
             <span className="text-sm font-medium">{t('set.theme')}</span>
             <div className="grid grid-cols-3 gap-2">
@@ -473,12 +497,11 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
               ))}
             </div>
           </div>
-        </Panel>
+        </SettingsSection>
       )}
 
       {tab === 'language' && (
-        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
-          <PanelTitle>{t('set.language')}</PanelTitle>
+        <SettingsSection>
           <p className="text-sm text-[var(--text-secondary)]">{t('set.language.hint')}</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {(UI_LANGS || []).map((l) => (
@@ -491,12 +514,11 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
               </button>
             ))}
           </div>
-        </Panel>
+        </SettingsSection>
       )}
 
       {tab === 'study' && (
-        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
-          <PanelTitle>{t('set.studyLanguages')}</PanelTitle>
+        <SettingsSection>
           <p className="text-sm text-[var(--text-secondary)]">{t('set.studyLanguages.hint')}</p>
           <button onClick={onAddStudyLanguage} className="w-fit rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90">
             + {t('dash.addLanguage')}
@@ -610,12 +632,11 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
               </div>
             </div>
           )}
-        </Panel>
+        </SettingsSection>
       )}
 
       {tab === 'lessons' && (
-        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
-          <PanelTitle>{t('set.lessons')}</PanelTitle>
+        <SettingsSection>
           <Toggle label={t('set.showTranslations')} hint={t('set.showTranslations.hint')} checked={!!prefs.showTranslations} onChange={(v) => setP('showTranslations', v)} />
           <div className="grid gap-2">
             <span className="grid gap-0.5">
@@ -694,12 +715,11 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
             </div>
             <span className="text-xs text-[var(--text-secondary)]">{t('les.builder.selected', { n: prefs.lessonSections.length })}</span>
           </div>
-        </Panel>
+        </SettingsSection>
       )}
 
       {tab === 'dashboard' && (
-        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
-          <PanelTitle>{t('set.widgets')}</PanelTitle>
+        <SettingsSection>
           <p className="text-sm text-[var(--text-secondary)]">{t('dash.widgets.hint')}</p>
           <div>
             <button
@@ -737,20 +757,19 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
             })}
           </div>
           {widgetStatus === 'saving' ? <LoadingIndicator /> : widgetStatus && <span className="text-xs text-[var(--text-secondary)]">{widgetStatus}</span>}
-        </Panel>
+        </SettingsSection>
       )}
 
       {tab === 'data' && (
-        <Panel className="!rounded-xl !border-[var(--border-secondary)] !p-5 sm:!p-6">
-          <PanelTitle>{t('set.data')}</PanelTitle>
-          <div className="flex items-center justify-between gap-4 py-1">
+        <SettingsSection>
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border-secondary)] py-4">
             <span className="grid gap-0.5">
               <span className="text-sm font-medium">{t('set.data.export')}</span>
               <span className="text-xs text-[var(--text-tertiary)]">{t('set.data.export.hint')}</span>
             </span>
             <BtnSecondary onClick={doExport} className="w-auto flex-none px-4">{busy ? '…' : t('set.data.export.btn')}</BtnSecondary>
           </div>
-          <div className="flex items-center justify-between gap-4 py-1">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border-secondary)] py-4">
             <span className="grid gap-0.5">
               <span className="text-sm font-medium">{t('set.data.delete')}</span>
               <span className="text-xs text-[var(--text-tertiary)]">{t('set.data.delete.hint')}</span>
@@ -773,7 +792,7 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
               </div>
             </div>
           )}
-          <div className="flex items-center justify-between gap-4 border-t border-[var(--border-secondary)] pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
             <span className="text-sm font-medium">{t('set.reset')}</span>
             <BtnSecondary
               onClick={() => { stopSpeaking(); resetPrefs(); setPrefsState({ ...getPrefs() }); applyThemePrefs(); toast(t('set.resetDone')); }}
@@ -781,7 +800,7 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
               {t('set.reset')}
             </BtnSecondary>
           </div>
-        </Panel>
+        </SettingsSection>
       )}
       {tab === 'admin' && isAdmin && <Admin key={user.id} />}
       </motion.div>

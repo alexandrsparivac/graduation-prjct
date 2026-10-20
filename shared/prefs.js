@@ -12,7 +12,7 @@ const HEX_COLOR = /^#[\da-f]{6}$/i;
 
 export const DEFAULTS = {
   theme: 'system',          // 'system' | 'light' | 'dark'
-  headerLayout: 'top',      // 'top' | 'left'
+  headerLayout: 'left',     // 'left' | 'top'
   accent: 'violet',         // Persistent system-wide accent colour
   bgWords: true,            // ambient background effects
   showTranslations: true,   // reveal the reading translation without asking

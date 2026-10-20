@@ -7,6 +7,7 @@ import { applyThemePrefs } from './lib/theme.js';
 import { resolveActiveLanguage } from './lib/lang.js';
 import { useI18nReady, useI18n } from './lib/i18n.jsx';
 import AmbientGL from './components/AmbientGL.jsx';
+import { LoadingOverlay } from './components/LoadingIndicator.jsx';
 import Topbar from './components/Topbar.jsx';
 import { MotionView, ErrorBoundary } from './components/ui.jsx';import Dashboard from './pages/Dashboard.jsx';
 import Lessons from './pages/Lessons.jsx';
@@ -18,8 +19,10 @@ import Lesson from './pages/Lesson.jsx';
 import Guide from './pages/Guide.jsx';
 import Docs from './pages/Docs.jsx';
 import Vocab from './pages/Vocab.jsx';
+import Plan from './pages/Plan.jsx';
+import Pronunciation from './pages/Pronunciation.jsx';
 
-const APP_VIEWS = new Set(['dashboard', 'lessons', 'guide', 'docs', 'onboarding', 'settings', 'review', 'lesson', 'vocab']);
+const APP_VIEWS = new Set(['dashboard', 'lessons', 'guide', 'docs', 'onboarding', 'settings', 'review', 'lesson', 'vocab', 'plan', 'pronunciation']);
 
 function ChatGPTIcon() {
   return (
@@ -60,17 +63,19 @@ export default function App() {
   const [headerLayout, setHeaderLayout] = useState(() => getPref('headerLayout'));
   const [obAdd, setObAdd] = useState(false);
   const [lessonParams, setLessonParams] = useState(null);
+  const [vocabQuery, setVocabQuery] = useState('');
   const [settingsTab, setSettingsTab] = useState('profile');
   const [showProfileWelcome, setShowProfileWelcome] = useState(false);
   const nav = (v) => {
     if (v !== 'onboarding') setObAdd(false);
     if (v === 'settings') setSettingsTab('profile');
+    if (v === 'vocab') setVocabQuery('');
     setView(v);
   };
 
   // SPA navigation keeps the scroll offset; every view starts at the top.
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [view]);
   const startLesson = (p) => {
     setLessonParams(p);
@@ -143,6 +148,8 @@ export default function App() {
       : view === 'settings' ? t('set.title')
       : view === 'review' ? t('dash.review.title')
       : view === 'vocab' ? t('voc.title')
+      : view === 'plan' ? t('plan.pageTitle')
+      : view === 'pronunciation' ? t('pron.pageTitle')
       : view === 'onboarding' ? t('ob.pageTitle')
       : view === 'docs' ? t({ faq: 'faq.pageTitle', terms: 'terms.pageTitle', priv: 'priv.pageTitle' }[doc])
       : t('login.pageTitle');
@@ -152,7 +159,7 @@ export default function App() {
   const goLogin = () => setView('login');
   const goDoc = (d) => { setDoc(d); setView('docs'); };
 
-  if (!ready || checking) return null;
+  if (!ready || checking) return <LoadingOverlay />;
 
   // Blocked accounts see only this screen (with a way out).
   if (user && profile?.is_banned) {
@@ -218,13 +225,13 @@ export default function App() {
   return (
     <div className={`min-h-screen ${headerLayout === 'left' ? 'flex' : 'flex flex-col'}`}>
       <AmbientGL />
-      <Topbar layout={headerLayout} user={user} profile={profile} view={view === 'lesson' ? 'lessons' : APP_VIEWS.has(view) ? view : 'dashboard'} onNav={nav} />
+      <Topbar layout={headerLayout} user={user} profile={profile} view={view === 'lesson' ? 'lessons' : APP_VIEWS.has(view) ? view : 'dashboard'} onNav={nav} activeLang={activeLang} onStartLesson={startLesson} onSearchVocabulary={(query) => { setVocabQuery(query); setView('vocab'); }} />
       <div className="flex min-w-0 flex-1 flex-col">
       <AnimatePresence mode="wait">
         {view === 'dashboard' && (
           <MotionView key="dashboard">
             <ErrorBoundary key={`dash-boundary-${user.id}-${dashTick}`}>
-              <Dashboard key={`${user.id}-${dashTick}`} user={user} onReview={() => setView('review')} onOpenVocabulary={() => setView('vocab')} onStartLesson={startLesson} />
+              <Dashboard key={`${user.id}-${dashTick}`} user={user} onReview={() => setView('review')} onOpenVocabulary={() => { setVocabQuery(''); setView('vocab'); }} onStartLesson={startLesson} />
             </ErrorBoundary>
           </MotionView>
         )}
@@ -244,14 +251,24 @@ export default function App() {
             <Lessons key={user.id} onStartLesson={startLesson} />
           </MotionView>
         )}
+        {view === 'pronunciation' && (
+          <MotionView key="pronunciation">
+            <Pronunciation key={user.id} user={user} />
+          </MotionView>
+        )}
+        {view === 'plan' && (
+          <MotionView key="plan">
+            <Plan user={user} onStartLesson={startLesson} />
+          </MotionView>
+        )}
         {view === 'vocab' && (
           <MotionView key="vocab">
-            <Vocab key={user.id} />
+            <Vocab key={user.id} initialQuery={vocabQuery} />
           </MotionView>
         )}
         {view === 'guide' && (
           <MotionView key="guide">
-          <Guide onOpenLessons={() => setView('lessons')} onOpenDashboard={() => setView('dashboard')} />
+          <Guide onOpenLessons={() => setView('lessons')} onOpenDashboard={() => setView('dashboard')} onOpenPractice={() => setView('pronunciation')} />
           </MotionView>
         )}
         {view === 'onboarding' && (

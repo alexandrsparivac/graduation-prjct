@@ -4,8 +4,8 @@ import { existsSync } from 'node:fs';
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildSectionPrompt, parseSectionResult, validateLesson, mergeSections, SECTION_TOKENS, SECTION_MIN_TOKENS, sectionRetryPrompt, buildLessonReviewPrompt, parseLessonReview } from './lib/lesson-prompt.js';
-import { prepareLessonContext, lessonRequestKey, validateCoreNovelty, generateLessonParts, refineLessonParts, LEVEL_DESIGNS } from './lib/lesson-design.js';
+import { buildSectionPrompt, parseSectionResult, validateLesson, mergeSections, SECTION_TOKENS, SECTION_MIN_TOKENS, sectionRetryPrompt, buildLessonReviewPrompt, parseLessonReview, extractJson } from './lib/lesson-prompt.js';
+import { prepareLessonContext, lessonRequestKey, validateCoreNovelty, validatePhraseNovelty, generateLessonParts, LEVEL_DESIGNS } from './lib/lesson-design.js';
 import { speechInput, createSpeechService } from './lib/tts.js';
 import { transcriptionInput, transcribeSpeech, MAX_RECORDING_BYTES } from './lib/transcription.js';
 import { isApplicationReady } from './lib/readiness.js';
@@ -25,10 +25,20 @@ app.use((_req, res, next) => {
 });
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 // Prefer the faster 20B model for lesson generation; fall back to the larger
 // model if its free-tier daily quota is exhausted.
 const GROQ_MODELS = (process.env.GROQ_MODEL || 'openai/gpt-oss-20b,openai/gpt-oss-120b,qwen/qwen3.8-27b')
   .split(',').map(s => s.trim()).filter(Boolean);
+const FAST_MODEL = process.env.GROQ_FAST_MODEL || GROQ_MODELS[0];
+const QUALITY_MODEL = process.env.GROQ_QUALITY_MODEL || GROQ_MODELS[1] || GROQ_MODELS[0];
+const modelsFor = section => (process.env[`GROQ_MODELS_${section.toUpperCase()}`] || '')
+  .split(',').map(s => s.trim()).filter(Boolean)
+  .concat(section === 'core' || section === 'review' ? [FAST_MODEL] : section === 'story' || section === 'quiz' ? [QUALITY_MODEL] : [])
+  .concat(GROQ_MODELS)
+  .filter((model, index, all) => all.indexOf(model) === index);
+const REVIEW_MODELS = modelsFor('review');
 
 // Shown in the UI when every model reports an exhausted daily quota.
 const QUOTA_MSG = 'Limita zilnică gratuită a AI-ului a fost atinsă. Încearcă din nou mai târziu — lecțiile deja salvate și progresul tău rămân disponibile.';
@@ -738,7 +748,7 @@ app.delete('/api/admin/domains/:slug', requireAdmin(async (req, res) => {
   }
 }));
 
-async function requestGroq(messages, maxTokens, model, temperature = 0.65, signal = null, timeoutMs = 45_000) {
+async function requestGroqPrimary(messages, maxTokens, model, temperature = 0.65, signal = null, timeoutMs = 45_000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(new Error('Groq request timed out')), Math.max(1, timeoutMs));
   const abort = () => controller.abort(signal.reason);
@@ -788,7 +798,7 @@ async function requestGroq(messages, maxTokens, model, temperature = 0.65, signa
       };
     }
     const data = await groqRes.json();
-    return { raw: data.choices?.[0]?.message?.content || '' };
+    return { raw: data.choices?.[0]?.message?.content || '', usage: data.usage || null };
   } catch (err) {
     if (signal?.aborted) throw signal.reason || err;
     console.error('Groq request failed:', err.name, err.message);
@@ -799,27 +809,100 @@ async function requestGroq(messages, maxTokens, model, temperature = 0.65, signa
   }
 }
 
+async function requestGemini(messages, maxTokens, temperature = 0.65, signal = null, timeoutMs = 45_000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(new Error('Gemini request timed out')), Math.max(1, timeoutMs));
+  const abort = () => controller.abort(signal.reason);
+  if (signal?.aborted) abort();
+  else signal?.addEventListener('abort', abort, { once: true });
+  try {
+    const response = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.GEMINI_API_KEY}`
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: GEMINI_MODEL,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        reasoning_effort: 'low',
+        response_format: { type: 'json_object' }
+      })
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(`Gemini error [${GEMINI_MODEL}]:`, response.status, text.slice(0, 300));
+      if (response.status === 413) return { tooLarge: true, provider: 'gemini', model: GEMINI_MODEL };
+      if (response.status === 429) {
+        if (/request too large/i.test(text)) return { outputLimit: true, provider: 'gemini', model: GEMINI_MODEL };
+        return { waitMs: retryDelayMs(429, response.headers, text), quota: /per day|TPD|RPD|daily|quota/i.test(text), provider: 'gemini', model: GEMINI_MODEL };
+      }
+      return {
+        error: true, status: response.status,
+        retryable: response.status === 408 || response.status === 425 || response.status >= 500,
+        provider: 'gemini', model: GEMINI_MODEL,
+      };
+    }
+    const data = await response.json();
+    return {
+      raw: data.choices?.[0]?.message?.content || '', usage: data.usage || null,
+      provider: 'gemini', model: GEMINI_MODEL,
+    };
+  } catch (err) {
+    if (signal?.aborted) throw signal.reason || err;
+    console.error('Gemini request failed:', err.name, err.message);
+    return { error: true, retryable: true, provider: 'gemini', model: GEMINI_MODEL };
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', abort);
+  }
+}
+
+async function requestGroq(messages, maxTokens, model, temperature = 0.65, signal = null, timeoutMs = 45_000) {
+  let geminiQuotaSeen = false;
+  if (process.env.GEMINI_API_KEY) {
+    const primary = await requestGemini(messages, maxTokens, temperature, signal, timeoutMs);
+    geminiQuotaSeen = Boolean(primary.quota);
+    // Validation and section-specific retries still run through the same pipeline.
+    if (!primary.error && !primary.waitMs && !primary.quota && !primary.tooLarge && !primary.outputLimit) {
+      return primary;
+    }
+    if (signal?.aborted) throw signal.reason;
+    console.warn(`Gemini unavailable for ${GEMINI_MODEL}; trying Groq fallback.`);
+  }
+  const fallback = await requestGroqPrimary(messages, maxTokens, model, temperature, signal, timeoutMs);
+  return { ...fallback, provider: 'groq', model, quotaSeen: Boolean(fallback.quota || geminiQuotaSeen) };
+}
+
 /** Generate one section, retrying only that section until it validates. */
 async function generateSection(section, ctx, deadline, feedback = null, signal = null) {
+  const sectionStartedAt = Date.now();
   const base = buildSectionPrompt(section, ctx);
   let maxTokens = sectionBudget(section);
   let modelIdx = 0;
   let lastReason = feedback;
+  let previousData = null;
   let attempt = 0;
+  let providerQuotaSeen = false;
 
   while (Date.now() < deadline && !signal?.aborted) {
     attempt++;
-    const model = GROQ_MODELS[modelIdx];
+    const models = modelsFor(section);
+    const model = models[modelIdx];
     const messages = lastReason
-      ? [...base, { role: 'user', content: sectionRetryPrompt(section, lastReason) }]
+      ? [...base, { role: 'user', content: sectionRetryPrompt(section, lastReason, previousData) }]
       : base;
 
     const result = await requestGroq(messages, maxTokens, model, 0.65, signal,
       Math.min(45_000, Math.max(1, deadline - Date.now())));
+    providerQuotaSeen ||= Boolean(result.quota || result.quotaSeen);
 
     if (result.tooLarge) {
       if (maxTokens <= SECTION_MIN_TOKENS) {
-        return { section, data: null, reason: `"${section}": account token limit too low` };
+        return { section, data: null, reason: `"${section}": account token limit too low`, quota: providerQuotaSeen };
       }
       maxTokens = Math.max(SECTION_MIN_TOKENS, Math.floor(maxTokens * 0.8));
       console.warn(`[${section}] budget too large, retrying with max_tokens=${maxTokens}.`);
@@ -829,20 +912,20 @@ async function generateSection(section, ctx, deadline, feedback = null, signal =
     if (result.outputLimit) {
       // This model cannot emit a section this size at all. Move on right
       // away; only give up when no model is left.
-      if (modelIdx < GROQ_MODELS.length - 1) {
-        console.warn(`[${section}] output limit too small on ${model}, falling back to ${GROQ_MODELS[modelIdx + 1]}.`);
+      if (modelIdx < models.length - 1) {
+        console.warn(`[${section}] output limit too small on ${model}, falling back to ${models[modelIdx + 1]}.`);
         modelIdx++;
         continue;
       }
-      return { section, data: null, reason: `"${section}": no model can emit the required size right now` };
+      return { section, data: null, reason: `"${section}": no model can emit the required size right now`, quota: providerQuotaSeen };
     }
 
     if (result.waitMs) {
       if (result.quota) {
         // This model's daily budget is spent. Move the section to the next
         // model right away; only give up when no model has budget left.
-        if (modelIdx < GROQ_MODELS.length - 1) {
-          console.warn(`[${section}] daily quota out on ${model}, falling back to ${GROQ_MODELS[modelIdx + 1]}.`);
+        if (modelIdx < models.length - 1) {
+          console.warn(`[${section}] daily quota out on ${model}, falling back to ${models[modelIdx + 1]}.`);
           modelIdx++;
           continue;
         }
@@ -857,7 +940,7 @@ async function generateSection(section, ctx, deadline, feedback = null, signal =
 
     if (result.error) {
       if (!result.retryable) {
-        return { section, data: null, reason: `Provider request failed permanently (HTTP ${result.status})` };
+        return { section, data: null, reason: `Provider request failed permanently (HTTP ${result.status})`, quota: providerQuotaSeen };
       }
       const wait = remainingWait(retryBackoffMs(attempt), deadline);
       if (wait <= 0) break;
@@ -866,32 +949,36 @@ async function generateSection(section, ctx, deadline, feedback = null, signal =
     }
 
     const { data, reason } = parseSectionResult(section, result.raw, ctx.languageCode);
-    const novelty = data && section === 'core' ? validateCoreNovelty(data, ctx) : { valid: true };
+    const novelty = data && section === 'core' ? validateCoreNovelty(data, ctx)
+      : data && section === 'phrases' ? validatePhraseNovelty(data, ctx) : { valid: true };
     if (data && novelty.valid) {
-      if (attempt > 1) console.log(`[${section}] valid after ${attempt} attempts.`);
-      return { section, data, reason: null, model };
+      const usedModel = result.model || model;
+      console.log(JSON.stringify({ event: 'lesson_section', section, durationMs: Date.now() - sectionStartedAt, attempt, provider: result.provider || 'groq', model: usedModel, usage: result.usage || null, valid: true }));
+      return { section, data, reason: null, model: usedModel };
     }
+    previousData = data;
     lastReason = novelty.valid ? reason : novelty.reason;
     console.warn(`[${section}] attempt ${attempt} rejected: ${lastReason}`);
   }
 
-  return { section, data: null, reason: lastReason || `"${section}": deadline exceeded` };
+  return { section, data: null, reason: lastReason || `"${section}": deadline exceeded`, quota: providerQuotaSeen };
 }
 
 async function reviewLesson(parts, ctx, deadline, signal = null) {
   const messages = buildLessonReviewPrompt(ctx, parts);
+  const models = REVIEW_MODELS;
   let modelIdx = 0;
   let attempt = 0;
   while (Date.now() < deadline && !signal?.aborted) {
     attempt++;
-    const result = await requestGroq(messages, 1200, GROQ_MODELS[modelIdx], 0.1, signal,
+    const result = await requestGroq(messages, 1200, models[modelIdx], 0.1, signal,
       Math.min(45_000, Math.max(1, deadline - Date.now())));
     if (result.quota) {
-      if (modelIdx < GROQ_MODELS.length - 1) { modelIdx++; continue; }
+      if (modelIdx < models.length - 1) { modelIdx++; continue; }
       throw Object.assign(new Error(QUOTA_MSG), { quota: true });
     }
     if (result.outputLimit) {
-      if (modelIdx < GROQ_MODELS.length - 1) { modelIdx++; continue; }
+      if (modelIdx < models.length - 1) { modelIdx++; continue; }
       throw new Error('Lesson review: no model can emit the required size right now');
     }
     if (result.error) {
@@ -914,13 +1001,58 @@ async function reviewLesson(parts, ctx, deadline, signal = null) {
   throw new Error('Lesson correctness review timed out');
 }
 
+async function verifyAndRepairLesson(parts, ctx, originalLesson) {
+  const startedAt = Date.now();
+  try {
+    let currentParts = { ...parts };
+    let lesson = originalLesson;
+    let assessment = await reviewLesson(currentParts, ctx, Date.now() + 90_000);
+    if (!assessment.valid) {
+      const fixes = new Map();
+      for (const issue of assessment.issues) fixes.set(issue.section, [fixes.get(issue.section), issue.reason].filter(Boolean).join('; '));
+      const repaired = await Promise.all([...fixes].map(async ([section, reason]) => {
+        if (section === 'core') {
+          const regenerated = await generateLessonParts(ctx, generateSection, Date.now() + 90_000);
+          return regenerated;
+        }
+        return [await generateSection(section, { ...ctx, lessonCore: currentParts.core }, Date.now() + 90_000, reason)];
+      }));
+      for (const result of repaired.flat()) if (result?.data) currentParts[result.section] = result.data;
+      lesson = { ...mergeSections(currentParts), generation: { ...(originalLesson.generation || {}), quality: { status: 'pending' } } };
+      const deterministic = validateLesson(lesson, ctx.languageCode);
+      if (deterministic.valid) {
+        assessment = await reviewLesson(currentParts, ctx, Date.now() + 90_000);
+      } else {
+        currentParts = { ...parts };
+        lesson = originalLesson;
+        assessment = { valid: false, issues: [{ section: 'core', reason: deterministic.reason }] };
+      }
+    }
+    const quality = {
+      status: assessment.valid ? 'verified' : 'needs_review',
+      checkedAt: new Date().toISOString(), issues: assessment.issues,
+    };
+    lesson.generation = { ...(lesson.generation || {}), quality };
+    console.log(JSON.stringify({ event: 'lesson_review', status: quality.status, durationMs: Date.now() - startedAt, repaired: lesson !== originalLesson, issueCount: quality.issues.length }));
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY && ctx.domainSlug) {
+      const query = `lessons?select=id,content&language_code=eq.${encodeURIComponent(ctx.languageCode)}&domain_slug=eq.${encodeURIComponent(ctx.domainSlug)}&topic=eq.${encodeURIComponent(ctx.topicKey || ctx.topic)}&level=eq.${encodeURIComponent(ctx.level)}`;
+      const row = (await supabaseServiceRequest(query))[0];
+      if (row?.id) await supabaseServiceRequest(`lessons?id=eq.${encodeURIComponent(row.id)}`, {
+        method: 'PATCH', body: { content: lesson }, prefer: 'return=minimal',
+      });
+    }
+  } catch (error) {
+    console.warn(JSON.stringify({ event: 'lesson_review', status: 'unavailable', durationMs: Date.now() - startedAt, reason: error.message }));
+  }
+}
+
 app.post('/api/lesson', async (req, res) => {
   try {
     const user = await verifySupabaseUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    if (!process.env.GROQ_API_KEY) {
-      return res.status(503).json({ error: 'AI is not configured (GROQ_API_KEY missing)' });
+    if (!process.env.GROQ_API_KEY && !process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ error: 'AI is not configured (GROQ_API_KEY or GEMINI_API_KEY missing)' });
     }
     let ctx;
     try {
@@ -969,10 +1101,9 @@ app.post('/api/lesson', async (req, res) => {
         err.quota = failed.every(r => r.quota);
         throw err;
       }
-      results = await refineLessonParts(ctx, results, generateSection, reviewLesson, deadline, 2, controller.signal);
       const parts = Object.fromEntries(results.map(r => [r.section, r.data]));
       const lesson = mergeSections(parts);
-      lesson.generation = { variationId: ctx.variationId, focus: ctx.focus, history: ctx.history };
+      lesson.generation = { specVersion: 2, variationId: ctx.variationId, focus: ctx.focus, history: ctx.history, quality: { status: 'pending' } };
       const check = validateLesson(lesson, ctx.languageCode);
       if (!check.valid) throw new Error(check.reason);
       const used = [...new Set(results.map(r => r.model))].join('+');
@@ -982,7 +1113,7 @@ app.post('/api/lesson', async (req, res) => {
         level: ctx.level, nativeLanguageCode: req.body.nativeLanguageCode, model: used,
         issuedAt: Date.now(), content: lesson,
       };
-      return { lesson, model: used, cacheProof: signLessonCache(user.id, cacheInput), cacheIssuedAt: cacheInput.issuedAt };
+      return { lesson, model: used, cacheProof: signLessonCache(user.id, cacheInput), cacheIssuedAt: cacheInput.issuedAt, reviewParts: parts };
     });
     entry.promise = job.finally(() => {
       entry.done = true;
@@ -1000,10 +1131,206 @@ app.post('/api/lesson', async (req, res) => {
         error: 'lesson_unavailable', reason: outcome.error?.message || null, quota: !!outcome.error?.quota,
       });
     }
-    return res.json(outcome.value);
+    const { reviewParts, ...responseBody } = outcome.value;
+    res.json(responseBody);
+    await verifyAndRepairLesson(reviewParts, ctx, responseBody.lesson);
+    return;
   } catch (err) {
     console.error(err);
     if (!res.destroyed && !res.writableEnded) res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+const PRACTICE_TURN_LIMIT = 5;
+
+// A focused Q&A practice session, separate from full lesson generation.
+app.post('/api/practice', async (req, res) => {
+  try {
+    const user = await verifySupabaseUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!process.env.GROQ_API_KEY && !process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ error: 'practice_not_configured' });
+    }
+    let ctx;
+    try { ctx = prepareLessonContext(req.body); }
+    catch (err) { return res.status(400).json({ error: err.message }); }
+    if (!allowLessonRequest(user.id)) {
+      return res.status(429).set('Retry-After', '60').json({ error: 'lesson_rate_limited' });
+    }
+
+    const messages = [
+      { role: 'system', content: 'You are a skilled language speaking coach. Return only a valid JSON object, with no markdown or commentary.' },
+      { role: 'user', content: `Create one short, finite speaking practice lesson for a language learner.
+Target language: ${ctx.language}. Interface and explanation language: ${ctx.nativeLanguage}. CEFR level: ${ctx.level}.
+Domain: ${ctx.domain}. Exact topic: ${ctx.topic}. Keep every prompt specific to this topic and level.
+Return exactly this shape: {"title":"short lesson title in ${ctx.nativeLanguage}","intro":"one short instruction in ${ctx.nativeLanguage}","firstQuestion":{"question":"a natural, open-ended question in ${ctx.language}","translation":"question meaning in ${ctx.nativeLanguage}","criteria":["key idea(s) of a correct answer, in ${ctx.nativeLanguage}"]}}.
+Create one engaging opening question that invites the learner to explain or describe something relevant to the exact topic. The learner answers in their own words; do not provide an answer or a sentence to repeat. Make it answerable in one or two spoken sentences at CEFR ${ctx.level}. Include 1-3 concise factual/communicative criteria as guidance for later answer evaluation. No extra fields.` },
+    ];
+    const result = await requestGroq(messages, 1400, FAST_MODEL, 0.55, null, 45_000);
+    if (!result.raw) {
+      const quota = Boolean(result.quota || result.quotaSeen);
+      return res.status(quota ? 429 : 503).json({ error: quota ? 'practice_quota' : 'practice_unavailable', quota });
+    }
+    const data = extractJson(result.raw);
+    const valid = data && typeof data.title === 'string' && data.title.trim()
+      && typeof data.intro === 'string' && data.intro.trim()
+      && data.firstQuestion && ['question', 'translation'].every(key => typeof data.firstQuestion[key] === 'string' && data.firstQuestion[key].trim())
+      && Array.isArray(data.firstQuestion.criteria) && data.firstQuestion.criteria.length >= 1 && data.firstQuestion.criteria.length <= 3
+      && data.firstQuestion.criteria.every(value => typeof value === 'string' && value.trim());
+    if (!valid) return res.status(503).json({ error: 'practice_unavailable' });
+    console.log(JSON.stringify({ event: 'practice_generated', userId: user.id, durationMs: result.usage?.total_time || null, provider: result.provider || 'groq', model: result.model || FAST_MODEL }));
+    return res.json({ practice: { title: data.title, intro: data.intro, firstQuestion: data.firstQuestion, turnLimit: PRACTICE_TURN_LIMIT } });
+  } catch (err) {
+    console.error('Practice generation failed:', err);
+    if (!res.headersSent) res.status(500).json({ error: 'practice_unavailable' });
+  }
+});
+
+app.post('/api/practice/evaluate', async (req, res) => {
+  try {
+    const user = await verifySupabaseUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!process.env.GROQ_API_KEY && !process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ error: 'practice_not_configured' });
+    }
+    let ctx;
+    try { ctx = prepareLessonContext(req.body); }
+    catch (err) { return res.status(400).json({ error: err.message }); }
+    const { question, criteria, answer, history = [], turn } = req.body || {};
+    if (typeof question !== 'string' || !question.trim() || question.length > 1000
+      || !Array.isArray(criteria) || criteria.length < 1 || criteria.length > 3
+      || !criteria.every(value => typeof value === 'string' && value.trim() && value.length <= 300)
+      || typeof answer !== 'string' || !answer.trim() || answer.length > 3000
+      || !Number.isInteger(turn) || turn < 1 || turn > PRACTICE_TURN_LIMIT
+      || !Array.isArray(history) || history.length !== turn - 1
+      || !history.every(entry => entry && typeof entry.question === 'string' && entry.question.length <= 1000
+        && typeof entry.answer === 'string' && entry.answer.length <= 3000)) {
+      return res.status(400).json({ error: 'invalid_practice_answer' });
+    }
+    if (!allowLessonRequest(user.id)) {
+      return res.status(429).set('Retry-After', '60').json({ error: 'lesson_rate_limited' });
+    }
+    const messages = [
+      { role: 'system', content: 'You are a fair, supportive language tutor and subject-aware answer evaluator. Return only valid JSON, with no markdown or commentary.' },
+      { role: 'user', content: `Evaluate the learner's own answer to a question in a language-learning practice session.
+Target language: ${ctx.language}. Feedback language: ${ctx.nativeLanguage}. CEFR level: ${ctx.level}.
+Domain: ${ctx.domain}. Exact topic: ${ctx.topic}.
+Question in the target language: ${question.trim()}
+What a good answer should cover (guidance, not an exact-answer checklist): ${JSON.stringify(criteria)}
+Learner's answer in the target language: ${answer.trim()}
+Earlier turns in this same conversation: ${JSON.stringify(history)}
+Judge whether the answer actually responds to the question and covers the key idea(s). Accept different valid answers and wording. Do not require exact phrase matching. If the answer is factually wrong for the topic, explain the issue. Separately consider whether the target-language wording is understandable and appropriate for CEFR ${ctx.level}; do not over-penalize small grammar/spelling errors when meaning is clear.
+Give an integer score from 0 to 100: content relevance/correctness is the main factor (about 70%), language clarity is the rest. Empty or unrelated answers score low.
+If this is not the final turn (turn ${turn} of ${PRACTICE_TURN_LIMIT}), continue the conversation with one concise, natural follow-up question in ${ctx.language}. It must react to what the learner just said, stay on the selected topic, and invite a little more detail; do not repeat the opening question. If the learner's response is unclear, ask a helpful clarification. Include its translation and 1-3 answer criteria in ${ctx.nativeLanguage}. On the final turn, set followUp to null.
+Return exactly: {"score":integer,"feedback":"short, specific feedback in ${ctx.nativeLanguage}","improvedAnswer":"a natural improved answer in ${ctx.language}, preserving the learner's meaning; if useful, offer a concise model answer","improvedTranslation":"meaning of improvedAnswer in ${ctx.nativeLanguage}","followUp":{"question":"next conversational question in ${ctx.language}","translation":"meaning in ${ctx.nativeLanguage}","criteria":["answer idea in ${ctx.nativeLanguage}"]}}. Use followUp null on the final turn. Do not claim phonetic analysis.` },
+    ];
+    const result = await requestGroq(messages, 1300, FAST_MODEL, 0.2, null, 45_000);
+    if (!result.raw) {
+      const quota = Boolean(result.quota || result.quotaSeen);
+      return res.status(quota ? 429 : 503).json({ error: quota ? 'practice_quota' : 'practice_unavailable', quota });
+    }
+    const data = extractJson(result.raw);
+    const valid = data && Number.isInteger(data.score) && data.score >= 0 && data.score <= 100
+      && ['feedback', 'improvedAnswer', 'improvedTranslation'].every(key => typeof data[key] === 'string' && data[key].trim())
+      && (turn === PRACTICE_TURN_LIMIT
+        ? data.followUp === null
+        : data.followUp && typeof data.followUp.question === 'string' && data.followUp.question.trim()
+          && typeof data.followUp.translation === 'string' && data.followUp.translation.trim()
+          && Array.isArray(data.followUp.criteria) && data.followUp.criteria.length >= 1 && data.followUp.criteria.length <= 3
+          && data.followUp.criteria.every(value => typeof value === 'string' && value.trim()));
+    if (!valid) return res.status(503).json({ error: 'practice_unavailable' });
+    console.log(JSON.stringify({ event: 'practice_answer_evaluated', userId: user.id, provider: result.provider || 'groq', model: result.model || FAST_MODEL }));
+    return res.json({ evaluation: { score: data.score, feedback: data.feedback, improvedAnswer: data.improvedAnswer, improvedTranslation: data.improvedTranslation, followUp: data.followUp } });
+  } catch (err) {
+    console.error('Practice answer evaluation failed:', err);
+    if (!res.headersSent) res.status(500).json({ error: 'practice_unavailable' });
+  }
+});
+
+// Streaming variant used by the lesson UI. The small core (context + glossary)
+// is emitted as soon as it validates; independent sections then arrive as
+// they finish. The semantic AI review starts only after the lesson is sent.
+function partialLessonFromSections(results) {
+  const parts = Object.fromEntries(results.map(result => [result.section, result.data]));
+  return {
+    ...parts.core,
+    phrases: parts.phrases?.phrases || [],
+    dialogue: parts.story?.dialogue || { context: '', lines: [] },
+    reading: parts.story?.reading || null,
+    grammar: parts.practice?.grammar || null,
+    listening: parts.practice?.listening || [],
+    speaking: parts.practice?.speaking || [],
+    quiz: parts.quiz?.quiz || [],
+    tips: parts.quiz?.tips || [],
+    generation: { partial: true },
+  };
+}
+
+app.post('/api/lesson/stream', async (req, res) => {
+  const user = await verifySupabaseUser(req).catch(() => null);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  if (!process.env.GROQ_API_KEY && !process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'AI is not configured (GROQ_API_KEY or GEMINI_API_KEY missing)' });
+  let ctx;
+  try { ctx = prepareLessonContext(req.body); }
+  catch (err) { return res.status(400).json({ error: err.message }); }
+  if (!allowLessonRequest(user.id)) return res.status(429).set('Retry-After', '60').json({ error: 'lesson_rate_limited' });
+  const userActive = activeLessonsByUser.get(user.id) || 0;
+  if (activeLessonCount >= MAX_CONCURRENT_LESSONS || userActive >= MAX_CONCURRENT_LESSONS_PER_USER) {
+    return res.status(429).set('Retry-After', '10').json({ error: 'lesson_generation_busy' });
+  }
+
+  const controller = new AbortController();
+  let finished = false;
+  const onClose = () => { if (!finished) controller.abort(new Error('Client disconnected')); };
+  res.on('close', onClose);
+  activeLessonCount++;
+  activeLessonsByUser.set(user.id, userActive + 1);
+  res.status(200).set({ 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+  res.flushHeaders?.();
+  const send = (event, payload) => { if (!res.destroyed && !res.writableEnded) res.write(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`); };
+  const startedAt = Date.now();
+  const deadline = startedAt + LESSON_DEADLINE_MS;
+  try {
+    const results = await generateLessonParts(ctx, generateSection, deadline, controller.signal, result => {
+      if (result.data) send(result.section === 'core' ? 'core' : 'section', { section: result.section, data: result.data });
+    }, readyParts => {
+      if (ctx.requestedSections) send('ready', { lesson: partialLessonFromSections(readyParts) });
+    });
+    const failed = results.filter(result => !result.data);
+    if (failed.length) {
+      const err = new Error(failed.map(result => result.reason).join('; '));
+      err.quota = failed.every(result => result.quota);
+      throw err;
+    }
+    const parts = Object.fromEntries(results.map(result => [result.section, result.data]));
+    const lesson = mergeSections(parts);
+    lesson.generation = { specVersion: 2, variationId: ctx.variationId, focus: ctx.focus, history: ctx.history, quality: { status: 'pending' } };
+    const check = validateLesson(lesson, ctx.languageCode);
+    if (!check.valid) throw new Error(check.reason);
+    const used = [...new Set(results.map(result => result.model))].join('+');
+    const cacheInput = {
+      languageCode: ctx.languageCode, domainSlug: ctx.domainSlug, topic: ctx.topicKey || ctx.topic,
+      level: ctx.level, nativeLanguageCode: req.body.nativeLanguageCode, model: used,
+      issuedAt: Date.now(), content: lesson,
+    };
+    send('lesson', { lesson, model: used, cacheProof: signLessonCache(user.id, cacheInput), cacheIssuedAt: cacheInput.issuedAt });
+    console.log(JSON.stringify({ event: 'lesson_generation', durationMs: Date.now() - startedAt, models: used, sections: results.map(result => result.section) }));
+    finished = true;
+    res.end();
+
+    // Delivery is complete; review and any section repair happen separately.
+    await verifyAndRepairLesson(parts, ctx, lesson);
+  } catch (error) {
+    if (!res.destroyed && !res.writableEnded) {
+      send('error', { error: error.quota ? 'quota' : 'lesson_unavailable', reason: error.message });
+      res.end();
+    }
+  } finally {
+    finished = true;
+    res.off('close', onClose);
+    activeLessonCount--;
+    const remaining = (activeLessonsByUser.get(user.id) || 1) - 1;
+    if (remaining) activeLessonsByUser.set(user.id, remaining); else activeLessonsByUser.delete(user.id);
   }
 });
 

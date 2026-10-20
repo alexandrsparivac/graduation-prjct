@@ -7,13 +7,16 @@ import {
   cleanTitle, sectionTone, SECTIONS, VOCAB_CARDS_PER_PAGE,
   decodeLessonSelection, filterLessonContent, createLessonResume,
   previousLessonMaterial, mergeLessonHistory, sanitizeLessonHistory, loadLocalizedLesson, saveLocalizedLesson,
-  getPref, speechRate, saveLessonVocabulary,
+  getPref, speechRate, saveLessonVocabulary, loadCards,
 } from '../lib/legacy.js';
+import { saveMarkedWord } from '../../../shared/vocab.js';
 import { speak, stopSpeaking, listen, similarity, toLocale, ttsSupported, sttSupported, prefetchSpeech } from '../lib/speech.js';
 import { domainIcon } from '../../../shared/domain-icons.js';
 import { useToast } from '../components/ui.jsx';
 import LoadingIndicator from '../components/LoadingIndicator.jsx';
 import Confetti from '../components/Confetti.jsx';
+import { LESSON_SPEC } from '../../../shared/lesson-spec.js';
+import { countWords } from '../../../shared/text-segmentation.js';
 const SECTION_ICON = {
   vocab: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
   phrases: '<path d="M17 6H3"/><path d="M21 12H8"/><path d="M21 18H8"/><path d="M3 12v6"/>',
@@ -40,29 +43,30 @@ const SPEAKER_SM = (
 const SPEAKER = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
 );
+const BOOKMARK = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-4-6 4z" /></svg>
+);
 
-const READING_MIN_WORDS = 80;
-const READING_MAX_WORDS = 220;
-
-function isCompleteLesson(c) {
+function isCompleteLesson(c, languageCode = 'en') {
   const text = (v) => typeof v === 'string' && v.trim();
   const exact = (items, count) => Array.isArray(items) && items.length === count;
   const fields = (item, names) => item && names.every((name) => text(item[name]));
-  const words = (v) => v.trim().split(/\s+/).filter(Boolean).length;
+  const words = (v) => countWords(v, languageCode);
   const choice = (item, names = []) => fields(item, ['question', ...names])
-    && exact(item.options, 4) && item.options.every(text)
-    && Number.isInteger(item.answer) && item.answer >= 0 && item.answer <= 3;
+    && exact(item.options, LESSON_SPEC.choiceOptions) && item.options.every(text)
+    && new Set(item.options.map(option => option.normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim())).size === LESSON_SPEC.choiceOptions
+    && Number.isInteger(item.answer) && item.answer >= 0 && item.answer < LESSON_SPEC.choiceOptions;
   return c && text(c.title) && text(c.intro)
-    && exact(c.objectives, 3) && c.objectives.every(text)
-    && exact(c.vocabulary, 15) && c.vocabulary.every((item) => fields(item, ['term', 'translation', 'partOfSpeech', 'example', 'exampleTranslation']))
-    && exact(c.phrases, 8) && c.phrases.every((item) => fields(item, ['phrase', 'translation', 'usage']))
-    && c.dialogue && text(c.dialogue.context) && Array.isArray(c.dialogue.lines) && c.dialogue.lines.length >= 12 && c.dialogue.lines.length <= 14 && c.dialogue.lines.every((item) => fields(item, ['speaker', 'text', 'translation']))
-    && c.reading && fields(c.reading, ['title', 'passage', 'translation']) && words(c.reading.passage) >= READING_MIN_WORDS && words(c.reading.passage) <= READING_MAX_WORDS && exact(c.reading.questions, 3) && c.reading.questions.every((q) => choice(q))
-    && c.grammar && fields(c.grammar, ['title', 'explanation']) && exact(c.grammar.examples, 4) && c.grammar.examples.every(text) && exact(c.grammar.practice, 4) && c.grammar.practice.every((item) => fields(item, ['sentence', 'answer', 'hint']) && /_{3,}/.test(item.sentence))
-    && exact(c.listening, 5) && c.listening.every((item) => choice(item, ['text']))
-    && exact(c.speaking, 6) && c.speaking.every((item) => fields(item, ['text', 'translation', 'tip']))
-    && exact(c.quiz, 8) && c.quiz.every((item) => choice(item, ['explanation']))
-    && exact(c.tips, 4) && c.tips.every(text);
+    && exact(c.objectives, LESSON_SPEC.objectives) && c.objectives.every(text)
+    && exact(c.vocabulary, LESSON_SPEC.vocabulary) && c.vocabulary.every((item) => fields(item, ['term', 'translation', 'partOfSpeech', 'example', 'exampleTranslation']))
+    && exact(c.phrases, LESSON_SPEC.phrases) && c.phrases.every((item) => fields(item, ['phrase', 'translation', 'usage']))
+    && c.dialogue && text(c.dialogue.context) && Array.isArray(c.dialogue.lines) && c.dialogue.lines.length >= LESSON_SPEC.dialogueLines.min && c.dialogue.lines.length <= LESSON_SPEC.dialogueLines.max && c.dialogue.lines.every((item) => fields(item, ['speaker', 'text', 'translation']))
+    && c.reading && fields(c.reading, ['title', 'passage', 'translation']) && words(c.reading.passage) >= LESSON_SPEC.readingWords.min && words(c.reading.passage) <= LESSON_SPEC.readingWords.max && exact(c.reading.questions, LESSON_SPEC.readingQuestions) && c.reading.questions.every((q) => choice(q, ['explanation']))
+    && c.grammar && fields(c.grammar, ['title', 'explanation']) && exact(c.grammar.examples, LESSON_SPEC.grammarExamples) && c.grammar.examples.every(text) && exact(c.grammar.practice, LESSON_SPEC.grammarPractice) && c.grammar.practice.every((item) => fields(item, ['sentence', 'answer', 'hint']) && /_{3,}/.test(item.sentence))
+    && exact(c.listening, LESSON_SPEC.listening) && c.listening.every((item) => choice(item, ['text', 'explanation']))
+    && exact(c.speaking, LESSON_SPEC.speaking) && c.speaking.every((item) => fields(item, ['text', 'translation', 'tip']))
+    && exact(c.quiz, LESSON_SPEC.quiz) && c.quiz.every((item) => choice(item, ['explanation']))
+    && exact(c.tips, LESSON_SPEC.tips) && c.tips.every(text);
 }
 
 function SayButton({ text, locale, slowable = false, small = false }) {
@@ -106,6 +110,8 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
   const [phase, setPhase] = useState('loading');
   const [loadMsg, setLoadMsg] = useState(t('les.loading'));
   const [loadPct, setLoadPct] = useState(0);
+  const [streamPreview, setStreamPreview] = useState(null);
+  const [streamSections, setStreamSections] = useState({});
   const [error, setError] = useState('');
   const domainRef = useRef(null);
   const [, bump] = useState(0);
@@ -114,15 +120,44 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
   const stepRef = useRef(0);
   const contentRef = useRef(null);
   const fullRef = useRef(null);
+  const startFlowRef = useRef(null);
+  const streamStartedRef = useRef(false);
   const rowRef = useRef(null);
   const savedRef = useRef(false);
   const [saveFailed, setSaveFailed] = useState(false);
   const [saveAttempt, setSaveAttempt] = useState(0);
+  const [savedTerms, setSavedTerms] = useState(() => new Set());
+  const [savingTerms, setSavingTerms] = useState(() => new Set());
   const resumeRef = useRef(null);
   const bgJob = useRef(null);
   const speakRef = useRef(null);
   const contentLang = useMemo(() => getLang(), []);
   const locale = useMemo(() => toLocale(params.lang), [params.lang]);
+
+  useEffect(() => {
+    let alive = true;
+    loadCards(supabase, { userId: user.id, language: params.lang })
+      .then(({ cards }) => { if (alive) setSavedTerms(new Set((cards || []).filter(card => card.is_saved).map(card => card.term))); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [user.id, params.lang]);
+
+  const toggleLessonWordSaved = async (word) => {
+    if (savingTerms.has(word.term)) return;
+    setSavingTerms(current => new Set(current).add(word.term));
+    try {
+      await saveMarkedWord(supabase, {
+        userId: user.id, language: params.lang,
+        domain: params.domain, topic: params.topic, word,
+      });
+      setSavedTerms(current => new Set(current).add(word.term));
+      window.dispatchEvent(new Event('ld:vocabulary-updated'));
+    } catch (err) {
+      toast(err?.message || t('voc.saveFailed'), 'error');
+    } finally {
+      setSavingTerms(current => { const next = new Set(current); next.delete(word.term); return next; });
+    }
+  };
 
   const rerender = () => bump((x) => x + 1);
   const stepIdx = stepRef.current;
@@ -169,9 +204,11 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [st, content, next, checkpoint]);
 
-  const askForLesson = useCallback(async (session) => {
+  const askForLesson = useCallback(async (session, onCore = () => {}, onReady = () => {}) => {
     const D = domainRef.current;
     const stored = loadAvoidHistory(params.lang, params.level);
+    const selectedSections = decodeLessonSelection(params.custom)
+      || decodeLessonSelection((getPref('lessonSections') || []).join(','));
     const payload = JSON.stringify({
       language: languageName(params.lang, 'en'),
       domain: domainName(D || params.domain),
@@ -180,6 +217,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
       nativeLanguage: langMeta(contentLang)?.label || contentLang,
       languageCode: params.lang, domainSlug: params.domain, topicKey: params.topic, nativeLanguageCode: contentLang,
       variationId: crypto.randomUUID(),
+      requestedSections: selectedSections ? [...selectedSections] : undefined,
       avoid: mergeLessonHistory(stored, previousLessonMaterial(fullRef.current)),
     });
     // The free tier saturates for minutes at a time: retry 429s and dropped
@@ -189,7 +227,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
     for (let round = 1; ; round++) {
       let r;
       try {
-        r = await fetch('/api/lesson', {
+        r = await fetch('/api/lesson/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
           body: payload,
@@ -199,6 +237,44 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
         if (err.name === 'TimeoutError' || round > maxRetries) throw new Error(t('les.failed'));
         setLoadMsg(t('les.stillWorking'));
         await new Promise((done) => setTimeout(done, Math.min(3000 * round, 15000)));
+        continue;
+      }
+      if (r.ok && r.headers.get('content-type')?.includes('text/event-stream')) {
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let result = null;
+        const consume = frame => {
+          const lines = frame.split(/\r?\n/);
+          const event = lines.find(line => line.startsWith('event:'))?.slice(6).trim();
+          const dataLine = lines.find(line => line.startsWith('data:'))?.slice(5).trim();
+          if (!dataLine) return;
+          const data = JSON.parse(dataLine);
+          if (event === 'core') {
+            onCore(data.data);
+            setStreamPreview(data.data);
+            setLoadPct(value => Math.max(value, 18));
+          } else if (event === 'section') {
+            setStreamSections(current => ({ ...current, [data.section]: data.data }));
+            setLoadPct(value => Math.min(88, value + 14));
+          } else if (event === 'ready') {
+            onReady(data.lesson);
+          } else if (event === 'lesson') result = data;
+          else if (event === 'error') throw new Error(data.error === 'quota' ? t('les.quota') : t('les.failed'));
+        };
+        while (true) {
+          const { value, done } = await reader.read();
+          buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+          const frames = buffer.split(/\r?\n\r?\n/);
+          buffer = frames.pop() || '';
+          for (const frame of frames) consume(frame);
+          if (done) break;
+        }
+        if (buffer.trim()) consume(buffer);
+        if (result?.lesson) return result;
+        if (round > maxRetries) throw new Error(t('les.failed'));
+        setLoadMsg(t('les.stillWorking'));
+        await new Promise(done => setTimeout(done, Math.min(3000 * round, 15000)));
         continue;
       }
       const body = await r.json().catch(() => ({}));
@@ -215,6 +291,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
 
   const generate = useCallback(async () => {
     setPhase('loading');
+    streamStartedRef.current = false;
     const startedAt = Date.now();
     const timer = setInterval(() => {
       const elapsed = (Date.now() - startedAt) / 1000;
@@ -226,19 +303,37 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
         onExit('login');
         return null;
       }
-      const body = await askForLesson(s);
+      const body = await askForLesson(s, undefined, partial => {
+        if (streamStartedRef.current || !startFlowRef.current) return;
+        streamStartedRef.current = true;
+        void startFlowRef.current({
+          id: crypto.randomUUID(), content: partial, model: 'partial',
+          native_language: contentLang, personal: true, localOnly: true,
+        }).catch(err => console.warn('Could not start the streamed lesson:', err?.message || err));
+      });
       try {
-        return await saveLocalizedLesson(supabase, {
+        const row = await saveLocalizedLesson(supabase, {
           params, nativeLanguage: contentLang, content: body.lesson, model: body.model,
           userId: user.id, baseRow: rowRef.current,
           personal: !!(fullRef.current || rowRef.current?.personal),
           cacheProof: body.cacheProof, cacheIssuedAt: body.cacheIssuedAt,
         });
+        if (streamStartedRef.current) {
+          rowRef.current = row;
+          fullRef.current = body.lesson;
+          if (row?.id && !row.localOnly) resumeRef.current = createLessonResume(supabase, {
+            userId: user.id, lessonId: row.id, nativeLanguage: contentLang,
+            content: contentRef.current, flow: flowRef.current, params,
+          });
+          return { ...row, streamStarted: true };
+        }
+        return row;
       } catch (err) {
-        return {
+        const localRow = {
           id: crypto.randomUUID(), content: body.lesson, model: body.model,
           native_language: contentLang, personal: true, localOnly: true,
         };
+        return streamStartedRef.current ? { ...localRow, streamStarted: true } : localRow;
       }
     } finally {
       clearInterval(timer);
@@ -251,7 +346,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
     const c = filterLessonContent(row.content, selection);
     fullRef.current = row.content;
     // Remember what this lesson taught, so the next topic avoids repeating it.
-    if (isCompleteLesson(row.content)) {
+    if (isCompleteLesson(row.content, params.lang)) {
       storeAvoidHistory(params.lang, params.level,
         mergeLessonHistory(loadAvoidHistory(params.lang, params.level), previousLessonMaterial(row.content)));
     }
@@ -273,18 +368,22 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
     rowRef.current = row;
     applyFlow(row);
   }, [applyFlow]);
+  startFlowRef.current = startFlow;
 
   const regen = useCallback(async () => {
     if (bgJob.current) bgJob.current.cancelled = true;
     try {
       const row = await generate();
-      if (row) {
+      if (row && !row.streamStarted) {
         await startFlow(row);
         toast(t('les.regen.done'));
       }
     } catch (err) {
-      setError(err.message);
-      setPhase('error');
+      if (streamStartedRef.current) console.warn('Background lesson completion failed:', err?.message || err);
+      else {
+        setError(err.message);
+        setPhase('error');
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [generate, startFlow]);
@@ -330,19 +429,22 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
           throw err;
         }
         if (!alive) return;
-        if (row && isCompleteLesson(row.content)) {
+        if (row && isCompleteLesson(row.content, params.lang)) {
           await startFlow(row);
           if (!alive) return;
           refreshInBackground();
         } else {
           const fresh = await generate();
           if (!alive) return;
-          if (fresh) await startFlow(fresh);
+          if (fresh && !fresh.streamStarted) await startFlow(fresh);
         }
       } catch (err) {
         if (!alive) return;
-        setError(err.message);
-        setPhase('error');
+        if (streamStartedRef.current) console.warn('Background lesson completion failed:', err?.message || err);
+        else {
+          setError(err.message);
+          setPhase('error');
+        }
       }
     })();
     const flush = () => resumeRef.current?.flush().catch(() => {});
@@ -365,28 +467,41 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
     setLoadPct(0);
     setLoadMsg(t('les.loading'));
     setPhase('loading');
+    setStreamPreview(null);
+    setStreamSections({});
     setBootKey((k) => k + 1);
   };
 
   useEffect(() => { checkpoint(); }, [stepIdx, checkpoint]);
 
   if (phase === 'loading') {
-    const R = 44;
-    const CIRC = 2 * Math.PI * R;
     return (
       <div className="grid min-h-[70vh] place-content-center justify-items-center gap-3 text-center">
-        <div className="relative h-8 w-8" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={loadPct} aria-label={loadMsg}>
-          <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-            <circle cx="50" cy="50" r={R} fill="none" stroke="var(--border-secondary)" strokeWidth="12" />
-            <circle
-              cx="50" cy="50" r={R} fill="none" stroke="var(--primary)" strokeWidth="12" strokeLinecap="round"
-              strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - loadPct / 100)}
-              style={{ transition: 'stroke-dashoffset 0.25s ease-out' }}
-            />
-          </svg>
+        <div className="flex h-6 items-center gap-2" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={loadPct} aria-label={loadMsg}>
+          <i className="loading-dot h-2 w-2 rounded-full bg-[var(--text)]" />
+          <i className="loading-dot h-2 w-2 rounded-full bg-[var(--text)]" />
+          <i className="loading-dot h-2 w-2 rounded-full bg-[var(--text)]" />
         </div>
-        <span className="text-sm font-semibold tabular-nums">{loadPct}%</span>
+        <span className="text-lg font-semibold tabular-nums text-[var(--text)]">{loadPct}%</span>
         <span className="max-w-xs text-sm text-[var(--text-secondary)]">{loadMsg}</span>
+        {streamPreview && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-5 w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">{t('les.loading')}</p>
+            <h2 className="mt-2 text-xl font-bold text-[var(--text)]">{streamPreview.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{streamPreview.intro}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(streamPreview.vocabulary || []).slice(0, 6).map((item, index) => (
+                <span key={`${item.term}-${index}`} className="rounded-full bg-[var(--fill)] px-3 py-1.5 text-sm text-[var(--text)]">{item.term}</span>
+              ))}
+            </div>
+            <div className="mt-4 grid gap-2 text-sm text-[var(--text-secondary)]">
+              {streamSections.phrases && <p>{streamSections.phrases.phrases?.length || 0} {t('tab.phrases')}</p>}
+              {streamSections.story && <p>{streamSections.story.reading?.title}</p>}
+              {streamSections.practice && <p>{streamSections.practice.grammar?.title}</p>}
+              {streamSections.quiz && <p>{streamSections.quiz.quiz?.length || 0} {t('tab.quiz')}</p>}
+            </div>
+          </motion.div>
+        )}
       </div>
     );
   }
@@ -440,6 +555,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
           S={S} next={next} rerender={rerender} checkpoint={checkpoint}
           toast={toast} onExit={onExit} onCustomize={onCustomize} regen={regen}
           rowRef={rowRef} savedRef={savedRef} resumeRef={resumeRef} user={user}
+          savedTerms={savedTerms} savingTerms={savingTerms} onToggleWordSaved={toggleLessonWordSaved}
           saveFailed={saveFailed} retrySave={() => { savedRef.current = false; setSaveFailed(false); setSaveAttempt((a) => a + 1); }} saveAttempt={saveAttempt}
         />
       </motion.div>
@@ -591,7 +707,7 @@ function MicButton({ expected, locale, toast }) {
 }
 
 export function StepBody(props) {
-  const { st, content, params, locale, contentLang, flowLen, S, next, rerender, checkpoint, toast, onExit, onCustomize, regen, rowRef, savedRef, resumeRef, user, saveFailed, retrySave, saveAttempt } = props;
+  const { st, content, params, locale, contentLang, flowLen, S, next, rerender, checkpoint, toast, onExit, onCustomize, regen, rowRef, savedRef, resumeRef, user, savedTerms, savingTerms, onToggleWordSaved, saveFailed, retrySave, saveAttempt } = props;
   const [showTr, setShowTr] = useState(null);
   const [gapValue, setGapValue] = useState('');
   const c = content;
@@ -736,7 +852,18 @@ export function StepBody(props) {
               >
                 {!flipped ? (
                   <>
-                    <div className="text-lg font-bold">{v.term}</div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-lg font-bold">{v.term}</div>
+                      <button
+                        type="button"
+                        onClick={() => onToggleWordSaved(v)}
+                        disabled={savingTerms.has(v.term)}
+                        aria-pressed={savedTerms.has(v.term)}
+                        aria-label={t(savedTerms.has(v.term) ? 'voc.saved' : 'voc.save')}
+                        title={t(savedTerms.has(v.term) ? 'voc.saved' : 'voc.save')}
+                        className={`grid h-8 w-8 flex-none place-items-center rounded-full border transition-colors disabled:opacity-50 ${savedTerms.has(v.term) ? 'border-[var(--primary)] bg-[var(--fill)] text-[var(--primary)]' : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)]'}`}
+                      >{BOOKMARK}</button>
+                    </div>
                     <div className="text-sm text-[var(--text-secondary)]">{v.translation}{v.partOfSpeech ? <em> · {v.partOfSpeech}</em> : null}</div>
                     <SayButton text={v.term} locale={locale} />
                   </>

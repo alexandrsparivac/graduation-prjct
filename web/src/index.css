@@ -37,25 +37,37 @@ html {
   scroll-padding-top: 5rem;
 }
 
-@keyframes loading-orbit {
-  to { transform: rotate(360deg); }
-}
-
 @keyframes loading-dot-pulse {
-  0%, 60%, 100% { opacity: 0.3; transform: scale(0.72); }
-  30% { opacity: 1; transform: scale(1); }
-}
-
-.loading-orbit {
-  animation: loading-orbit 1.5s linear infinite;
+  0%, 70%, 100% { opacity: 0.35; transform: translateY(0); }
+  35% { opacity: 1; transform: translateY(-3px); }
 }
 
 .loading-dot {
-  animation: loading-dot-pulse 1.05s ease-in-out infinite;
+  animation: loading-dot-pulse 1.1s ease-in-out infinite;
 }
 
 .loading-dot:nth-child(2) { animation-delay: 0.14s; }
 .loading-dot:nth-child(3) { animation-delay: 0.28s; }
+
+@keyframes dashboard-live-indicator {
+  0%, 100% { opacity: 0.45; transform: scale(0.82); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes dashboard-live-fill {
+  0%, 100% { opacity: 0.78; }
+  50% { opacity: 1; }
+}
+
+@keyframes dashboard-live-cell {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 0%, transparent); }
+  50% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 32%, transparent); }
+}
+
+.dashboard-live-dot { animation: dashboard-live-indicator 1.8s ease-in-out infinite; }
+.dashboard-live-bar { animation: dashboard-live-fill 2.8s ease-in-out infinite; }
+.dashboard-live-fill { animation: dashboard-live-fill 3.2s ease-in-out infinite; }
+.dashboard-live-cell { animation: dashboard-live-cell 2.4s ease-in-out infinite; }
 
 /* Keep interactive feedback consistent across the app. */
 button:not(:disabled) {
@@ -113,3 +125,4 @@ button:not(:disabled):active {
   --color-edge: var(--border);
   --color-edge-soft: var(--border-secondary);
 }
+

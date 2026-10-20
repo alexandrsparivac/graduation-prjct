@@ -21,6 +21,11 @@ const AI_STEPS = [
   { t: 'guide.ai.4t', d: 'guide.ai.4d' },
   { t: 'guide.ai.5t', d: 'guide.ai.5d' },
 ];
+const PRACTICE_GUIDE = [
+  { t: 'pron.modeVoice', d: 'guide.practice.voice.d' },
+  { t: 'pron.modeChat', d: 'guide.practice.chat.d' },
+  { t: 'guide.practice.feedback.t', d: 'guide.practice.feedback.d' },
+];
 const PARTS = [
   { t: 'guide.part.vocab.t', d: 'guide.part.vocab.d' },
   { t: 'guide.part.phrases.t', d: 'guide.part.phrases.d' },
@@ -32,13 +37,14 @@ const PARTS = [
   { t: 'guide.part.quiz.t', d: 'guide.part.quiz.d' },
 ];
 
-export default function Guide({ onOpenLessons, onOpenDashboard }) {
+export default function Guide({ onOpenLessons, onOpenDashboard, onOpenPractice }) {
   const sections = [
     { id: 'guide-anatomy', title: t('guide.anatomy.title') },
     { id: 'guide-level', title: t('guide.level.title') },
     { id: 'guide-review', title: t('guide.review.title') },
     { id: 'guide-steps', title: t('home.steps.title') },
     { id: 'guide-features', title: t('home.feat.title') },
+    { id: 'guide-practice', title: t('nav.pronunciation') },
     { id: 'guide-ai', title: t('guide.ai.title') },
     { id: 'guide-faq', title: t('faq.title') },
   ];
@@ -46,25 +52,26 @@ export default function Guide({ onOpenLessons, onOpenDashboard }) {
 
   return (
     <motion.div variants={list} initial="hidden" animate="show" className="grid gap-6">
-      <div className="grid items-start gap-6 pt-4 lg:grid-cols-[220px_1fr]">
-        <nav aria-label={t('nav.guide')} className="grid content-start gap-1 lg:-mt-16 lg:sticky lg:top-20">
+      <div className="grid min-w-0 items-start gap-6 pt-4 lg:grid-cols-[minmax(190px,220px)_minmax(0,1fr)] lg:gap-8">
+        <nav aria-label={t('nav.guide')} className="grid min-w-0 content-start gap-1 lg:sticky lg:top-20">
           {sections.map((section, i) => (
             <button
               key={section.id}
               onClick={() => go(section.id)}
-              className="rounded-lg px-3 py-2 text-left text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--fill)] hover:text-[var(--text)]"
+              className="grid min-w-0 grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-1 rounded-lg px-3 py-2 text-left text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--fill)] hover:text-[var(--text)]"
             >
-              <span className="mr-2 font-bold text-[var(--text-tertiary)]">{i + 1}.</span>{section.title}
+              <span className="text-right font-bold tabular-nums text-[var(--text-tertiary)]">{i + 1}.</span>
+              <span className="min-w-0">{section.title}</span>
             </button>
           ))}
         </nav>
 
-        <motion.div variants={rise} className="grid gap-10">
+        <motion.div variants={rise} className="grid min-w-0 gap-10">
           <section id="guide-start" className="grid scroll-mt-24 gap-5">
             <header className="grid gap-2 border-b border-[var(--border-secondary)] pb-5">
               <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{t('guide.start.sub')}</p>
             </header>
-            <ol className="grid gap-x-8 md:grid-cols-3">
+            <ol className="grid min-w-0 gap-x-8 md:auto-rows-fr md:grid-cols-3">
               {[1, 2, 3].map((step) => (
                 <li key={step} className="grid content-start gap-1.5 border-b border-[var(--border-secondary)] py-3 last:border-b-0 md:border-b-0 md:border-l md:pl-4 md:first:border-l-0 md:first:pl-0">
                   <span aria-hidden="true" className="text-[11px] font-semibold tabular-nums text-[var(--text-tertiary)]">0{step}</span>
@@ -85,7 +92,7 @@ export default function Guide({ onOpenLessons, onOpenDashboard }) {
 
           <section id="guide-anatomy" className="grid scroll-mt-24 gap-5">
             <SectionHeading n="02" title={t('guide.anatomy.title')} />
-            <ul className="grid gap-x-8 sm:grid-cols-2">
+            <ul className="grid min-w-0 auto-rows-fr gap-x-8 sm:grid-cols-2">
               {PARTS.map((p) => <InfoItem key={p.t} title={t(p.t)} body={t(p.d)} />)}
             </ul>
           </section>
@@ -102,27 +109,39 @@ export default function Guide({ onOpenLessons, onOpenDashboard }) {
 
           <section id="guide-steps" className="grid scroll-mt-24 gap-5">
             <SectionHeading n="05" title={t('home.steps.title')} />
-            <ol className="grid gap-x-8 sm:grid-cols-2 md:grid-cols-3">
+            <ol className="grid min-w-0 auto-rows-fr gap-x-8 sm:grid-cols-2 md:grid-cols-3">
               {STEPS.map((s, i) => <InfoItem key={s.t} n={String(i + 1).padStart(2, '0')} title={t(s.t)} body={t(s.d)} />)}
             </ol>
           </section>
 
           <section id="guide-features" className="grid scroll-mt-24 gap-5">
             <SectionHeading n="06" title={t('home.feat.title')} />
-            <ul className="grid gap-x-8 sm:grid-cols-2">
+            <ul className="grid min-w-0 auto-rows-fr gap-x-8 sm:grid-cols-2">
               {FEATS.map((f) => <InfoItem key={f.t} title={t(f.t)} body={t(f.d)} />)}
             </ul>
           </section>
 
+          <section id="guide-practice" className="grid scroll-mt-24 gap-5">
+            <SectionHeading n="07" title={t('nav.pronunciation')} />
+            <ul className="grid min-w-0 auto-rows-fr gap-x-8 sm:grid-cols-2">
+              {PRACTICE_GUIDE.map((item) => <InfoItem key={item.t} title={t(item.t)} body={t(item.d)} />)}
+            </ul>
+            <div>
+              <button onClick={onOpenPractice} className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--on-primary)] transition-opacity hover:opacity-90">
+                {t('guide.practice.cta')} <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </section>
+
           <section id="guide-ai" className="grid scroll-mt-24 gap-5">
-            <SectionHeading n="07" title={t('guide.ai.title')} />
-            <ol className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            <SectionHeading n="08" title={t('guide.ai.title')} />
+            <ol className="grid min-w-0 auto-rows-fr gap-x-8 gap-y-4 sm:grid-cols-2">
               {AI_STEPS.map((s, i) => <InfoItem key={s.t} n={String(i + 1).padStart(2, '0')} title={t(s.t)} body={t(s.d)} />)}
             </ol>
           </section>
 
           <section id="guide-faq" className="grid scroll-mt-24 gap-4">
-            <SectionHeading n="08" title={t('faq.title')} />
+            <SectionHeading n="09" title={t('faq.title')} />
             <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{t('faq.sub')}</p>
             <FaqAccordion />
           </section>

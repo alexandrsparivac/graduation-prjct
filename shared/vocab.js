@@ -54,17 +54,50 @@ export async function saveLessonVocabulary(sb, { userId, language, domain, topic
 
 /** Every card the learner holds in one language. */
 export async function loadCards(sb, { userId, language }) {
-  const query = sb.from('user_vocabulary')
-    .select('term, translation, kind, example, domain_slug, topic, ease, interval_days, reps, lapses, due_on, last_review_on', { count: 'exact' })
+  const base = columns => sb.from('user_vocabulary')
+    .select(columns, { count: 'exact' })
     .eq('user_id', userId)
     .eq('language_code', language)
     .order('term', { ascending: true });
   try {
+    const query = base('term, translation, kind, example, domain_slug, topic, ease, interval_days, reps, lapses, due_on, last_review_on, is_saved');
     return { cards: await fetchAllRows(query), ready: true };
   } catch (error) {
     if (isMissingTable(error)) return { cards: [], ready: false };
+    // Keep older deployments usable until migration 020 is applied.
+    if (isMissingSavedColumn(error)) {
+      const query = base('term, translation, kind, example, domain_slug, topic, ease, interval_days, reps, lapses, due_on, last_review_on');
+      return { cards: (await fetchAllRows(query)).map(card => ({ ...card, is_saved: false })), ready: true };
+    }
     throw error;
   }
+}
+
+const isMissingSavedColumn = error => error?.code === '42703'
+  || error?.code === 'PGRST204'
+  || /is_saved/i.test(error?.message || '');
+
+/** Save a lesson word immediately without changing an existing SRS schedule. */
+export async function saveMarkedWord(sb, { userId, language, domain, topic, word }) {
+  const { data: existing, error: lookupError } = await sb.from('user_vocabulary')
+    .select('term').eq('user_id', userId).eq('language_code', language).eq('term', word.term).maybeSingle();
+  if (lookupError) throw lookupError;
+  if (existing) {
+    const { error } = await sb.from('user_vocabulary').update({ is_saved: true })
+      .eq('user_id', userId).eq('language_code', language).eq('term', word.term);
+    if (error) throw error;
+    return;
+  }
+  const row = newCard({ term: word.term, translation: word.translation, kind: 'word', example: word.example || null, domain, topic });
+  const { error } = await sb.from('user_vocabulary').insert({ ...row, user_id: userId, language_code: language, is_saved: true });
+  if (error) throw error;
+}
+
+/** Toggle the independent saved flag; unsaving never removes a review card. */
+export async function setCardSaved(sb, { userId, language, term, saved }) {
+  const { error } = await sb.from('user_vocabulary').update({ is_saved: !!saved })
+    .eq('user_id', userId).eq('language_code', language).eq('term', term);
+  if (error) throw error;
 }
 
 /** Apply one grade and write the new schedule back. Returns what was stored. */
