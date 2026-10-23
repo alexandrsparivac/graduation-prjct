@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Wiederholungsgrenze: {n}%",
+  "dash.insight.activeDays": "Aktive Tage",
+  "dash.insight.latest": "Letztes Ergebnis",
+  "dash.insight.best": "Bestes Ergebnis",
+  "dash.insight.thisWeek": "Diese Woche",
+  "dash.insight.lastWeek": "Letzte Woche",
+  "dash.insight.monthTarget": "Monatsziel ≈ {n}",
   "search.open": "Suche",
   "search.title": "Lektionen und Vokabeln suchen",
   "search.placeholder": "Lektionen, Themen und Wörter suchen…",

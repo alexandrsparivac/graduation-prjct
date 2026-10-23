@@ -377,7 +377,7 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
             </div>
           ) : (
             <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
-              <section className="grid min-w-0 content-start gap-5 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 sm:p-5">
+              <section className="settings-panel grid min-w-0 content-start gap-5 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 sm:p-5">
                 <div className="flex min-w-0 items-center gap-4 rounded-xl bg-[var(--fill)] p-4">
                   {previewSrc ? (
                     <img src={previewSrc} alt="" className="h-[72px] w-[72px] flex-none rounded-2xl object-cover ring-1 ring-[var(--border-secondary)]" />
@@ -432,7 +432,7 @@ export default function Settings({ user, isAdmin = false, initialTab = 'profile'
                 </div>
               </section>
 
-              <section className="grid content-start gap-5 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 sm:p-5">
+              <section className="settings-panel grid content-start gap-5 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-container)] p-4 sm:p-5">
                 <div className="grid gap-1">
                   <h2 className="text-base font-semibold tracking-tight text-[var(--text)]">{t('profile.title')}</h2>
                   <p className="text-xs leading-relaxed text-[var(--text-tertiary)]">{t('profile.welcome.sub')}</p>

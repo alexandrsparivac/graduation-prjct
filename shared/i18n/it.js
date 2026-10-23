@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Soglia di ripasso: {n}%",
+  "dash.insight.activeDays": "Giorni attivi",
+  "dash.insight.latest": "Ultimo punteggio",
+  "dash.insight.best": "Miglior punteggio",
+  "dash.insight.thisWeek": "Questa settimana",
+  "dash.insight.lastWeek": "Settimana scorsa",
+  "dash.insight.monthTarget": "Obiettivo mensile ≈ {n}",
   "search.open": "Cerca",
   "search.title": "Cerca lezioni e vocaboli",
   "search.placeholder": "Cerca lezioni, argomenti e parole…",

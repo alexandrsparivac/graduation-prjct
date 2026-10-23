@@ -53,7 +53,8 @@ export function buildFlow(c) {
   (c.speaking || []).forEach((it, i) => f.push({ kind: 'speak', section: 'speaking', it, index: i }));
   (c.quiz || []).forEach((q, i) => f.push({ kind: 'quiz', section: 'quiz', q, index: i }));
   if (len(c.tips)) f.push({ kind: 'tips', section: 'tips' });
-  f.push({ kind: 'results', section: null });
+  if (c.generation?.partial) f.push({ kind: 'loading', section: null });
+  else f.push({ kind: 'results', section: null });
   return f;
 }
 

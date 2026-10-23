@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Herhalingsgrens: {n}%",
+  "dash.insight.activeDays": "Actieve dagen",
+  "dash.insight.latest": "Laatste score",
+  "dash.insight.best": "Beste score",
+  "dash.insight.thisWeek": "Deze week",
+  "dash.insight.lastWeek": "Vorige week",
+  "dash.insight.monthTarget": "Maanddoel ≈ {n}",
   "search.open": "Zoeken",
   "search.title": "Lessen en woordenschat zoeken",
   "search.placeholder": "Zoek lessen, onderwerpen en woorden…",

@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "복습 기준: {n}%",
+  "dash.insight.activeDays": "학습한 날",
+  "dash.insight.latest": "최근 점수",
+  "dash.insight.best": "최고 점수",
+  "dash.insight.thisWeek": "이번 주",
+  "dash.insight.lastWeek": "지난주",
+  "dash.insight.monthTarget": "월간 목표 ≈ {n}",
   "search.open": "검색",
   "search.title": "수업 및 어휘 검색",
   "search.placeholder": "수업, 주제, 단어 검색…",

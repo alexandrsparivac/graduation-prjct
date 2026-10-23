@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "दोहराने की सीमा: {n}%",
+  "dash.insight.activeDays": "सक्रिय दिन",
+  "dash.insight.latest": "नवीनतम स्कोर",
+  "dash.insight.best": "सर्वश्रेष्ठ स्कोर",
+  "dash.insight.thisWeek": "इस सप्ताह",
+  "dash.insight.lastWeek": "पिछले सप्ताह",
+  "dash.insight.monthTarget": "मासिक लक्ष्य ≈ {n}",
   "search.open": "खोजें",
   "search.title": "पाठ और शब्दावली खोजें",
   "search.placeholder": "पाठ, विषय और शब्द खोजें…",

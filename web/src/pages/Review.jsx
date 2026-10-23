@@ -171,7 +171,7 @@ export default function Review({ user, onExit }) {
           const isRevealed = revealed.includes(index);
           return (
             <motion.article key={`${card.term}-${done}-${index}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: index * 0.05 }}
-              className={`grid content-start gap-3 rounded-2xl border p-4 transition-colors sm:p-4 ${isRevealed ? 'border-[var(--primary)] bg-[var(--fill)]' : 'border-[var(--border-secondary)] bg-[var(--bg-container)] hover:border-[var(--text-tertiary)]'}`}>
+              className={`review-card grid content-start gap-3 rounded-2xl border p-4 transition-colors sm:p-4 ${isRevealed ? 'border-[var(--primary)] bg-[var(--fill)]' : 'border-[var(--border-secondary)] bg-[var(--bg-container)] hover:border-[var(--text-tertiary)]'}`}>
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <span className="rounded-full bg-[var(--fill)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)]">{t('rev.kind.' + (card.kind || 'word'))}</span>

@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "حد المراجعة: {n}%",
+  "dash.insight.activeDays": "أيام النشاط",
+  "dash.insight.latest": "آخر نتيجة",
+  "dash.insight.best": "أفضل نتيجة",
+  "dash.insight.thisWeek": "هذا الأسبوع",
+  "dash.insight.lastWeek": "الأسبوع الماضي",
+  "dash.insight.monthTarget": "الهدف الشهري ≈ {n}",
   "search.open": "بحث",
   "search.title": "البحث عن الدروس والمفردات",
   "search.placeholder": "ابحث عن الدروس والموضوعات والكلمات…",

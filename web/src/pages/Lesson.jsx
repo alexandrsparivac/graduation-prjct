@@ -13,6 +13,7 @@ import { saveMarkedWord } from '../../../shared/vocab.js';
 import { speak, stopSpeaking, listen, similarity, toLocale, ttsSupported, sttSupported, prefetchSpeech } from '../lib/speech.js';
 import { domainIcon } from '../../../shared/domain-icons.js';
 import { useToast } from '../components/ui.jsx';
+import { isAiQuotaReached, markAiQuotaReached } from '../lib/ai-quota.js';
 import LoadingIndicator from '../components/LoadingIndicator.jsx';
 import Confetti from '../components/Confetti.jsx';
 import { LESSON_SPEC } from '../../../shared/lesson-spec.js';
@@ -112,6 +113,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
   const [loadPct, setLoadPct] = useState(0);
   const [streamPreview, setStreamPreview] = useState(null);
   const [streamSections, setStreamSections] = useState({});
+  const [streamFailed, setStreamFailed] = useState(false);
   const [error, setError] = useState('');
   const domainRef = useRef(null);
   const [, bump] = useState(0);
@@ -205,6 +207,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
   }, [st, content, next, checkpoint]);
 
   const askForLesson = useCallback(async (session, onCore = () => {}, onReady = () => {}) => {
+    if (isAiQuotaReached(t('les.quota'))) throw new Error(t('les.quota'));
     const D = domainRef.current;
     const stored = loadAvoidHistory(params.lang, params.level);
     const selectedSections = decodeLessonSelection(params.custom)
@@ -260,7 +263,10 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
           } else if (event === 'ready') {
             onReady(data.lesson);
           } else if (event === 'lesson') result = data;
-          else if (event === 'error') throw new Error(data.error === 'quota' ? t('les.quota') : t('les.failed'));
+          else if (event === 'error') {
+            if (data.error === 'quota') markAiQuotaReached(t('les.quota'));
+            throw new Error(data.error === 'quota' ? t('les.quota') : t('les.failed'));
+          }
         };
         while (true) {
           const { value, done } = await reader.read();
@@ -279,7 +285,10 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
       }
       const body = await r.json().catch(() => ({}));
       if (r.ok && body.lesson) return body;
-      if (body.quota) throw new Error(t('les.quota'));
+      if (body.quota) {
+        markAiQuotaReached(t('les.quota'));
+        throw new Error(t('les.quota'));
+      }
       // 503 without quota is transient (deadline race, brief provider outage):
       // keep trying like we do for 429 instead of failing to the error screen.
       const transient = r.status === 429 || (r.status === 503 && !body.quota);
@@ -311,6 +320,27 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
           native_language: contentLang, personal: true, localOnly: true,
         }).catch(err => console.warn('Could not start the streamed lesson:', err?.message || err));
       });
+      const finishStartedStream = (row) => {
+        rowRef.current = row;
+        fullRef.current = body.lesson;
+        if (contentRef.current?.generation?.partial) {
+          const selection = decodeLessonSelection(params.custom) || decodeLessonSelection((getPref('lessonSections') || []).join(','));
+          const completeContent = filterLessonContent(body.lesson, selection);
+          contentRef.current = completeContent;
+          flowRef.current = buildFlow(completeContent);
+          stepRef.current = Math.min(stepRef.current, flowRef.current.length - 1);
+          if (isCompleteLesson(body.lesson, params.lang)) {
+            storeAvoidHistory(params.lang, params.level,
+              mergeLessonHistory(loadAvoidHistory(params.lang, params.level), previousLessonMaterial(body.lesson)));
+          }
+          resumeRef.current = row.localOnly ? null : createLessonResume(supabase, {
+            userId: user.id, lessonId: row.id, nativeLanguage: contentLang,
+            content: completeContent, flow: flowRef.current, params,
+          });
+          setStreamFailed(false);
+          bump((x) => x + 1);
+        }
+      };
       try {
         const row = await saveLocalizedLesson(supabase, {
           params, nativeLanguage: contentLang, content: body.lesson, model: body.model,
@@ -319,12 +349,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
           cacheProof: body.cacheProof, cacheIssuedAt: body.cacheIssuedAt,
         });
         if (streamStartedRef.current) {
-          rowRef.current = row;
-          fullRef.current = body.lesson;
-          if (row?.id && !row.localOnly) resumeRef.current = createLessonResume(supabase, {
-            userId: user.id, lessonId: row.id, nativeLanguage: contentLang,
-            content: contentRef.current, flow: flowRef.current, params,
-          });
+          finishStartedStream(row);
           return { ...row, streamStarted: true };
         }
         return row;
@@ -333,7 +358,11 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
           id: crypto.randomUUID(), content: body.lesson, model: body.model,
           native_language: contentLang, personal: true, localOnly: true,
         };
-        return streamStartedRef.current ? { ...localRow, streamStarted: true } : localRow;
+        if (streamStartedRef.current) {
+          finishStartedStream(localRow);
+          return { ...localRow, streamStarted: true };
+        }
+        return localRow;
       }
     } finally {
       clearInterval(timer);
@@ -379,7 +408,10 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
         toast(t('les.regen.done'));
       }
     } catch (err) {
-      if (streamStartedRef.current) console.warn('Background lesson completion failed:', err?.message || err);
+      if (streamStartedRef.current) {
+        console.warn('Background lesson completion failed:', err?.message || err);
+        if (contentRef.current?.generation?.partial) setStreamFailed(true);
+      }
       else {
         setError(err.message);
         setPhase('error');
@@ -418,13 +450,15 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
     let alive = true;
     (async () => {
       try {
-        const { data: D } = await supabase.from('domains').select('*').eq('slug', params.domain).maybeSingle();
+        const [domainResult, cachedResult] = await Promise.all([
+          supabase.from('domains').select('*').eq('slug', params.domain).maybeSingle(),
+          loadLocalizedLesson(supabase, params, contentLang, user.id).then(data => ({ data }), error => ({ error })),
+        ]);
         if (!alive) return;
-        domainRef.current = D;
-        let row = null;
-        try {
-          row = await loadLocalizedLesson(supabase, params, contentLang, user.id);
-        } catch (err) {
+        domainRef.current = domainResult.data;
+        let row = cachedResult.data || null;
+        if (cachedResult.error) {
+          const err = cachedResult.error;
           if (err.code === 'localization_setup') throw new Error(t('les.language.needsSetup'));
           throw err;
         }
@@ -440,8 +474,15 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
         }
       } catch (err) {
         if (!alive) return;
-        if (streamStartedRef.current) console.warn('Background lesson completion failed:', err?.message || err);
+        if (streamStartedRef.current) {
+          console.warn('Background lesson completion failed:', err?.message || err);
+          if (contentRef.current?.generation?.partial) setStreamFailed(true);
+        }
         else {
+          if (err.message === t('les.quota')) {
+            onExit('lessons');
+            return;
+          }
           setError(err.message);
           setPhase('error');
         }
@@ -469,6 +510,8 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
     setPhase('loading');
     setStreamPreview(null);
     setStreamSections({});
+    setStreamFailed(false);
+    streamStartedRef.current = false;
     setBootKey((k) => k + 1);
   };
 
@@ -509,7 +552,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
   if (phase === 'error' || !content || !st) {
     return (
       <div className="grid justify-items-center gap-3 py-10 text-center">
-        <p className="text-sm text-[var(--danger-text)]">{error || t('les.failed')}</p>
+        {error !== t('les.quota') && <p className="text-sm text-[var(--danger-text)]">{error || t('les.failed')}</p>}
         <button onClick={retryBoot} className="rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)]">
           {t('les.regen')}
         </button>
@@ -556,6 +599,7 @@ export default function Lesson({ user, params, onExit, onCustomize }) {
           toast={toast} onExit={onExit} onCustomize={onCustomize} regen={regen}
           rowRef={rowRef} savedRef={savedRef} resumeRef={resumeRef} user={user}
           savedTerms={savedTerms} savingTerms={savingTerms} onToggleWordSaved={toggleLessonWordSaved}
+          streamFailed={streamFailed} retryGeneration={retryBoot}
           saveFailed={saveFailed} retrySave={() => { savedRef.current = false; setSaveFailed(false); setSaveAttempt((a) => a + 1); }} saveAttempt={saveAttempt}
         />
       </motion.div>
@@ -707,7 +751,7 @@ function MicButton({ expected, locale, toast }) {
 }
 
 export function StepBody(props) {
-  const { st, content, params, locale, contentLang, flowLen, S, next, rerender, checkpoint, toast, onExit, onCustomize, regen, rowRef, savedRef, resumeRef, user, savedTerms, savingTerms, onToggleWordSaved, saveFailed, retrySave, saveAttempt } = props;
+  const { st, content, params, locale, contentLang, flowLen, S, next, rerender, checkpoint, toast, onExit, onCustomize, regen, rowRef, savedRef, resumeRef, user, savedTerms, savingTerms, onToggleWordSaved, saveFailed, retrySave, saveAttempt, streamFailed, retryGeneration } = props;
   const [showTr, setShowTr] = useState(null);
   const [gapValue, setGapValue] = useState('');
   const c = content;
@@ -755,6 +799,24 @@ export function StepBody(props) {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isResults, saveAttempt]);
+
+  if (st.kind === 'loading') {
+    return (
+      <section className="mx-auto grid min-h-[35vh] w-full max-w-xl content-center justify-items-center gap-3 py-10 text-center">
+        {!streamFailed && <div className="flex h-6 items-center gap-2" role="status" aria-label={t('les.stillWorking')}>
+          <i className="loading-dot h-2 w-2 rounded-full bg-[var(--text)]" />
+          <i className="loading-dot h-2 w-2 rounded-full bg-[var(--text)]" />
+          <i className="loading-dot h-2 w-2 rounded-full bg-[var(--text)]" />
+        </div>}
+        <h2 className="text-lg font-semibold">{streamFailed ? t('les.failed') : t('les.stillWorking')}</h2>
+        <p className="text-sm text-[var(--text-secondary)]">{t('les.loading')}</p>
+        {streamFailed && <div className="mt-2 flex flex-wrap justify-center gap-3">
+          <button type="button" onClick={retryGeneration} className="rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)]">{t('les.regen')}</button>
+          <button type="button" onClick={() => onExit('lessons')} className="text-sm text-[var(--text-secondary)] underline">{t('les.back')}</button>
+        </div>}
+      </section>
+    );
+  }
 
   if (st.kind === 'intro') {
     const title = cleanTitle(c.title, params.level, params.lang);

@@ -4,10 +4,11 @@ import Lessons from './Lessons.jsx';
 import { supabase } from '../lib/supabase.js';
 import { languageName, domainName, topicName, langMeta, t } from '../lib/legacy.js';
 import { useI18n } from '../lib/i18n.jsx';
-import { listen, speak, stopSpeaking, sttSupported, toLocale } from '../lib/speech.js';
+import { listenWithWhisper, speak, stopSpeaking, sttSupported, toLocale } from '../lib/speech.js';
 import { LoadingOverlay } from '../components/LoadingIndicator.jsx';
+import { isAiQuotaReached, markAiQuotaReached } from '../lib/ai-quota.js';
 
-function PracticeAnswer({ item, locale, selected, interfaceLang, mode, history, turn, onEvaluated }) {
+function PracticeAnswer({ item, locale, selected, interfaceLang, history, turn, onEvaluated }) {
   const [answer, setAnswer] = useState('');
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
@@ -31,7 +32,7 @@ function PracticeAnswer({ item, locale, selected, interfaceLang, mode, history, 
     const session = { rec: null, gotResult: false, failed: false, dead: false };
     sessionRef.current = session;
     const alive = () => sessionRef.current === session && !session.dead;
-    session.rec = listen(locale, {
+    session.rec = listenWithWhisper(locale, {
       onstart: () => { if (alive()) setRecording(true); },
       onprocessing: () => { if (alive()) { setRecording(false); setTranscribing(true); } },
       onresult: (alternatives) => {
@@ -67,6 +68,7 @@ function PracticeAnswer({ item, locale, selected, interfaceLang, mode, history, 
 
   const evaluate = async () => {
     if (!answer.trim() || evaluating) return;
+    if (isAiQuotaReached(t('les.quota'))) return;
     setEvaluating(true);
     setError('');
     setEvaluation(null);
@@ -87,26 +89,30 @@ function PracticeAnswer({ item, locale, selected, interfaceLang, mode, history, 
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.evaluation) {
-        if (payload.quota || payload.error === 'practice_quota') throw new Error('quota');
+        if (payload.quota || payload.error === 'practice_quota') {
+          markAiQuotaReached(t('les.quota'));
+          throw new Error('quota');
+        }
         if (payload.error === 'practice_not_configured') throw new Error('not_configured');
         throw new Error('evaluation');
       }
       setEvaluation(payload.evaluation);
       onEvaluated?.(payload.evaluation, answer.trim());
     } catch (err) {
-      setError(err.message === 'quota' ? t('les.quota')
-        : err.message === 'not_configured' ? t('pron.aiNotConfigured') : t('pron.analysisFailed'));
+      if (err.message !== 'quota') setError(err.message === 'not_configured' ? t('pron.aiNotConfigured') : t('pron.analysisFailed'));
     } finally {
       setEvaluating(false);
     }
   };
 
   return (
-    <div className="grid gap-3">
-      <textarea value={answer} onChange={event => setAnswer(event.target.value)} rows={3} readOnly={mode === 'voice'} disabled={!!evaluation || evaluating}
-        placeholder={t('pron.answerPlaceholder')} className="w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)] disabled:opacity-80" />
-      {mode === 'voice' && <div className="flex flex-wrap items-center gap-3">
-        <button type="button" disabled={!sttSupported || transcribing || evaluating || !!evaluation} onClick={toggleRecording}
+    <div className="practice-answer">
+      <>{evaluation ? <p className="practice-submitted-answer practice-chat-user">{answer}</p> : <div className="practice-composer">
+        <textarea value={answer} onChange={event => setAnswer(event.target.value)} rows={3} disabled={evaluating}
+          aria-label={t('pron.answerPlaceholder')} placeholder={t('pron.answerPlaceholder')} className="practice-answer-input" />
+        <div className="flex flex-wrap items-center gap-3">
+        <button type="button" disabled={!sttSupported || transcribing || evaluating} onClick={toggleRecording}
+          aria-label={recording ? t('pron.stop') : t('pron.record')} title={recording ? t('pron.stop') : t('pron.record')}
           className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:bg-[var(--fill)] disabled:cursor-not-allowed disabled:opacity-50">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8"/></svg>
           {recording ? t('pron.stop') : t('pron.record')}
@@ -114,15 +120,16 @@ function PracticeAnswer({ item, locale, selected, interfaceLang, mode, history, 
         {recording && <span className="text-sm text-[var(--text-secondary)]">{t('pron.recording')}</span>}
         {transcribing && <span role="status" className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)]"><span className="loading-dot h-2 w-2 rounded-full bg-[var(--text-secondary)]"/>{t('les.speak.processing')}</span>}
         {!sttSupported && <span className="text-xs text-[var(--text-tertiary)]">{t('les.speak.noMic')}</span>}
-      </div>}
+        </div>
+      </div>}</>
       {!evaluation && <div className="flex justify-end"><button type="button" onClick={evaluate} disabled={!answer.trim() || evaluating || recording || transcribing}
         className="rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--on-primary)] disabled:cursor-not-allowed disabled:opacity-50">{t('pron.checkAnswer')}</button></div>}
       {evaluating && <p role="status" className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)]"><span className="loading-dot h-2 w-2 rounded-full bg-[var(--text-secondary)]"/>{t('pron.analyzingAnswer')}</p>}
       {error && <p role="alert" className="text-sm text-[var(--danger-text)]">{error}</p>}
-      {evaluation && <div className="grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--fill)] p-4">
-        <div className="flex items-center gap-3"><span className="text-2xl font-bold tabular-nums text-[var(--text)]">{evaluation.score}%</span><div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--border)]"><div className="h-full rounded-full bg-[var(--primary)] transition-[width] duration-500" style={{ width: `${evaluation.score}%` }}/></div></div>
-        <p className="text-sm text-[var(--text)]">{evaluation.feedback}</p>
-        <div className="border-t border-[var(--border-secondary)] pt-3"><p className="text-sm font-semibold text-[var(--text)]">{evaluation.improvedAnswer}</p><p className="mt-1 text-sm text-[var(--text-secondary)]">{evaluation.improvedTranslation}</p></div>
+      {evaluation && <div className="practice-feedback practice-chat-coach" aria-live="polite">
+        <div className="practice-score"><span>{evaluation.score}%</span><div className="practice-score-track" aria-hidden="true"><div className="h-full rounded-full bg-[var(--primary)] transition-[width] duration-500" style={{ width: `${evaluation.score}%` }}/></div></div>
+        <p className="practice-feedback-text">{evaluation.feedback}</p>
+        <div className="practice-improved-answer"><p>{evaluation.improvedAnswer}</p><p>{evaluation.improvedTranslation}</p></div>
       </div>}
     </div>
   );
@@ -137,11 +144,17 @@ export default function Pronunciation() {
   const [turn, setTurn] = useState(1);
   const [lastEvaluation, setLastEvaluation] = useState(null);
   const [lastAnswer, setLastAnswer] = useState('');
+  const [exchanges, setExchanges] = useState([]);
   const [selected, setSelected] = useState(null);
   const [evaluated, setEvaluated] = useState(false);
   const [error, setError] = useState('');
 
   const generatePractice = async (params) => {
+    if (isAiQuotaReached(t('les.quota'))) {
+      setError('');
+      setPhase('topics');
+      return;
+    }
     setSelected(params);
     setError('');
     setPractice(null);
@@ -168,21 +181,24 @@ export default function Pronunciation() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.practice?.firstQuestion) {
-        if (payload.quota || payload.error === 'practice_quota') throw new Error('quota');
+        if (payload.quota || payload.error === 'practice_quota') {
+          markAiQuotaReached(t('les.quota'));
+          throw new Error('quota');
+        }
         if (payload.error === 'practice_not_configured') throw new Error('not_configured');
         throw new Error('generation');
       }
       setPractice(payload.practice);
       setCurrentQuestion(payload.practice.firstQuestion);
       setConversationHistory([]);
+      setExchanges([]);
       setTurn(1);
       setLastEvaluation(null);
       setLastAnswer('');
       setEvaluated(false);
       setPhase('session');
     } catch (err) {
-      setError(err.message === 'quota' ? t('les.quota')
-        : err.message === 'not_configured' ? t('pron.aiNotConfigured') : t('pron.generateError'));
+      if (err.message !== 'quota') setError(err.message === 'not_configured' ? t('pron.aiNotConfigured') : t('pron.generateError'));
       setPhase('topics');
     }
   };
@@ -199,51 +215,50 @@ export default function Pronunciation() {
 
   const locale = toLocale(selected?.lang || 'en');
   const isComplete = phase === 'complete';
-  useEffect(() => {
-    if (phase !== 'session' || selected?.mode !== 'voice' || !currentQuestion?.question) return undefined;
-    speak(currentQuestion.question, locale);
-    return () => stopSpeaking();
-  }, [phase, selected?.mode, currentQuestion, locale]);
 
   if (phase === 'loading') return <LoadingOverlay message={t('pron.generatingHint')} label={t('pron.generating')} />;
   if (phase === 'topics') return <div className="grid gap-4">
-    {error && <p role="alert" className="rounded-xl border border-[var(--border)] bg-[var(--bg-container)] px-4 py-3 text-sm text-[var(--danger-text)]">{error}</p>}
+    {error && error !== t('les.quota') && <p role="alert" className="rounded-xl border border-[var(--border)] bg-[var(--bg-container)] px-4 py-3 text-sm text-[var(--danger-text)]">{error}</p>}
     <Lessons variant="practice" onStartLesson={generatePractice} />
   </div>;
 
-  return <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto grid w-full max-w-3xl gap-6">
+  return <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="practice-session mx-auto grid w-full max-w-3xl gap-6">
     <div className="flex items-center justify-between gap-4">
       <button type="button" onClick={backToTopics} className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">← {t('rev.back')}</button>
       <span className="text-sm text-[var(--text-tertiary)]">{topicName(selected.domain, selected.topic)} · {selected.level}</span>
     </div>
-    {isComplete ? <div className="grid justify-items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-container)] px-6 py-12 text-center">
+    {isComplete ? <>
+      <PracticeThread exchanges={exchanges} locale={locale} />
+      <div className="grid justify-items-center gap-4 py-12 text-center">
       <h2 className="text-2xl font-bold">{t('pron.completeTitle')}</h2>
       <p className="max-w-lg text-[var(--text-secondary)]">{t('pron.completeHint')}</p>
       <button type="button" onClick={backToTopics} className="mt-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-[var(--on-primary)]">{t('pron.generateAnother')}</button>
-    </div> : <>
+      </div>
+    </> : <>
       <header className="grid gap-2 border-b border-[var(--border-secondary)] pb-5">
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">{practice.title}</h1>
         <p className="text-sm text-[var(--text-secondary)]">{practice.intro}</p>
       </header>
-      <div className="grid gap-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-container)] p-5 sm:p-7">
-        <div className="flex items-center justify-between text-sm text-[var(--text-tertiary)]"><span>{selected.mode === 'voice' ? t('pron.modeVoice') : t('pron.modeChat')}</span><span>{turn} / {practice.turnLimit}</span></div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--fill)]"><div className="h-full rounded-full bg-[var(--primary)] transition-[width] duration-300" style={{ width: `${(turn / practice.turnLimit) * 100}%` }} /></div>
-        <div className="flex flex-wrap items-center justify-center gap-3 py-4">
-          <p className="text-center text-2xl font-semibold leading-relaxed text-[var(--text)] sm:text-3xl">{currentQuestion.question}</p>
-          {selected.mode === 'voice' && <button type="button" onClick={() => speak(currentQuestion.question, locale)} title={t('les.listen')} aria-label={t('les.listen')} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--fill)] hover:text-[var(--text)]"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7m3-10a9 9 0 0 1 0 13"/></svg></button>}
-        </div>
-        <p className="border-t border-[var(--border-secondary)] pt-4 text-center text-sm text-[var(--text-secondary)]">{currentQuestion.translation}</p>
-        <PracticeAnswer key={`${selected.topic}-${turn}`} item={currentQuestion} locale={locale} selected={selected} interfaceLang={interfaceLang} mode={selected.mode} history={conversationHistory} turn={turn} onEvaluated={(result, answer) => {
+      <div className="practice-exercise">
+        <div className="flex items-center justify-between text-sm text-[var(--text-tertiary)]"><span>{t('pron.modeMixed')}</span><span>{turn} / {practice.turnLimit}</span></div>
+        <div className="practice-turn-track" aria-hidden="true"><div className="h-full rounded-full bg-[var(--primary)] transition-[width] duration-300" style={{ width: `${(turn / practice.turnLimit) * 100}%` }} /></div>
+        <PracticeThread exchanges={exchanges} locale={locale} />
+        <PracticeQuestion question={currentQuestion} locale={locale} />
+        <PracticeAnswer key={`${selected.topic}-${turn}`} item={currentQuestion} locale={locale} selected={selected} interfaceLang={interfaceLang} history={conversationHistory} turn={turn} onEvaluated={(result, answer) => {
           setEvaluated(true);
           setLastEvaluation(result);
           setLastAnswer(answer);
-          if (selected.mode === 'voice') speak(result.feedback, toLocale(interfaceLang));
         }} />
       </div>
-      <div className="flex justify-end">
-        <button type="button" disabled={!evaluated} onClick={() => {
-          if (turn >= practice.turnLimit || !lastEvaluation?.followUp) setPhase('complete');
+      {evaluated && <div className="flex justify-end">
+        <button type="button" onClick={() => {
+          const exchange = { question: currentQuestion, answer: lastAnswer, evaluation: lastEvaluation };
+          if (turn >= practice.turnLimit || !lastEvaluation?.followUp) {
+            setExchanges(previous => [...previous, exchange]);
+            setPhase('complete');
+          }
           else {
+            setExchanges(previous => [...previous, exchange]);
             setConversationHistory(previous => [...previous, { question: currentQuestion.question, answer: lastAnswer }]);
             setCurrentQuestion(lastEvaluation.followUp);
             setTurn(value => value + 1);
@@ -254,7 +269,42 @@ export default function Pronunciation() {
         }} className="rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-[var(--on-primary)] disabled:cursor-not-allowed disabled:opacity-50">
           {turn >= practice.turnLimit ? t('pron.finish') : t('pron.next')}
         </button>
-      </div>
+      </div>}
     </>}
   </motion.section>;
+}
+
+function PracticeQuestion({ question, locale }) {
+  return <div className="practice-chat-assistant">
+    <div className="practice-chat-bubble">
+      <div className="practice-question">
+        <p className="practice-question-text">{question.question}</p>
+        <button type="button" onClick={() => speak(question.question, locale)} title={t('les.listen')} aria-label={t('les.listen')}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--fill)] hover:text-[var(--text)]">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7m3-10a9 9 0 0 1 0 13"/></svg>
+        </button>
+      </div>
+      <p className="practice-question-translation">{question.translation}</p>
+    </div>
+  </div>;
+}
+
+function PracticeThread({ exchanges, locale }) {
+  const threadRef = useRef(null);
+  useEffect(() => {
+    const thread = threadRef.current;
+    if (thread) thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
+  }, [exchanges]);
+  if (!exchanges.length) return null;
+  return <div ref={threadRef} className="practice-chat-thread" aria-label={t('pron.conversation')}>
+    {exchanges.map((exchange, index) => <div className="practice-chat-exchange" key={`${index}-${exchange.question.question}`}>
+      <PracticeQuestion question={exchange.question} locale={locale} />
+      <p className="practice-chat-user">{exchange.answer}</p>
+      <div className="practice-chat-coach" aria-live="polite">
+        <div className="practice-score"><span>{exchange.evaluation.score}%</span><div className="practice-score-track" aria-hidden="true"><div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${exchange.evaluation.score}%` }}/></div></div>
+        <p className="practice-feedback-text">{exchange.evaluation.feedback}</p>
+        <div className="practice-improved-answer"><p>{exchange.evaluation.improvedAnswer}</p><p>{exchange.evaluation.improvedTranslation}</p></div>
+      </div>
+    </div>)}
+  </div>;
 }

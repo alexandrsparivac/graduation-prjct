@@ -39,8 +39,8 @@ let nativeTurn = 0;
 let nativeUtterance = null;
 let nativeCancel = null;
 
-const FEMALE_VOICE_NAMES = /female|woman|girl|ava|allison|zira|samantha|karen|tessa|victoria|serena|susan|hazel|aria|jenny|libby|sonia|natasha|helena|alina|zoe|ting-ting/i;
-const MALE_VOICE_NAMES = /male|man|boy|aaron|albert|arthur|david|alex|daniel|fred|jorge|thomas|mark|andrew|guy|ryan|liam|matthew|emil|florian|evan|gordon|ralph|rishi|tom|xander|yuri/i;
+const FEMALE_VOICE_NAMES = /\b(?:female|woman|girl|ava|allison|zira|samantha|karen|tessa|victoria|serena|susan|hazel|aria|jenny|libby|sonia|natasha|helena|alina|zoe|ting-ting)(?:multilingual(?:neural)?|neural)?\b/i;
+const MALE_VOICE_NAMES = /\b(?:male|man|boy|aaron|albert|arthur|david|alex|daniel|fred|jorge|thomas|mark|andrew|guy|ryan|liam|matthew|emil|florian|evan|gordon|ralph|rishi|tom|xander|yuri)(?:multilingual(?:neural)?|neural)?\b/i;
 const NATURAL_VOICE_NAMES = /natural|neural|enhanced|premium|siri|google|microsoft|online/i;
 
 function findBrowserVoice(locale, voiceType) {
@@ -49,16 +49,18 @@ function findBrowserVoice(locale, voiceType) {
   if (!voices.length) return null;
   const language = String(locale || '').toLowerCase().split('-')[0];
   const localVoices = voices.filter(voice => voice.lang?.toLowerCase().startsWith(`${language}-`) || voice.lang?.toLowerCase() === language);
-  const candidates = (localVoices.length ? localVoices : voices).slice().sort((a, b) => {
-    // Prefer a natural/high-quality voice, while keeping the user's voice type
-    // as the first priority whenever the installed voice names expose it.
-    const genderScore = voice => voice.gender?.toLowerCase() === voiceType
-      || (voiceType === 'female' ? FEMALE_VOICE_NAMES : MALE_VOICE_NAMES).test(voice.name || '') ? 2 : 0;
-    const qualityScore = voice => NATURAL_VOICE_NAMES.test(voice.name || '') ? 1 : 0;
-    return (genderScore(b) + qualityScore(b)) - (genderScore(a) + qualityScore(a));
-  });
   const namePattern = voiceType === 'female' ? FEMALE_VOICE_NAMES : MALE_VOICE_NAMES;
-  return candidates.find(voice => voice.gender?.toLowerCase() === voiceType || namePattern.test(voice.name || ''))
+  const oppositePattern = voiceType === 'female' ? MALE_VOICE_NAMES : FEMALE_VOICE_NAMES;
+  const matchesVoiceType = voice => {
+    const declaredGender = voice.gender?.toLowerCase();
+    if (declaredGender === voiceType) return true;
+    if (declaredGender === 'male' || declaredGender === 'female') return false;
+    const name = voice.name || '';
+    return !oppositePattern.test(name) && namePattern.test(name);
+  };
+  return (localVoices.length ? localVoices : voices)
+    .filter(matchesVoiceType)
+    .sort((a, b) => Number(NATURAL_VOICE_NAMES.test(b.name || '')) - Number(NATURAL_VOICE_NAMES.test(a.name || '')))[0]
     || null;
 }
 
@@ -109,7 +111,9 @@ export const sttSupported = !!(window.isSecureContext && navigator.mediaDevices?
 export const speak = (text, locale, options = {}) => {
   if (nativeUtterance) stopSpeaking();
   else neural.stop();
-  const speechOptions = { rate: speechRate(), voiceType: speechVoice(), ...options };
+  // The saved preference controls every utterance, including callers that may
+  // pass stale or speaker-specific options while sequencing dialogue lines.
+  const speechOptions = { ...options, rate: options.rate ?? speechRate(), voiceType: speechVoice() };
   return neural.speak(text, locale, {
     ...speechOptions,
     onerror: error => {
@@ -166,6 +170,13 @@ export function listen(locale, callbacks = {}) {
       return recording;
     } catch { /* fall through to the server recorder */ }
   }
+  recording = recordVoice(locale, callbacks);
+  return recording;
+}
+
+// Practice uses OpenAI Whisper for consistent multilingual recognition.
+export function listenWithWhisper(locale, callbacks = {}) {
+  recording?.abort?.();
   recording = recordVoice(locale, callbacks);
   return recording;
 }

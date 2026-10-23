@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Tekrar eşiği: %{n}",
+  "dash.insight.activeDays": "Aktif günler",
+  "dash.insight.latest": "Son puan",
+  "dash.insight.best": "En iyi puan",
+  "dash.insight.thisWeek": "Bu hafta",
+  "dash.insight.lastWeek": "Geçen hafta",
+  "dash.insight.monthTarget": "Aylık hedef ≈ {n}",
   "search.open": "Ara",
   "search.title": "Ders ve kelime ara",
   "search.placeholder": "Ders, konu ve kelime ara…",

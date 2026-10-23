@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Umbral de repaso: {n}%",
+  "dash.insight.activeDays": "Días activos",
+  "dash.insight.latest": "Último resultado",
+  "dash.insight.best": "Mejor resultado",
+  "dash.insight.thisWeek": "Esta semana",
+  "dash.insight.lastWeek": "Semana pasada",
+  "dash.insight.monthTarget": "Meta mensual ≈ {n}",
   "search.open": "Buscar",
   "search.title": "Buscar lecciones y vocabulario",
   "search.placeholder": "Buscar lecciones, temas y palabras…",

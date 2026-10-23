@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase.js';
 import { getProfile, missingSession } from '../lib/auth.js';
-import { getLang, t } from '../lib/legacy.js';
+import { getLang, getPref, setLang, setPref, t, UI_LANGS } from '../lib/legacy.js';
 import { BtnPrimary, BtnSecondary, Field, GoogleBtn, Msg } from '../components/ui.jsx';
+import { applyThemePrefs } from '../lib/theme.js';
 
 const EyeIcon = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -12,7 +13,7 @@ function PwField({ id, label, placeholder, value, onChange, autoComplete, minLen
   const [show, setShow] = useState(false);
   return (
     <Field label={label}>
-      <span className="flex items-center gap-2 border-b border-[var(--border-secondary)] transition-colors duration-300 focus-within:border-[var(--text)]">
+      <span className="flex items-center gap-2 border-b-2 border-[var(--text)]">
         <input
           id={id} type={show ? 'text' : 'password'} value={value} onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder} autoComplete={autoComplete} minLength={minLength} required
@@ -27,6 +28,7 @@ function PwField({ id, label, placeholder, value, onChange, autoComplete, minLen
 }
 
 export default function Login({ onAuthed }) {
+  const reduceMotion = useReducedMotion();
   const [view, setView] = useState('login');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ kind: '', text: '' });
@@ -34,16 +36,21 @@ export default function Login({ onAuthed }) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [interfaceLang, setInterfaceLang] = useState(getLang());
+  const [theme, setTheme] = useState(getPref('theme'));
   const [recoveryUserId, setRecoveryUserId] = useState(null);
-  const formKey = view === 'forgot' && recoveryUserId ? 'reset' : view;
-  const formTitle = formKey === 'login' ? t('auth.login.title')
-    : formKey === 'register' ? t('auth.register.title')
-      : formKey === 'forgot' ? t('forgot.h1') : t('reset.h1');
-  const formSubtitle = formKey === 'login' ? t('auth.login.sub')
-    : formKey === 'register' ? t('auth.register.sub')
-      : formKey === 'forgot' ? t('forgot.sub') : t('reset.sub');
-
   const say = (text, kind = 'error') => setMsg({ kind, text });
+  const changeInterfaceLanguage = async (event) => {
+    const code = event.target.value;
+    await setLang(code);
+    setInterfaceLang(code);
+  };
+  const changeTheme = (event) => {
+    const value = event.target.value;
+    setPref('theme', value);
+    setTheme(value);
+    applyThemePrefs();
+  };
 
   // Password-recovery callback landing in this app (hash params).
   useEffect(() => {
@@ -188,85 +195,114 @@ export default function Login({ onAuthed }) {
   };
 
   return (
+    <>
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className="absolute inset-0 grid place-items-center">
+        <motion.div
+          animate={reduceMotion ? undefined : { x: ['-3vw', '3vw', '-3vw'], y: ['-2vh', '2vh', '-2vh'] }}
+          transition={{ duration: 50, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute h-[66vh] w-[82vw] will-change-transform rounded-full opacity-[0.035]"
+          style={{ backgroundImage: 'radial-gradient(ellipse at center, var(--primary) 0, transparent 62%)' }}
+        />
+      </div>
+    </div>
     <motion.main
       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-auto flex w-full max-w-md flex-1 items-center px-4 py-10 sm:py-14"
+      className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 items-center px-4 py-5 sm:py-8"
     >
       <div className="grid w-full gap-8 sm:gap-10">
-        <div className="flex items-center justify-center gap-2.5">
-          <img src="/img/logo-ld.svg" alt="" className="h-8 w-8 rounded-lg" />
-          <span className="text-sm font-semibold tracking-tight">LD Platform</span>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <img src="/img/logo-ld.svg" alt="" className="h-8 w-8 rounded-lg" />
+            <span className="hidden text-sm font-semibold tracking-tight sm:inline">LD Platform</span>
+          </div>
+          {(view === 'login' || view === 'register') ? (
+            <div role="tablist" aria-label={t('auth.switch.label')} className="flex w-fit justify-self-center rounded-full bg-[var(--fill)] p-0.5">
+              {[
+                { id: 'login', label: t('auth.switch.signIn') },
+                { id: 'register', label: t('auth.switch.signUp') },
+              ].map((option) => (
+                <motion.button
+                  key={option.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === option.id}
+                  onClick={() => view !== option.id && switchView(option.id)}
+                  className={`relative rounded-full px-3 py-1.5 text-xs transition-colors ${view === option.id ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'}`}
+                >
+                  {view === option.id && <motion.span layoutId="auth-active-tab" className="absolute inset-0 rounded-full bg-[var(--bg-container)] shadow-sm" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
+                  <span className="relative z-10">{option.label}</span>
+                </motion.button>
+              ))}
+            </div>
+          ) : <div aria-hidden="true" />}
+          <div className="flex items-center justify-self-end gap-1">
+            <label title={`${t('set.language')}: ${UI_LANGS.find(option => option.code === interfaceLang)?.label || interfaceLang}`} className="relative grid h-10 w-10 cursor-pointer place-items-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--fill)] hover:text-[var(--text)]">
+              <span className="sr-only">{t('set.language')}</span>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg>
+              <select id="auth-interface-language" value={interfaceLang} onChange={changeInterfaceLanguage} aria-label={t('set.language')} className="absolute inset-0 h-full w-full cursor-pointer opacity-0">
+                {UI_LANGS.map(option => <option key={option.code} value={option.code}>{option.label}</option>)}
+              </select>
+            </label>
+            <label title={`${t('set.theme')}: ${t(`set.theme.${theme}`)}`} className="relative grid h-10 w-10 cursor-pointer place-items-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--fill)] hover:text-[var(--text)]">
+              <span className="sr-only">{t('set.theme')}</span>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+              <select id="auth-theme" value={theme} onChange={changeTheme} aria-label={t('set.theme')} className="absolute inset-0 h-full w-full cursor-pointer opacity-0">
+                {['system', 'light', 'dark'].map(option => <option key={option} value={option}>{t(`set.theme.${option}`)}</option>)}
+              </select>
+            </label>
+          </div>
         </div>
-        <div className="grid min-w-0 gap-7">
-          <header className="grid justify-items-center gap-2 text-center">
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{formTitle}</h1>
-            <p className="max-w-sm text-sm leading-relaxed text-[var(--text-secondary)]">{formSubtitle}</p>
-          </header>
-          <section className="grid min-w-0 content-start gap-6">
-            {(view === 'login' || view === 'register') && (
-              <div role="tablist" aria-label={t('auth.switch.label')} className="flex w-fit justify-self-center rounded-full bg-[var(--fill)] p-0.5">
-                {[
-                  { id: 'login', label: t('auth.switch.signIn') },
-                  { id: 'register', label: t('auth.switch.signUp') },
-                ].map((option) => (
-                  <motion.button
-                    key={option.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={view === option.id}
-                    onClick={() => view !== option.id && switchView(option.id)}
-                    className={`relative rounded-full px-3 py-1.5 text-xs transition-colors ${view === option.id ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'}`}
-                  >
-                    {view === option.id && <motion.span layoutId="auth-active-tab" className="absolute inset-0 rounded-full bg-[var(--bg-container)] shadow-sm" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
-                    <span className="relative z-10">{option.label}</span>
-                  </motion.button>
-                ))}
-              </div>
-            )}
+        <div className="mt-6 grid min-w-0 gap-6 sm:mt-8 sm:gap-8">
+          <section className="grid min-w-0 content-start gap-5">
             <AnimatePresence mode="wait" initial={false}>
       {view === 'login' && (
         <motion.section key="login" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="grid gap-5">
           <Msg text={msg.kind === 'error' ? msg.text : ''} />
-          <form onSubmit={submitLogin} className="grid gap-4">
+          <form onSubmit={submitLogin} className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
             <Field label={t('field.email')}>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('ph.email')} autoComplete="email" required
-                className="w-full border-0 border-b border-[var(--border-secondary)] bg-transparent px-0 py-3 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--text)] focus:ring-0 placeholder:text-[var(--text-tertiary)]" />
+                className="w-full border-0 border-b-2 border-[var(--text)] bg-transparent px-0 py-3 text-sm text-[var(--text)] outline-none focus:ring-0 placeholder:text-[var(--text-tertiary)]" />
             </Field>
             <PwField id="login-password" label={t('field.password')} placeholder={t('ph.password')} value={password} onChange={setPassword} autoComplete="current-password" />
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-sm sm:col-span-2">
               <span />
               <button type="button" onClick={() => switchView('forgot')} className="text-[var(--text-secondary)] hover:text-[var(--text)]">
                 {t('login.forgot')}
               </button>
             </div>
-            <BtnPrimary disabled={busy} className="!rounded-lg !py-2.5">{t('login.submit')}</BtnPrimary>
+            <div className="text-center text-xs text-[var(--text-tertiary)] sm:col-span-2">{t('common.or')}</div>
+            <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+              <BtnPrimary disabled={busy} className="!rounded-lg !py-2.5">{t('login.submit')}</BtnPrimary>
+              <GoogleBtn type="button" onClick={google} disabled={busy} className="!rounded-lg !py-2.5">{t('login.google')}</GoogleBtn>
+            </div>
           </form>
-          <div className="text-center text-xs text-[var(--text-tertiary)]">{t('common.or')}</div>
-          <GoogleBtn onClick={google} className="!rounded-lg !py-2.5">{t('login.google')}</GoogleBtn>
         </motion.section>
       )}
 
       {view === 'register' && (
-        <motion.section key="register" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="grid gap-5">
+        <motion.section key="register" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="grid gap-3">
           <Msg text={msg.kind === 'error' ? msg.text : ''} />
           {msg.kind === 'success' && <p className="text-sm text-[var(--ok-text)]">{msg.text}</p>}
-          <form onSubmit={submitRegister} className="grid gap-4">
+          <form onSubmit={submitRegister} className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
             <Field label={t('field.fullName')}>
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('ph.fullName')} autoComplete="name" required
-                className="w-full border-0 border-b border-[var(--border-secondary)] bg-transparent px-0 py-3 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--text)] focus:ring-0 placeholder:text-[var(--text-tertiary)]" />
+                className="w-full border-0 border-b-2 border-[var(--text)] bg-transparent px-0 py-3 text-sm text-[var(--text)] outline-none focus:ring-0 placeholder:text-[var(--text-tertiary)]" />
             </Field>
             <Field label={t('field.email')}>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('ph.email')} autoComplete="email" required
-                className="w-full border-0 border-b border-[var(--border-secondary)] bg-transparent px-0 py-3 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--text)] focus:ring-0 placeholder:text-[var(--text-tertiary)]" />
+                className="w-full border-0 border-b-2 border-[var(--text)] bg-transparent px-0 py-3 text-sm text-[var(--text)] outline-none focus:ring-0 placeholder:text-[var(--text-tertiary)]" />
             </Field>
             <PwField id="reg-password" label={t('field.password')} placeholder={t('ph.min8')} value={password} onChange={setPassword} autoComplete="new-password" minLength={8} />
             <PwField id="reg-confirm" label={t('field.confirmPassword')} placeholder={t('ph.repeatPassword')} value={confirm} onChange={setConfirm} autoComplete="new-password" />
-            <p className="text-xs text-[var(--text-tertiary)]">{t('reg.terms')}</p>
-            <BtnPrimary disabled={busy} className="!rounded-lg !py-2.5">{t('reg.submit')}</BtnPrimary>
+            <p className="text-xs text-[var(--text-tertiary)] sm:col-span-2">{t('reg.terms')}</p>
+            <div className="text-center text-xs text-[var(--text-tertiary)] sm:col-span-2">{t('common.or')}</div>
+            <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+              <BtnPrimary disabled={busy} className="!rounded-lg !py-2.5">{t('reg.submit')}</BtnPrimary>
+              <GoogleBtn type="button" onClick={google} disabled={busy} className="!rounded-lg !py-2.5">{t('login.google')}</GoogleBtn>
+            </div>
           </form>
-          <div className="text-center text-xs text-[var(--text-tertiary)]">{t('common.or')}</div>
-          <GoogleBtn onClick={google} className="!rounded-lg !py-2.5">{t('login.google')}</GoogleBtn>
         </motion.section>
       )}
 
@@ -276,7 +312,7 @@ export default function Login({ onAuthed }) {
           {msg.kind === 'success' && <p className="text-sm text-[var(--ok-text)]">{msg.text}</p>}
           <form onSubmit={submitForgot} className="grid gap-4">
             <Field label={t('field.email')}>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('ph.email')} autoComplete="email" required className="w-full border-0 border-b border-[var(--border-secondary)] bg-transparent px-0 py-3 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--text)] focus:ring-0 placeholder:text-[var(--text-tertiary)]" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('ph.email')} autoComplete="email" required className="w-full border-0 border-b-2 border-[var(--text)] bg-transparent px-0 py-3 text-sm text-[var(--text)] outline-none focus:ring-0 placeholder:text-[var(--text-tertiary)]" />
             </Field>
             <BtnPrimary disabled={busy} className="!rounded-lg !py-2.5">{t('forgot.submit')}</BtnPrimary>
           </form>
@@ -300,5 +336,6 @@ export default function Login({ onAuthed }) {
         </div>
       </div>
     </motion.main>
+    </>
   );
 }

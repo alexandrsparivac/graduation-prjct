@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Práh opakování: {n}%",
+  "dash.insight.activeDays": "Aktivní dny",
+  "dash.insight.latest": "Poslední skóre",
+  "dash.insight.best": "Nejlepší skóre",
+  "dash.insight.thisWeek": "Tento týden",
+  "dash.insight.lastWeek": "Minulý týden",
+  "dash.insight.monthTarget": "Měsíční cíl ≈ {n}",
   "search.open": "Hledat",
   "search.title": "Hledat lekce a slovíčka",
   "search.placeholder": "Hledat lekce, témata a slova…",

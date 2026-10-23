@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import React, { useCallback, useState } from 'react';
+import { addNotification } from '../lib/notifications.js';
 
 export const rise = {
   hidden: { opacity: 0, y: 14 },
@@ -111,13 +112,19 @@ export function MotionView({ k, children }) {
 export function useToast() {  const [toast, setToast] = useState(null);
   const show = useCallback((text, kind = 'success') => {
     setToast({ text, kind, id: Date.now() });
+    addNotification(text, kind);
   }, []);
+  React.useEffect(() => {
+    if (!toast) return undefined;
+    const timeout = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
   const node = toast ? (
     <motion.div
       key={toast.id}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg border px-4 py-2 text-sm shadow-xl ${
+      className={`fixed bottom-3 right-3 z-50 w-max max-w-[calc(100vw-1.5rem)] rounded-xl border px-4 py-2 text-sm shadow-xl sm:bottom-6 sm:right-6 sm:max-w-[calc(100vw-3rem)] ${
         toast.kind === 'error'
           ? 'border-[var(--danger-border)] bg-[var(--danger-bg)] text-[var(--danger-text)]'
           : 'border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text)]'

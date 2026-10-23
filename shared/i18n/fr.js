@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Seuil de révision : {n}%",
+  "dash.insight.activeDays": "Jours actifs",
+  "dash.insight.latest": "Dernier score",
+  "dash.insight.best": "Meilleur score",
+  "dash.insight.thisWeek": "Cette semaine",
+  "dash.insight.lastWeek": "Semaine passée",
+  "dash.insight.monthTarget": "Objectif mensuel ≈ {n}",
   "search.open": "Rechercher",
   "search.title": "Rechercher des leçons et du vocabulaire",
   "search.placeholder": "Rechercher des leçons, des thèmes et des mots…",

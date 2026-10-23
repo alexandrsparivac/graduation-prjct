@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Kertausraja: {n}%",
+  "dash.insight.activeDays": "Aktiiviset päivät",
+  "dash.insight.latest": "Viimeisin tulos",
+  "dash.insight.best": "Paras tulos",
+  "dash.insight.thisWeek": "Tällä viikolla",
+  "dash.insight.lastWeek": "Viime viikolla",
+  "dash.insight.monthTarget": "Kuukausitavoite ≈ {n}",
   "search.open": "Haku",
   "search.title": "Hae oppitunteja ja sanastoa",
   "search.placeholder": "Hae oppitunteja, aiheita ja sanoja…",

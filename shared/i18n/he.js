@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "סף חזרה: {n}%",
+  "dash.insight.activeDays": "ימים פעילים",
+  "dash.insight.latest": "הציון האחרון",
+  "dash.insight.best": "הציון הטוב ביותר",
+  "dash.insight.thisWeek": "השבוע",
+  "dash.insight.lastWeek": "בשבוע שעבר",
+  "dash.insight.monthTarget": "יעד חודשי ≈ {n}",
   "search.open": "חיפוש",
   "search.title": "חיפוש שיעורים ואוצר מילים",
   "search.placeholder": "חיפוש שיעורים, נושאים ומילים…",

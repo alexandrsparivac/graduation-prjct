@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Repetitionsgräns: {n}%",
+  "dash.insight.activeDays": "Aktiva dagar",
+  "dash.insight.latest": "Senaste resultat",
+  "dash.insight.best": "Bästa resultat",
+  "dash.insight.thisWeek": "Denna vecka",
+  "dash.insight.lastWeek": "Förra veckan",
+  "dash.insight.monthTarget": "Månadsmål ≈ {n}",
   "search.open": "Sök",
   "search.title": "Sök lektioner och ord",
   "search.placeholder": "Sök lektioner, ämnen och ord…",

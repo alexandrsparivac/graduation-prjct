@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "复习阈值：{n}%",
+  "dash.insight.activeDays": "活跃天数",
+  "dash.insight.latest": "最近得分",
+  "dash.insight.best": "最高得分",
+  "dash.insight.thisWeek": "本周",
+  "dash.insight.lastWeek": "上周",
+  "dash.insight.monthTarget": "月度目标 ≈ {n}",
   "search.open": "搜索",
   "search.title": "搜索课程和词汇",
   "search.placeholder": "搜索课程、主题和单词…",

@@ -21,8 +21,10 @@ import Docs from './pages/Docs.jsx';
 import Vocab from './pages/Vocab.jsx';
 import Plan from './pages/Plan.jsx';
 import Pronunciation from './pages/Pronunciation.jsx';
+import Notifications from './pages/Notifications.jsx';
+import { isAiQuotaReached } from './lib/ai-quota.js';
 
-const APP_VIEWS = new Set(['dashboard', 'lessons', 'guide', 'docs', 'onboarding', 'settings', 'review', 'lesson', 'vocab', 'plan', 'pronunciation']);
+const APP_VIEWS = new Set(['dashboard', 'lessons', 'guide', 'docs', 'onboarding', 'settings', 'review', 'lesson', 'vocab', 'plan', 'pronunciation', 'notifications']);
 
 function ChatGPTIcon() {
   return (
@@ -66,6 +68,7 @@ export default function App() {
   const [vocabQuery, setVocabQuery] = useState('');
   const [settingsTab, setSettingsTab] = useState('profile');
   const [showProfileWelcome, setShowProfileWelcome] = useState(false);
+  const [showQuotaNotice, setShowQuotaNotice] = useState(() => isAiQuotaReached(t('les.quota')));
   const nav = (v) => {
     if (v !== 'onboarding') setObAdd(false);
     if (v === 'settings') setSettingsTab('profile');
@@ -100,6 +103,18 @@ export default function App() {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user || null));
     return () => { off(); sub.subscription.unsubscribe(); };
   }, []);
+
+  useEffect(() => {
+    const showNotice = () => setShowQuotaNotice(true);
+    window.addEventListener('ld:ai-quota-reached', showNotice);
+    return () => window.removeEventListener('ld:ai-quota-reached', showNotice);
+  }, []);
+
+  useEffect(() => {
+    if (!showQuotaNotice) return undefined;
+    const timeout = window.setTimeout(() => setShowQuotaNotice(false), 8000);
+    return () => window.clearTimeout(timeout);
+  }, [showQuotaNotice]);
 
   useEffect(() => {
     if (!user) {
@@ -150,6 +165,7 @@ export default function App() {
       : view === 'vocab' ? t('voc.title')
       : view === 'plan' ? t('plan.pageTitle')
       : view === 'pronunciation' ? t('pron.pageTitle')
+      : view === 'notifications' ? t('notifications.pageTitle')
       : view === 'onboarding' ? t('ob.pageTitle')
       : view === 'docs' ? t({ faq: 'faq.pageTitle', terms: 'terms.pageTitle', priv: 'priv.pageTitle' }[doc])
       : t('login.pageTitle');
@@ -226,6 +242,18 @@ export default function App() {
     <div className={`min-h-screen ${headerLayout === 'left' ? 'flex' : 'flex flex-col'}`}>
       <AmbientGL />
       <Topbar layout={headerLayout} user={user} profile={profile} view={view === 'lesson' ? 'lessons' : APP_VIEWS.has(view) ? view : 'dashboard'} onNav={nav} activeLang={activeLang} onStartLesson={startLesson} onSearchVocabulary={(query) => { setVocabQuery(query); setView('vocab'); }} />
+      {showQuotaNotice && (
+        <motion.div
+          role="status"
+          aria-live="polite"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed bottom-6 right-6 z-50 flex w-max max-w-[calc(100vw-3rem)] items-start gap-3 rounded-lg border border-[var(--danger-border)] bg-[var(--danger-bg)] px-4 py-2 text-sm text-[var(--danger-text)] shadow-xl"
+        >
+          <span>{t('les.quota')}</span>
+          <button type="button" onClick={() => setShowQuotaNotice(false)} aria-label={t('common.close')} className="shrink-0 rounded px-1 font-semibold hover:bg-black/5">×</button>
+        </motion.div>
+      )}
       <div className="flex min-w-0 flex-1 flex-col">
       <AnimatePresence mode="wait">
         {view === 'dashboard' && (
@@ -254,6 +282,11 @@ export default function App() {
         {view === 'pronunciation' && (
           <MotionView key="pronunciation">
             <Pronunciation key={user.id} user={user} />
+          </MotionView>
+        )}
+        {view === 'notifications' && (
+          <MotionView key="notifications">
+            <Notifications />
           </MotionView>
         )}
         {view === 'plan' && (

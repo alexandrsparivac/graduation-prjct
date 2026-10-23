@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Όριο επανάληψης: {n}%",
+  "dash.insight.activeDays": "Ενεργές ημέρες",
+  "dash.insight.latest": "Τελευταία βαθμολογία",
+  "dash.insight.best": "Καλύτερη βαθμολογία",
+  "dash.insight.thisWeek": "Αυτή την εβδομάδα",
+  "dash.insight.lastWeek": "Προηγούμενη εβδομάδα",
+  "dash.insight.monthTarget": "Μηνιαίος στόχος ≈ {n}",
   "search.open": "Αναζήτηση",
   "search.title": "Αναζήτηση μαθημάτων και λεξιλογίου",
   "search.placeholder": "Αναζήτηση μαθημάτων, θεμάτων και λέξεων…",

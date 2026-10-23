@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import express from 'express';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildSectionPrompt, parseSectionResult, validateLesson, mergeSections, SECTION_TOKENS, SECTION_MIN_TOKENS, sectionRetryPrompt, buildLessonReviewPrompt, parseLessonReview, extractJson } from './lib/lesson-prompt.js';
 import { prepareLessonContext, lessonRequestKey, validateCoreNovelty, validatePhraseNovelty, generateLessonParts, LEVEL_DESIGNS } from './lib/lesson-design.js';
 import { speechInput, createSpeechService } from './lib/tts.js';
@@ -231,7 +231,7 @@ app.post('/api/transcription', express.raw({ type: 'audio/*', limit: MAX_RECORDI
     if (transcriptionRequests.size > 1000) transcriptionRequests.delete(transcriptionRequests.keys().next().value);
     transcribing++;
     acquired = true;
-    const text = await transcribeSpeech(input, { apiKey: process.env.GROQ_API_KEY, signal: controller.signal });
+    const text = await transcribeSpeech(input, { signal: controller.signal });
     res.set('Cache-Control', 'no-store').json({ text });
   } catch (error) {
     if (!controller.signal.aborted) {
@@ -1141,7 +1141,7 @@ app.post('/api/lesson', async (req, res) => {
   }
 });
 
-const PRACTICE_TURN_LIMIT = 5;
+const PRACTICE_TURN_LIMIT = 10;
 
 // A focused Q&A practice session, separate from full lesson generation.
 app.post('/api/practice', async (req, res) => {
@@ -1220,9 +1220,9 @@ What a good answer should cover (guidance, not an exact-answer checklist): ${JSO
 Learner's answer in the target language: ${answer.trim()}
 Earlier turns in this same conversation: ${JSON.stringify(history)}
 Judge whether the answer actually responds to the question and covers the key idea(s). Accept different valid answers and wording. Do not require exact phrase matching. If the answer is factually wrong for the topic, explain the issue. Separately consider whether the target-language wording is understandable and appropriate for CEFR ${ctx.level}; do not over-penalize small grammar/spelling errors when meaning is clear.
-Give an integer score from 0 to 100: content relevance/correctness is the main factor (about 70%), language clarity is the rest. Empty or unrelated answers score low.
+Give an integer score from 0 to 100: content relevance/correctness is the main factor (about 70%), language clarity is the rest. Empty or unrelated answers score low. In feedback, clearly identify the learner's main grammar, vocabulary, or word-order mistakes when present, explain the correction briefly in ${ctx.nativeLanguage}, and acknowledge what they did well. If there are no meaningful mistakes, say so and offer one natural improvement.
 If this is not the final turn (turn ${turn} of ${PRACTICE_TURN_LIMIT}), continue the conversation with one concise, natural follow-up question in ${ctx.language}. It must react to what the learner just said, stay on the selected topic, and invite a little more detail; do not repeat the opening question. If the learner's response is unclear, ask a helpful clarification. Include its translation and 1-3 answer criteria in ${ctx.nativeLanguage}. On the final turn, set followUp to null.
-Return exactly: {"score":integer,"feedback":"short, specific feedback in ${ctx.nativeLanguage}","improvedAnswer":"a natural improved answer in ${ctx.language}, preserving the learner's meaning; if useful, offer a concise model answer","improvedTranslation":"meaning of improvedAnswer in ${ctx.nativeLanguage}","followUp":{"question":"next conversational question in ${ctx.language}","translation":"meaning in ${ctx.nativeLanguage}","criteria":["answer idea in ${ctx.nativeLanguage}"]}}. Use followUp null on the final turn. Do not claim phonetic analysis.` },
+Return exactly: {"score":integer,"feedback":"short, specific feedback with corrections in ${ctx.nativeLanguage}","improvedAnswer":"a natural corrected version of the learner's answer in ${ctx.language}, preserving their meaning; if the original is already correct, provide a more natural alternative","improvedTranslation":"meaning of improvedAnswer in ${ctx.nativeLanguage}","followUp":{"question":"next conversational question in ${ctx.language}","translation":"meaning in ${ctx.nativeLanguage}","criteria":["answer idea in ${ctx.nativeLanguage}"]}}. Use followUp null on the final turn. Do not claim phonetic analysis.` },
     ];
     const result = await requestGroq(messages, 1300, FAST_MODEL, 0.2, null, 45_000);
     if (!result.raw) {
@@ -1294,7 +1294,7 @@ app.post('/api/lesson/stream', async (req, res) => {
     const results = await generateLessonParts(ctx, generateSection, deadline, controller.signal, result => {
       if (result.data) send(result.section === 'core' ? 'core' : 'section', { section: result.section, data: result.data });
     }, readyParts => {
-      if (ctx.requestedSections) send('ready', { lesson: partialLessonFromSections(readyParts) });
+      send('ready', { lesson: partialLessonFromSections(readyParts) });
     });
     const failed = results.filter(result => !result.data);
     if (failed.length) {
@@ -1345,6 +1345,10 @@ if (existsSync(path.join(webDist, 'index.html'))) {
   app.get('/', (_req, res) => res.status(503).json({ error: 'frontend_not_built' }));
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}
+
+export default app;

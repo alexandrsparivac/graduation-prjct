@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Порог повторения: {n}%",
+  "dash.insight.activeDays": "Активные дни",
+  "dash.insight.latest": "Последний результат",
+  "dash.insight.best": "Лучший результат",
+  "dash.insight.thisWeek": "Эта неделя",
+  "dash.insight.lastWeek": "Прошлая неделя",
+  "dash.insight.monthTarget": "Цель на месяц ≈ {n}",
   "search.open": "Поиск",
   "search.title": "Поиск уроков и слов",
   "search.placeholder": "Поиск уроков, тем и слов…",

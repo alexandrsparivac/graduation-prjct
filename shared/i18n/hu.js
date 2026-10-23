@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Ismétlési küszöb: {n}%",
+  "dash.insight.activeDays": "Aktív napok",
+  "dash.insight.latest": "Legutóbbi eredmény",
+  "dash.insight.best": "Legjobb eredmény",
+  "dash.insight.thisWeek": "Ezen a héten",
+  "dash.insight.lastWeek": "Múlt héten",
+  "dash.insight.monthTarget": "Havi cél ≈ {n}",
   "search.open": "Keresés",
   "search.title": "Leckék és szókincs keresése",
   "search.placeholder": "Leckék, témák és szavak keresése…",

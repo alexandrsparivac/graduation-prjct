@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "Limite de revisão: {n}%",
+  "dash.insight.activeDays": "Dias ativos",
+  "dash.insight.latest": "Última pontuação",
+  "dash.insight.best": "Melhor pontuação",
+  "dash.insight.thisWeek": "Esta semana",
+  "dash.insight.lastWeek": "Semana passada",
+  "dash.insight.monthTarget": "Meta mensal ≈ {n}",
   "search.open": "Pesquisar",
   "search.title": "Pesquisar aulas e vocabulário",
   "search.placeholder": "Pesquisar aulas, tópicos e palavras…",

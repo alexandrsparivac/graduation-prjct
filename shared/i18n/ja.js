@@ -1,4 +1,11 @@
 export default {
+  "dash.insight.threshold": "復習の目安：{n}%",
+  "dash.insight.activeDays": "学習した日数",
+  "dash.insight.latest": "直近のスコア",
+  "dash.insight.best": "最高スコア",
+  "dash.insight.thisWeek": "今週",
+  "dash.insight.lastWeek": "先週",
+  "dash.insight.monthTarget": "月間目標 ≈ {n}",
   "search.open": "検索",
   "search.title": "レッスンと語彙を検索",
   "search.placeholder": "レッスン、トピック、単語を検索…",

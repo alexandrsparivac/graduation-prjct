@@ -148,7 +148,7 @@ export default function Vocab({ initialQuery = '' }) {
               <motion.div
                 key={`${c.kind}:${c.term}`}
                 variants={card}
-                className="flex h-full items-start justify-between gap-3 rounded-xl border border-[var(--border-secondary)] bg-[var(--bg-container)] px-4 py-3"
+                className="vocab-card flex h-full items-start justify-between gap-3 rounded-xl border border-[var(--border-secondary)] bg-[var(--bg-container)] px-4 py-3"
               >
                 <div className="grid min-w-0 gap-0.5">
                   <div className="flex flex-wrap items-center gap-2">
